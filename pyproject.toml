@@ -15,6 +15,8 @@ choicelib = "^0.1.5"
 certifi = "^2022.6.15"
 PyYAML = "^6.0"
 envparse = "^0.2.0"
+mubble = { git = "https://github.com/vladislavkovalskyi/mubble.git", branch = "master" }
+
 
 [tool.poetry.dev-dependencies]
 
