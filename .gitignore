@@ -1,3 +1,5 @@
+dist
+tests.py
 __pycache__
 .env
-tests.py
+poetry.lock
