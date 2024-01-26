@@ -1,7 +1,8 @@
 [tool.poetry]
 name = "mubble"
-version = "0.1"
+version = "0.1.1"
 description = "Async Telegram framework for bot building"
+readme = "README.md"
 authors = ["vladislavkovalskyi <vladislavkovalskyi@icloud.com>"]
 license = "MIT"
 
@@ -15,8 +16,6 @@ choicelib = "^0.1.5"
 certifi = "^2022.6.15"
 PyYAML = "^6.0"
 envparse = "^0.2.0"
-mubble = { git = "https://github.com/vladislavkovalskyi/mubble.git", branch = "master" }
-
 
 [tool.poetry.dev-dependencies]
 
