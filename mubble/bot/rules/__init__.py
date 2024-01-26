@@ -1,7 +1,7 @@
 from .abc import ABCRule, MessageRule, AndRule, OrRule
 from .callback_data import (
-    CallbackDataEq,
-    CallbackDataJsonEq,
+    CallbackData,
+    CallbackDataJson,
     CallbackDataJsonModel,
     CallbackDataMarkup,
 )

@@ -20,15 +20,15 @@ class CallbackQueryRule(ABCRule[CallbackQuery], abc.ABC):
         pass
 
 
-class CallbackDataEq(CallbackQueryRule):
-    def __init__(self, value: str):
-        self.value = value
+class CallbackData(CallbackQueryRule):
+    def __init__(self, values: str | list[str]):
+        self.values = values
 
     async def check(self, event: CallbackQuery, ctx: dict) -> bool:
-        return event.data == self.value
+        return event.data in self.values
 
 
-class CallbackDataJsonEq(CallbackQueryRule):
+class CallbackDataJson(CallbackQueryRule):
     def __init__(self, d: dict):
         self.d = d
 
@@ -36,7 +36,6 @@ class CallbackDataJsonEq(CallbackQueryRule):
         if not event.data:
             return False
         try:
-            # todo: use msgspec
             return json.loads(event.data) == self.d
         except:
             return False
