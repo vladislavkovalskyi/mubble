@@ -1,5 +1,5 @@
 # Mubble
-![Mubble logo](docs/images/mubble_logo.png)
+![Mubble logo](images/mubble_logo.png)
 [![Downloads](https://img.shields.io/pypi/dm/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
 [![Downloads](https://img.shields.io/pypi/pyversions/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
 
@@ -21,6 +21,11 @@ Using **poetry**
 ```bash
 poetry add mubble
 ```
+
+### Examples:
+You can use this file to familiarize yourself with the syntax of the framework.
+[![Click me](./images/examples_button.png)](./examples/start.md)
+
 
 ### Simple bot example:
 ```python
