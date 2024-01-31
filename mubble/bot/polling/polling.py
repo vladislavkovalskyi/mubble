@@ -1,46 +1,62 @@
-import traceback
 import asyncio
+import typing
 
-import msgspec.json
+import aiohttp
 
-from .abc import ABCPolling
 from mubble.api.abc import ABCAPI
 from mubble.api.error import InvalidTokenError
-import typing
+from mubble.bot.polling.abc import ABCPolling
+from mubble.model import Raw, decoder
 from mubble.modules import logger
-from mubble.model import Raw
-from mubble.types import Update
-from mubble.result import Ok, Error
-
-ALLOWED_UPDATES = [
-    "update_id",
-    "message",
-    "edited_message",
-    "channel_post",
-    "edited_channel_post",
-    "inline_query",
-    "chosen_inline_result",
-    "callback_query",
-    "shipping_query",
-    "pre_checkout_query",
-    "poll",
-    "poll_answer",
-    "my_chat_member",
-    "chat_member",
-    "chat_join_request",
-]
+from mubble.result import Error, Ok
+from mubble.types import Update, UpdateType
 
 
 class Polling(ABCPolling):
     def __init__(
         self,
-        api: ABCAPI | None = None,
-        offset: int | None = None,
+        api: ABCAPI,
+        *,
+        offset: int = 0,
+        reconnection_timeout: float = 5,
+        max_reconnetions: int = 10,
+        include_updates: set[str | UpdateType] | None = None,
+        exclude_updates: set[str | UpdateType] | None = None,
     ):
         self.api = api
-        self.offset = offset or 0
+        self.allowed_updates = self.get_allowed_updates(
+            include_updates=include_updates,
+            exclude_updates=exclude_updates,
+        )
+        self.reconnection_timeout = (
+            5 if reconnection_timeout < 0 else reconnection_timeout
+        )
+        self.max_reconnetions = 10 if max_reconnetions < 0 else max_reconnetions
+        self.offset = offset
         self._stop = False
-        self.allowed_updates = ALLOWED_UPDATES
+
+    def get_allowed_updates(
+        self,
+        *,
+        include_updates: set[str | UpdateType] | None = None,
+        exclude_updates: set[str | UpdateType] | None = None,
+    ) -> list[str]:
+        allowed_updates: list[str] = list(x.value for x in UpdateType)
+        if not include_updates and not exclude_updates:
+            return allowed_updates
+
+        if include_updates and exclude_updates:
+            allowed_updates = [
+                x
+                for x in allowed_updates
+                if x in include_updates and x not in exclude_updates
+            ]
+        elif exclude_updates:
+            allowed_updates = [x for x in allowed_updates if x not in exclude_updates]
+        elif include_updates:
+            allowed_updates = [x for x in allowed_updates if x in include_updates]
+
+        return [x.value if isinstance(x, UpdateType) else x for x in allowed_updates]
 
     async def get_updates(self) -> Raw | None:
         raw_updates = await self.api.request_raw(
@@ -53,26 +69,53 @@ class Polling(ABCPolling):
             case Error(err) if err.code in (401, 404):
                 raise InvalidTokenError("Token seems to be invalid")
 
-    async def listen(self) -> typing.AsyncIterator[list[Update]]:
+    async def listen(self) -> typing.AsyncGenerator[list[Update], None]:
         logger.debug("Listening polling")
+        reconn_counter = 0
+
         while not self._stop:
             try:
                 updates = await self.get_updates()
-                updates_list: list[Update] = msgspec.json.decode(
-                    updates, type=list[Update]
-                )
+                reconn_counter = 0
+                if not updates:
+                    continue
+                updates_list: list[Update] = decoder.decode(updates, type=list[Update])
                 if updates_list:
                     yield updates_list
                     self.offset = updates_list[-1].update_id + 1
             except InvalidTokenError as e:
                 logger.error(e)
+                self.stop()
                 exit(6)
             except asyncio.CancelledError:
+                logger.info("Caught cancel, polling stopping...")
                 self.stop()
-                logger.info("Caught cancel, stopping")
+            except (aiohttp.client.ServerConnectionError, TimeoutError):
+                if reconn_counter > self.max_reconnetions:
+                    logger.error(
+                        "Failed to reconnect to the server after {} attempts, polling stopping.",
+                        self.max_reconnetions,
+                    )
+                    self.stop()
+                    exit(9)
+                else:
+                    logger.warning(
+                        "Server disconnected, waiting 5 seconds to reconnetion..."
+                    )
+                    reconn_counter += 1
+                    await asyncio.sleep(self.reconnection_timeout)
+            except aiohttp.ClientConnectorError:
+                logger.error(
+                    "Client connection failed, polling stopping! "
+                    "Please, check your internet connection."
+                )
+                self.stop()
+                exit(3)
             except BaseException as e:
-                traceback.print_exc()
-                logger.error(e)
+                logger.exception(e)
 
     def stop(self) -> None:
         self._stop = True
+
+
+__all__ = ("Polling",)

@@ -1,39 +1,66 @@
-import typing
-import types
-from mubble.bot.rules import ABCRule
-from mubble.tools import magic_bundle
-from mubble.bot.dispatch.process import check_rule
-from mubble.types import Update
+import typing_extensions as typing
+
 from mubble.api.abc import ABCAPI
-from .abc import ABCHandler
+from mubble.bot.cute_types import BaseCute
+from mubble.bot.dispatch.context import Context
+from mubble.bot.dispatch.process import check_rule
 from mubble.modules import logger
+from mubble.tools.error_handler import ABCErrorHandler, ErrorHandler
+from mubble.types import Update
 
-T = typing.TypeVar("T")
+from .abc import ABCHandler
+
+if typing.TYPE_CHECKING:
+    from mubble.bot.rules import ABCRule
+
+F = typing.TypeVar(
+    "F", bound=typing.Callable[typing.Concatenate[typing.Any, ...], typing.Awaitable]
+)
+EventT = typing.TypeVar("EventT", bound=BaseCute)
+ErrorHandlerT = typing.TypeVar(
+    "ErrorHandlerT", bound=ABCErrorHandler, default=ErrorHandler
+)
 
 
-class FuncHandler(ABCHandler, typing.Generic[T]):
+class FuncHandler(ABCHandler[EventT], typing.Generic[EventT, F, ErrorHandlerT]):
     def __init__(
         self,
-        func: types.FunctionType | typing.Callable,
-        rules: list[ABCRule],
+        func: F,
+        rules: list["ABCRule[EventT]"],
         is_blocking: bool = True,
-        dataclass: typing.Any | None = dict,
+        dataclass: type[typing.Any] | None = dict,
+        error_handler: ErrorHandlerT | None = None,
     ):
         self.func = func
         self.is_blocking = is_blocking
         self.rules = rules
         self.dataclass = dataclass
-        self.ctx = {}
+        self.error_handler: ErrorHandlerT = error_handler or ErrorHandler()  # type: ignore
+        self.ctx = Context()
 
-    async def check(self, api: ABCAPI, event: Update) -> bool:
-        self.ctx = {}
+    @property
+    def on_error(self):
+        return self.error_handler.catch
+
+    async def check(
+        self, api: ABCAPI, event: Update, ctx: Context | None = None
+    ) -> bool:
+        ctx = ctx or Context()
+        preset_ctx = self.ctx.copy()
+        self.ctx |= ctx
         for rule in self.rules:
             if not await check_rule(api, rule, event, self.ctx):
-                logger.debug("Rule {} failed", rule)
+                logger.debug("Rule {!r} failed!", rule)
+                self.ctx = preset_ctx
                 return False
         return True
 
-    async def run(self, event: T) -> typing.Any:
-        if self.dataclass:
-            event = self.dataclass(**event)
-        return await self.func(event, **magic_bundle(self.func, self.ctx))
+    async def run(self, event: EventT) -> typing.Any:
+        if self.dataclass is not None:
+            event = self.dataclass(**event.to_dict())
+        return (
+            await self.error_handler.run(self.func, event, event.api, self.ctx)
+        ).unwrap()
+
+
+__all__ = ("FuncHandler",)

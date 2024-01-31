@@ -1,8 +1,8 @@
-from abc import ABC, abstractmethod
+import pathlib
 import typing
+from abc import ABC, abstractmethod
 
 import msgspec
-
 from envparse import env
 
 from mubble.api.error import APIError
@@ -15,18 +15,21 @@ from .error import InvalidTokenError
 class Token(str):
     def __new__(cls, token: str) -> typing.Self:
         if token.count(":") != 1 or not token.split(":")[0].isdigit():
-            raise InvalidTokenError("Invalid token, it should be like this '123:ABC'")
+            raise InvalidTokenError(
+                "Invalid token, it should look like this '123:abc'."
+            )
         return super().__new__(cls, token)
 
     @classmethod
     def from_env(
         cls,
         var_name: str = "BOT_TOKEN",
+        *,
         is_read: bool = False,
-        path_to_env: str | None = None,
+        path_to_envfile: str | pathlib.Path | None = None,
     ) -> typing.Self:
         if not is_read:
-            env.read_envfile(path_to_env)
+            env.read_envfile(path_to_envfile)
         return cls(env.str(var_name))
 
     @property
@@ -62,3 +65,6 @@ class ABCAPI(ABC):
     @abstractmethod
     def id(self) -> int:
         pass
+
+
+__all__ = ("ABCAPI", "Token")

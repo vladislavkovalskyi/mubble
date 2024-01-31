@@ -1,43 +1,89 @@
+import typing
+
+from mubble.api import ABCAPI, APIError
+from mubble.model import get_params
+from mubble.option import Nothing, Some
+from mubble.option.msgspec_option import Option
+from mubble.result import Result
 from mubble.types import (
+    ForceReply,
+    InlineKeyboardMarkup,
     Message,
     MessageEntity,
+    ReactionType,
+    ReactionTypeEmoji,
+    ReactionTypeType,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    User,
+)
+
+from .base import BaseCute
+
+ReplyMarkup = typing.Union[
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
     ForceReply,
-)
-from mubble.model import get_params
-from mubble.api import API, APIError
-from mubble.result import Result
-import typing
+]
 
 
-class MessageCute(Message):
-    api: API
+def get_entity_value(
+    entities: list[MessageEntity], entity_value: str
+) -> Option[typing.Any]:
+    for entity in entities:
+        if obj := getattr(entity, entity_value, Nothing):
+            return Some(obj.value if isinstance(obj, Some) else obj)
+    return Nothing
+
+
+class MessageCute(BaseCute[Message], Message, kw_only=True):
+    api: ABCAPI
 
     @property
-    def ctx_api(self) -> API:
-        return self.api
+    def mentioned_user(self) -> Option[User]:
+        """Mentioned user without username."""
+
+        if not self.entities:
+            return Nothing
+        return get_entity_value(self.entities.unwrap(), "user")
+
+    @property
+    def url(self) -> Option[str]:
+        """Clickable text URL."""
+
+        if not self.entities:
+            return Nothing
+        return get_entity_value(self.entities.unwrap(), "url")
+
+    @property
+    def programming_language(self) -> Option[str]:
+        """The programming language of the entity text."""
+
+        if not self.entities:
+            return Nothing
+        return get_entity_value(self.entities.unwrap(), "language")
+
+    @property
+    def custom_emoji_id(self) -> Option[str]:
+        """Unique identifier of the custom emoji."""
+
+        if not self.entities:
+            return Nothing
+        return get_entity_value(self.entities.unwrap(), "custom_emoji_id")
 
     async def answer(
         self,
-        text: str | None = None,
-        parse_mode: str | None = None,
-        entities: list["MessageEntity"] | None = None,
-        disable_web_page_preview: bool | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_to_message_id: int | None = None,
-        allow_sending_without_reply: bool | None = None,
-        reply_markup: typing.Optional[
-            typing.Union[
-                "InlineKeyboardMarkup",
-                "ReplyKeyboardMarkup",
-                "ReplyKeyboardRemove",
-                "ForceReply",
-            ]
-        ] = None,
-        **other
+        text: str | Option[str] = Nothing,
+        parse_mode: str | Option[str] = Nothing,
+        entities: list[MessageEntity] | Option[list[MessageEntity]] = Nothing,
+        disable_web_page_preview: bool | Option[bool] = Nothing,
+        disable_notification: bool | Option[bool] = Nothing,
+        protect_content: bool | Option[bool] = Nothing,
+        reply_to_message_id: int | Option[int] = Nothing,
+        allow_sending_without_reply: bool | Option[bool] = Nothing,
+        reply_markup: ReplyMarkup | Option[ReplyMarkup] = Nothing,
+        **other: typing.Any,
     ) -> Result["Message", APIError]:
         params = get_params(locals())
         if "message_thread_id" not in params and self.is_topic_message:
@@ -46,50 +92,78 @@ class MessageCute(Message):
 
     async def reply(
         self,
-        text: str | None = None,
-        parse_mode: str | None = None,
-        entities: list["MessageEntity"] | None = None,
-        disable_web_page_preview: bool | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        allow_sending_without_reply: bool | None = None,
-        reply_markup: typing.Optional[
-            typing.Union[
-                "InlineKeyboardMarkup",
-                "ReplyKeyboardMarkup",
-                "ReplyKeyboardRemove",
-                "ForceReply",
-            ]
-        ] = None,
-        **other
+        text: str | Option[str] = Nothing,
+        parse_mode: str | Option[str] = Nothing,
+        entities: list[MessageEntity] | Option[list[MessageEntity]] = Nothing,
+        disable_web_page_preview: bool | Option[bool] = Nothing,
+        disable_notification: bool | Option[bool] = Nothing,
+        protect_content: bool | Option[bool] = Nothing,
+        allow_sending_without_reply: bool | Option[bool] = Nothing,
+        reply_markup: ReplyMarkup | Option[ReplyMarkup] = Nothing,
+        **other: typing.Any,
     ) -> Result["Message", APIError]:
         params = get_params(locals())
         if "message_thread_id" not in params and self.is_topic_message:
             params["message_thread_id"] = self.message_thread_id
         return await self.ctx_api.send_message(
-            chat_id=self.chat.id, reply_to_message_id=self.message_id, **params
+            chat_id=self.chat.id,
+            reply_to_message_id=self.message_id,
+            **params,
         )
 
-    async def delete(self, **other) -> Result[bool, APIError]:
+    async def delete(self, **other: typing.Any) -> Result[bool, APIError]:
         params = get_params(locals())
         if "message_thread_id" not in params and self.is_topic_message:
             params["message_thread_id"] = self.message_thread_id
         return await self.ctx_api.delete_message(
-            chat_id=self.chat.id, message_id=self.message_id, **params
+            chat_id=self.chat.id,
+            message_id=self.message_id,
+            **params,
         )
 
     async def edit(
         self,
-        text: str | None = None,
-        parse_mode: str | None = None,
-        entities: list[MessageEntity] | None = None,
-        disable_web_page_preview: bool | None = None,
-        reply_markup: InlineKeyboardMarkup | None = None,
-        **other
+        text: str | Option[str] = Nothing,
+        parse_mode: str | Option[str] = Nothing,
+        entities: list[MessageEntity] | Option[list[MessageEntity]] = Nothing,
+        disable_web_page_preview: bool | Option[bool] = Nothing,
+        reply_markup: InlineKeyboardMarkup | Option[InlineKeyboardMarkup] = Nothing,
+        **other: typing.Any,
     ) -> Result[Message | bool, APIError]:
         params = get_params(locals())
         if "message_thread_id" not in params and self.is_topic_message:
             params["message_thread_id"] = self.message_thread_id
         return await self.ctx_api.edit_message_text(
-            chat_id=self.chat.id, message_id=self.message_id, **params
+            chat_id=self.chat.id,
+            message_id=self.message_id,
+            **params,
         )
+
+    async def react(
+        self,
+        reaction: str
+        | ReactionType
+        | list[str | ReactionType]
+        | Option[list[str | ReactionType]] = Nothing,
+        is_big: bool | Option[bool] = Nothing,
+        **other: typing.Any,
+    ) -> Result[bool, APIError]:
+        if reaction:
+            reaction = [
+                ReactionTypeEmoji(ReactionTypeType.EMOJI, r)
+                if isinstance(r, str)
+                else r
+                for r in (
+                    reaction.unwrap_or([])
+                    if isinstance(reaction, Option)
+                    else [reaction]
+                    if not isinstance(reaction, list)
+                    else reaction
+                )
+            ]
+        return await self.ctx_api.set_message_reaction(
+            chat_id=self.chat.id, message_id=self.message_id, **get_params(locals())
+        )
+
+
+__all__ = ("MessageCute", "get_entity_value")

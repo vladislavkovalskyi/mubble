@@ -29,16 +29,14 @@ You can use this file to familiarize yourself with the syntax of the framework.
 
 ### Simple bot example:
 ```python
+import random
+
 from mubble import Token, API, Mubble, Message, CallbackQuery
 from mubble.rules import StartCommand, Text, Markup, CallbackData
 from mubble.tools.keyboard import InlineKeyboard, InlineButton
 
-import logging
-import random
-
 api = API(Token("Your token"))
 bot = Mubble(api)
-logging.basicConfig(level=logging.DEBUG)
 
 
 class Keyboard:
@@ -51,8 +49,7 @@ class Keyboard:
     ).get_markup()
 
     back = (
-        InlineKeyboard()
-        .add(InlineButton("⬅️ Back", callback_data="menu"))
+        InlineKeyboard().add(InlineButton("⬅️ Back", callback_data="menu"))
     ).get_markup()
 
 
@@ -87,22 +84,14 @@ async def random_handler(message: Message, a: int = None, b: int = None):
 
 @bot.on.callback_query(CallbackData("menu"))
 async def menu_handler(cq: CallbackQuery):
-    await api.edit_message_text(
-        chat_id=cq.message.chat.id,
-        message_id=cq.message.message_id,
-        text="📃 Here's your menu! Use the keyboard.",
-        reply_markup=Keyboard.menu,
+    await cq.edit_text(
+        "📃 Here's your menu! Use the keyboard.", reply_markup=Keyboard.menu
     )
 
 
 @bot.on.callback_query(CallbackData("hello"))
 async def hello_handler(cq: CallbackQuery):
-    await api.edit_message_text(
-        chat_id=cq.message.chat.id,
-        message_id=cq.message.message_id,
-        text="👋 Hello, I'm Mubble!",
-        reply_markup=Keyboard.back,
-    )
+    await cq.edit_text("👋 Hello, I'm Mubble!", reply_markup=Keyboard.back)
 
 
 @bot.on.callback_query(CallbackData(["banana", "kiwi"]))

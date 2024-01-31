@@ -1,12 +1,13 @@
-from mubble.model import Model
-from mubble.result import Result, Ok, Error
-from mubble.api.error import APIError
 import msgspec
+
+from mubble.api.error import APIError
+from mubble.model import Model
+from mubble.result import Error, Ok, Result
 
 
 class APIResponse(Model):
-    ok: bool
-    result: msgspec.Raw = b""
+    ok: bool = False
+    result: msgspec.Raw = msgspec.Raw(b"")
     error_code: int = 0
     description: str = ""
 
@@ -14,3 +15,6 @@ class APIResponse(Model):
         if self.ok:
             return Ok(self.result)
         return Error(APIError(self.error_code, self.description))
+
+
+__all__ = ("APIResponse",)

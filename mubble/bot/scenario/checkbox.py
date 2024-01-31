@@ -1,18 +1,22 @@
-from .abc import ABCScenario
-from dataclasses import dataclass
-from mubble.tools import InlineKeyboard, InlineButton
-from mubble.types.objects import InlineKeyboardMarkup
-from mubble.bot.cute_types import CallbackQueryCute
-import typing
+import dataclasses
 import random
 import string
+import typing
+
+from mubble.bot.cute_types import CallbackQueryCute
+from mubble.bot.dispatch.waiter_machine import WaiterMachine
+from mubble.tools import InlineButton, InlineKeyboard
+from mubble.tools.parse_mode import ParseMode
+from mubble.types.objects import InlineKeyboardMarkup
+
+from .abc import ABCScenario
 
 if typing.TYPE_CHECKING:
-    from mubble.bot.dispatch import Dispatch
     from mubble.api import API
+    from mubble.bot.dispatch.view.abc import BaseStateView
 
 
-@dataclass
+@dataclasses.dataclass
 class Choice:
     name: str
     is_picked: bool
@@ -25,13 +29,14 @@ def random_code(length: int) -> str:
     return "".join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
-class Checkbox(ABCScenario):
-    INVALID_CODE: str = "Invalid code"
-    CALLBACK_ANSWER: str = "Done"
-    PARSE_MODE: str = "MarkdownV2"
+class Checkbox(ABCScenario[CallbackQueryCute]):
+    INVALID_CODE: typing.ClassVar[str] = "Invalid code"
+    CALLBACK_ANSWER: typing.ClassVar[str] = "Done"
+    PARSE_MODE: typing.ClassVar[str] = ParseMode.MARKDOWNV2
 
     def __init__(
         self,
+        waiter_machine: WaiterMachine,
         chat_id: int,
         msg: str,
         ready_text: str = "Ready",
@@ -43,6 +48,7 @@ class Checkbox(ABCScenario):
         self.ready = ready_text
         self.max_in_row = max_in_row
         self.random_code = random_code(16)
+        self.waiter_machine = waiter_machine
 
     def get_markup(self) -> InlineKeyboardMarkup:
         kb = InlineKeyboard(resize_keyboard=True)
@@ -59,20 +65,24 @@ class Checkbox(ABCScenario):
                     )
                 )
             kb.row()
+
         kb.add(InlineButton(self.ready, callback_data=self.random_code + "/ready"))
         return kb.get_markup()
 
     def add_option(
-        self, name: str, default_text: str, picked_text: str, is_picked: bool = False
-    ) -> "Checkbox":
+        self,
+        name: str,
+        default_text: str,
+        picked_text: str,
+        is_picked: bool = False,
+    ) -> typing.Self:
         self.choices.append(
-            Choice(name, is_picked, default_text, picked_text, random_code(16))
+            Choice(name, is_picked, default_text, picked_text, random_code(16)),
         )
         return self
 
     async def handle(self, cb: CallbackQueryCute) -> bool:
-        code = cb.data.replace(self.random_code + "/", "", 1)
-
+        code = cb.data.unwrap().replace(self.random_code + "/", "", 1)
         if code == "ready":
             return False
 
@@ -80,9 +90,7 @@ class Checkbox(ABCScenario):
             if choice.code == code:
                 # Toggle choice
                 self.choices[i].is_picked = not self.choices[i].is_picked
-                await cb.ctx_api.edit_message_text(
-                    cb.message.chat.id,
-                    cb.message.message_id,
+                await cb.edit_text(
                     text=self.msg,
                     parse_mode=self.PARSE_MODE,
                     reply_markup=self.get_markup(),
@@ -92,7 +100,9 @@ class Checkbox(ABCScenario):
         return True
 
     async def wait(
-        self, api: "API", dispatch: "Dispatch"
+        self,
+        api: "API",
+        view: "BaseStateView[CallbackQueryCute]",
     ) -> tuple[dict[str, bool], int]:
         assert len(self.choices) > 1
         message = (
@@ -103,13 +113,19 @@ class Checkbox(ABCScenario):
                 reply_markup=self.get_markup(),
             )
         ).unwrap()
+
         while True:
             q: CallbackQueryCute
-            q, _ = await dispatch.callback_query.wait_for_answer(message.message_id)
+            q, _ = await self.waiter_machine.wait(view, (api, message.message_id))
             should_continue = await self.handle(q)
             await q.answer(self.CALLBACK_ANSWER)
             if not should_continue:
                 break
-        return {
-            choice.name: choice.is_picked for choice in self.choices
-        }, message.message_id
+
+        return (
+            {choice.name: choice.is_picked for choice in self.choices},
+            message.message_id,
+        )
+
+
+__all__ = ("Checkbox", "Choice", "random_code")

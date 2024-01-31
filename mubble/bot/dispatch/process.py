@@ -1,65 +1,33 @@
 import typing
 
-from .waiter import Waiter
-from .middleware.abc import ABCMiddleware
-from .handler.abc import ABCHandler
-from mubble.types import Update
+from mubble.api.abc import ABCAPI
+from mubble.bot.cute_types import BaseCute
+from mubble.bot.dispatch.context import Context
 from mubble.modules import logger
 from mubble.result import Error
-from mubble.api.abc import ABCAPI
+from mubble.tools.i18n.base import I18nEnum
+from mubble.types import Update
+
+from .middleware.abc import ABCMiddleware
+from .return_manager.abc import ABCReturnManager
 
 if typing.TYPE_CHECKING:
+    from mubble.bot.dispatch.handler.abc import ABCHandler
     from mubble.bot.rules.abc import ABCRule
 
-T = typing.TypeVar("T")
-E = typing.TypeVar("E")
+T = typing.TypeVar("T", bound=BaseCute)
 _ = typing.Any
-
-
-async def process_waiters(
-    api: ABCAPI,
-    waiters: dict[T, Waiter],
-    key: T,
-    event: E | None,
-    raw_event: Update,
-    str_handler: typing.Callable,
-) -> bool:
-    if key not in waiters:
-        return False
-
-    logger.debug(
-        "Update {} found in waiter (key={})", event.__class__.__name__, str(key)
-    )
-
-    waiter = waiters[key]
-    ctx = {}
-
-    for rule in waiter.rules:
-        if not await check_rule(api, rule, raw_event, ctx):
-            if not waiter.default:
-                return True
-            elif isinstance(waiter.default, str):
-                await str_handler(waiter.default)
-            else:
-                await waiter.default(event)
-            return True
-
-    logger.debug("Waiter set as ready")
-
-    waiters.pop(key)
-    setattr(waiter.event, "e", (event, ctx))
-    waiter.event.set()
-    return True
 
 
 async def process_inner(
     event: T,
     raw_event: Update,
     middlewares: list[ABCMiddleware[T]],
-    handlers: list[ABCHandler[T]],
+    handlers: list["ABCHandler[T]"],
+    return_manager: ABCReturnManager[T],
 ) -> bool:
-    logger.debug("Processing {}", event.__class__.__name__)
-    ctx = {}
+    logger.debug("Processing {!r}...", event.__class__.__name__)
+    ctx = Context(raw_update=raw_event)
 
     for middleware in middlewares:
         if await middleware.pre(event, ctx) is False:
@@ -68,10 +36,12 @@ async def process_inner(
     found = False
     responses = []
     for handler in handlers:
-        if await handler.check(event.api, raw_event):
+        if await handler.check(event.api, raw_event, ctx):
             found = True
             handler.ctx |= ctx
-            responses.append(await handler.run(event))
+            response = await handler.run(event)
+            responses.append(response)
+            await return_manager.run(response, event, ctx)
             if handler.is_blocking:
                 break
 
@@ -82,21 +52,31 @@ async def process_inner(
 
 
 async def check_rule(
-    api: ABCAPI, rule: "ABCRule", update: Update, ctx: dict[str, _]
+    api: ABCAPI,
+    rule: "ABCRule",
+    update: Update,
+    ctx: Context,
 ) -> bool:
-    """Checks requirements, adapts update
-    Returns check result"""
+    """Checks requirements, adapts update.
+    Returns check result."""
 
-    ctx_copy = ctx.copy()
-
-    model = await rule.adapter.adapt(api, update)
-    match model:
-        case Error(_):
+    cute_model = await rule.adapter.adapt(api, update)
+    match cute_model:
+        case Error(err):
+            logger.debug("Adapter failed with error message: {!r}", str(err))
             return False
 
-    for requirement in rule.require:
+    ctx_copy = ctx.copy()
+    for requirement in rule.requires:
         if not await check_rule(api, requirement, update, ctx_copy):
             return False
 
     ctx |= ctx_copy
-    return await rule.check(model.unwrap(), ctx)
+
+    if I18nEnum.I18N in ctx:
+        rule = await rule.translate(ctx.get(I18nEnum.I18N))
+
+    return await rule.check(cute_model.unwrap(), ctx)
+
+
+__all__ = ("check_rule", "process_inner")

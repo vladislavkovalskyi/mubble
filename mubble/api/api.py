@@ -1,15 +1,17 @@
+import typing
+
 import msgspec
 
-from .abc import ABCAPI, APIError, Token
-import typing
-from mubble.result import Result, Ok, Error
-from mubble.client import ABCClient, AiohttpClient
-from mubble.types.methods import APIMethods
-from mubble.model import convert
 from mubble.api.response import APIResponse
+from mubble.client import ABCClient, AiohttpClient
+from mubble.model import convert, decoder
+from mubble.result import Error, Ok, Result
+from mubble.types.methods import APIMethods
+
+from .abc import ABCAPI, APIError, Token
 
 
-def compose_data(client: ABCClient, data: dict) -> typing.Any:
+def compose_data(client: ABCClient, data: dict[str, typing.Any]) -> typing.Any:
     data = {k: convert(v) for k, v in data.items()}
     if any(isinstance(v, tuple) for v in data.values()):
         data = client.get_form(data)
@@ -17,9 +19,9 @@ def compose_data(client: ABCClient, data: dict) -> typing.Any:
 
 
 class API(ABCAPI, APIMethods):
-    API_URL = "https://api.telegram.org/"
+    API_URL: typing.ClassVar[str] = "https://api.telegram.org/"
 
-    def __init__(self, token: Token, http: ABCClient | None = None):
+    def __init__(self, token: Token, *, http: ABCClient | None = None):
         self.token = token
         self.http = http or AiohttpClient()
         super().__init__(self)
@@ -39,23 +41,28 @@ class API(ABCAPI, APIMethods):
     ) -> Result[dict | list | bool, APIError]:
         data = compose_data(self.http, data or {})
         response = await self.http.request_json(self.request_url + method, data=data)
+
         if response.get("ok"):
             assert "result" in response
             return Ok(response["result"])
-
-        code, msg = response.get("error_code"), response.get("description")
-        return Error(APIError(code, msg))
+        
+        return Error(
+            APIError(
+                code=response.get("error_code", -1),
+                error=response.get("description"),
+            )
+        )
 
     async def request_raw(
         self,
         method: str,
-        data: dict | None = None,
+        data: dict[str, typing.Any] | None = None,
     ) -> Result[msgspec.Raw, APIError]:
-        data = compose_data(self.http, data or {})
         response_bytes = await self.http.request_bytes(
-            self.request_url + method, data=data
+            self.request_url + method, data=compose_data(self.http, data or {})
         )
-        response_skeleton: APIResponse = msgspec.json.decode(
-            response_bytes, type=APIResponse
-        )
-        return response_skeleton.to_result()
+        
+        return decoder.decode(response_bytes, type=APIResponse).to_result()
+
+
+__all__ = ("API",)
