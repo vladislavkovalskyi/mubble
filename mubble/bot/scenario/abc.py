@@ -1,12 +1,20 @@
-from abc import ABC, abstractmethod
 import typing
+from abc import ABC, abstractmethod
+
+from mubble.bot.cute_types.base import BaseCute
+from mubble.bot.cute_types.callback_query import CallbackQueryCute
 
 if typing.TYPE_CHECKING:
-    from mubble.bot.dispatch import Dispatch
-    from mubble.api import API
+    from mubble.api import ABCAPI
+    from mubble.bot.dispatch.view.abc import ABCStateView
+
+EventT = typing.TypeVar("EventT", bound=BaseCute)
 
 
-class ABCScenario(ABC):
+class ABCScenario(ABC, typing.Generic[EventT]):
     @abstractmethod
-    def wait(self, api: "API", dispatch: "Dispatch") -> typing.Any:
+    def wait(self, api: "ABCAPI", view: "ABCStateView[EventT]") -> typing.Any:
         pass
+
+
+__all__ = ("ABCScenario",)

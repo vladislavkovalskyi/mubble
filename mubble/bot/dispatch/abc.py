@@ -1,21 +1,21 @@
-from abc import ABC, abstractmethod
-from mubble.api.abc import ABCAPI
-from mubble.types import Update
-from .view.abc import ABCView
 import typing
+from abc import ABC, abstractmethod
+
+from mubble.api.abc import ABCAPI
+from mubble.tools.global_context import ABCGlobalContext
+from mubble.types import Update
 
 
 class ABCDispatch(ABC):
-    global_context: dict[str, typing.Any]
+    global_context: ABCGlobalContext
 
     @abstractmethod
-    def feed(self, event: Update, api: ABCAPI) -> bool:
+    async def feed(self, event: Update, api: ABCAPI) -> bool:
         pass
 
     @abstractmethod
-    def load(self, external: "ABCDispatch"):
+    def load(self, external: typing.Self):
         pass
 
-    @abstractmethod
-    def mount(self, view_t: typing.Type["ABCView"], name: str):
-        pass
+
+__all__ = ("ABCDispatch",)

@@ -1,13 +1,18 @@
-from .abc import Message, patcher
-from .text import TextMessageRule
 import vbml
 
+from mubble.bot.dispatch.context import Context
+from mubble.tools.global_context import MubbleCtx
+
+from .abc import Message
+from .text import TextMessageRule
+
 PatternLike = str | vbml.Pattern
+global_ctx = MubbleCtx()
 
 
-def check_string(patterns: list[PatternLike], s: str, ctx: dict) -> bool:
+def check_string(patterns: list[vbml.Pattern], s: str, ctx: Context) -> bool:
     for pattern in patterns:
-        match patcher.check(pattern, s):
+        match global_ctx.vbml_patcher.check(pattern, s):
             case None | False:
                 continue
             case {**response}:
@@ -25,5 +30,8 @@ class Markup(TextMessageRule):
             for pattern in patterns
         ]
 
-    async def check(self, message: Message, ctx: dict) -> bool:
-        return check_string(self.patterns, message.text, ctx)
+    async def check(self, message: Message, ctx: Context) -> bool:
+        return check_string(self.patterns, message.text.unwrap(), ctx)
+
+
+__all__ = ("Markup", "check_string")

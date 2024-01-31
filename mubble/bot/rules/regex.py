@@ -1,7 +1,10 @@
-from .abc import Message
-from .text import TextMessageRule
 import re
 import typing
+
+from mubble.bot.dispatch.context import Context
+
+from .abc import Message
+from .text import TextMessageRule
 
 PatternLike = str | typing.Pattern[str]
 
@@ -20,13 +23,16 @@ class Regex(TextMessageRule):
                     for regexp in regexp
                 )
 
-    async def check(self, message: Message, ctx: dict) -> bool:
+    async def check(self, message: Message, ctx: Context) -> bool:
         for regexp in self.regexp:
-            response = re.match(regexp, message.text)
+            response = re.match(regexp, message.text.unwrap())
             if response is not None:
                 if matches := response.groupdict():
                     ctx |= matches
                 else:
-                    ctx |= {"match": response.groups() or response.group()}
+                    ctx |= {"matches": response.groups() or response.group()}
                 return True
         return False
+
+
+__all__ = ("Regex",)
