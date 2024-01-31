@@ -1,6 +1,6 @@
 <img src="../../images/mubble_logo.png" alt="Mubble logo" width="50%" height="50%">
 
-# Image (Ukrainian 🇺🇦)
+# Image (English 🇬🇧)
 This example is created to demonstrate how to work with **files** in **Mubble**.
 
 * `pathlib`, specifically the `Path` class, will help you specify the path to your image and retrieve its bytes, allowing you to save them to the `mubble_image` variable _(for example)_.
