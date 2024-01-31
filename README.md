@@ -45,7 +45,6 @@ class Keyboard:
         .add(InlineButton("✍️ Write hello", callback_data="hello"))
         .row()
         .add(InlineButton("🍌 Choice banana", callback_data="banana"))
-        .add(InlineButton("🥝 Choice kiwi", callback_data="kiwi"))
     ).get_markup()
 
     back = (
@@ -94,11 +93,9 @@ async def hello_handler(cq: CallbackQuery):
     await cq.edit_text("👋 Hello, I'm Mubble!", reply_markup=Keyboard.back)
 
 
-@bot.on.callback_query(CallbackData(["banana", "kiwi"]))
+@bot.on.callback_query(CallbackData("banana"))
 async def fruits_handler(cq: CallbackQuery):
-    fruits = {"banana": "🍌", "kiwi": "🥝"}
-    if cq.data in fruits:
-        await cq.answer(f"You clicked on the {fruits[cq.data]}!")
+    await cq.answer("You clicked on the 🍌!")
 
 
 bot.run_forever()
