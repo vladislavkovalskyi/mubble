@@ -1,14 +1,24 @@
 # Mubble
-![Mubble logo](images/mubble_logo.png)
+[![Mubble logo](images/mubble_logo.png)](https://github.com/vladislavkovalskyi/mubble/blob/master/images/mubble_logo.png)
+
 [![Downloads](https://img.shields.io/pypi/dm/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
 [![Downloads](https://img.shields.io/pypi/pyversions/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
 
+<a href="https://github.com/vladislavkovalskyi/mubble">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/GitHub_Logo.png/800px-GitHub_Logo.png" alt="Click me" width="30%">
+</a>
+<br>
+
+_(clickable)_
+
+<br>
+<br>
 
 **Mubble** is a next-generation framework known for its great speed and simplicity. It is written using aiohttp, asyncio, and msgspec.<br>
 *([Author](https://github.com/vladislavkovalskyi)'s words)*
 **Make the fastest bot ever!**
 
-
+<!--  -->
 # Getting started
 
 
@@ -24,8 +34,10 @@ poetry add mubble
 
 ### Examples:
 You can use this file to familiarize yourself with the syntax of the framework.
-[![Click me](./images/examples_button.png)](./examples/start.md)
 
+<a href="https://github.com/vladislavkovalskyi/mubble/blob/master/examples/start.md">
+  <img src="https://github.com/vladislavkovalskyi/mubble/blob/master/images/examples_button.png?raw=true" alt="Click me" width="100%">
+</a>
 
 ### Simple bot example:
 ```python
