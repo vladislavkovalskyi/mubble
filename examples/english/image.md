@@ -26,3 +26,7 @@ async def image(message: Message):
     )
 
 bot.run_forever()
+```
+
+## Example of use
+<img src="../../images/image.jpg" alt="Mubble logo" width="50%" height="50%">

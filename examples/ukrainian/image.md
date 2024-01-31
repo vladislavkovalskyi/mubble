@@ -30,4 +30,4 @@ bot.run_forever()
 ```
 
 ## Приклад використання
-<img src="../../images/files.jpg" alt="Mubble logo" width="50%" height="50%">
+<img src="../../images/image.jpg" alt="Mubble logo" width="50%" height="50%">
