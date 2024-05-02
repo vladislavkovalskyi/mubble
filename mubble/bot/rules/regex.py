@@ -6,7 +6,7 @@ from mubble.bot.dispatch.context import Context
 from .abc import Message
 from .text import TextMessageRule
 
-PatternLike = str | typing.Pattern[str]
+PatternLike: typing.TypeAlias = str | typing.Pattern[str]
 
 
 class Regex(TextMessageRule):
@@ -30,7 +30,7 @@ class Regex(TextMessageRule):
                 if matches := response.groupdict():
                     ctx |= matches
                 else:
-                    ctx |= {"matches": response.groups() or response.group()}
+                    ctx |= {"matches": response.groups() or (response.group(),)}
                 return True
         return False
 

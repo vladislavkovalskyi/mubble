@@ -1,11 +1,13 @@
-from .model import decoder, encoder
+import typing
+
+from .msgspec_utils import decoder, encoder
 
 
-def loads(s: str | bytes) -> dict | list:
-    return decoder.decode(s, type=dict | list)  # type: ignore
+def loads(s: str | bytes) -> typing.Any:
+    return decoder.decode(s)
 
 
-def dumps(o: dict | list) -> str:
+def dumps(o: typing.Any) -> str:
     return encoder.encode(o)
 
 

@@ -14,15 +14,15 @@ class TextMessageRule(MessageRule, ABC, requires=[HasText()]):
 
 
 class Text(TextMessageRule):
-    def __init__(self, texts: str | list[str], ignore_case: bool = False):
+    def __init__(self, texts: str | list[str], *, ignore_case: bool = False) -> None:
         if not isinstance(texts, list):
             texts = [texts]
-        self.texts = texts if not ignore_case else list(map(str.lower, texts))
+        self.texts = list(map(str.lower, texts)) if ignore_case else texts
         self.ignore_case = ignore_case
 
     async def check(self, message: Message, ctx: Context) -> bool:
         text = message.text.unwrap()
-        return (text if not self.ignore_case else text.lower()) in self.texts
+        return (text.lower() if self.ignore_case else text) in self.texts
 
     @with_caching_translations
     async def translate(self, translator: ABCTranslator) -> "Text":

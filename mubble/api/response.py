@@ -1,8 +1,8 @@
 import msgspec
+from fntypes.result import Error, Ok, Result
 
 from mubble.api.error import APIError
 from mubble.model import Model
-from mubble.result import Error, Ok, Result
 
 
 class APIResponse(Model):

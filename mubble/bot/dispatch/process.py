@@ -1,10 +1,11 @@
 import typing
 
+from fntypes.result import Error
+
 from mubble.api.abc import ABCAPI
 from mubble.bot.cute_types import BaseCute
 from mubble.bot.dispatch.context import Context
 from mubble.modules import logger
-from mubble.result import Error
 from mubble.tools.i18n.base import I18nEnum
 from mubble.types import Update
 
@@ -16,7 +17,7 @@ if typing.TYPE_CHECKING:
     from mubble.bot.rules.abc import ABCRule
 
 T = typing.TypeVar("T", bound=BaseCute)
-_ = typing.Any
+_: typing.TypeAlias = typing.Any
 
 
 async def process_inner(
@@ -35,15 +36,17 @@ async def process_inner(
 
     found = False
     responses = []
+    ctx_copy = ctx.copy()
+
     for handler in handlers:
         if await handler.check(event.api, raw_event, ctx):
             found = True
-            handler.ctx |= ctx
-            response = await handler.run(event)
+            response = await handler.run(event, ctx)
             responses.append(response)
             await return_manager.run(response, event, ctx)
             if handler.is_blocking:
                 break
+            ctx = ctx_copy
 
     for middleware in middlewares:
         await middleware.post(event, responses, ctx)

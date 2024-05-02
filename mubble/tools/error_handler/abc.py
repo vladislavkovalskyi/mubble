@@ -1,10 +1,11 @@
 import typing
 from abc import ABC, abstractmethod
 
+from fntypes.result import Result
+
 from mubble.api import ABCAPI
 from mubble.bot.cute_types import BaseCute
 from mubble.bot.dispatch.context import Context
-from mubble.result import Result
 
 EventT = typing.TypeVar("EventT", bound=BaseCute)
 Handler = typing.Callable[typing.Concatenate[EventT, ...], typing.Awaitable[typing.Any]]
@@ -12,8 +13,12 @@ Handler = typing.Callable[typing.Concatenate[EventT, ...], typing.Awaitable[typi
 
 class ABCErrorHandler(ABC, typing.Generic[EventT]):
     @abstractmethod
-    def catch(self) -> typing.Callable[[typing.Callable], typing.Callable]:
-        ...
+    def __call__(
+        self,
+        *args: typing.Any,
+        **kwargs: typing.Any,
+    ) -> typing.Callable[[typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]]:
+        """Decorator for registering callback as an error handler."""
 
     @abstractmethod
     async def run(
@@ -23,7 +28,7 @@ class ABCErrorHandler(ABC, typing.Generic[EventT]):
         api: ABCAPI,
         ctx: Context,
     ) -> Result[typing.Any, typing.Any]:
-        ...
+        """Run error handler."""
 
 
 __all__ = ("ABCErrorHandler",)

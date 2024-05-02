@@ -11,17 +11,13 @@ T = typing.TypeVar("T", bound=Model)
 
 class ABCHandler(ABC, typing.Generic[T]):
     is_blocking: bool
-    ctx: Context
 
     @abstractmethod
-    async def run(self, event: T) -> typing.Any:
+    async def check(self, api: ABCAPI, event: Update, ctx: Context | None = None) -> bool:
         pass
 
     @abstractmethod
-    async def check(
-        self, api: ABCAPI, event: Update, ctx: Context | None = None
-    ) -> bool:
+    async def run(self, event: T, ctx: Context) -> typing.Any:
         pass
-
 
 __all__ = ("ABCHandler",)

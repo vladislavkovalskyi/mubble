@@ -11,14 +11,15 @@ from mubble.tools.magic import cache_translation, get_cached_translation
 from mubble.types.objects import Update as UpdateObject
 
 T = typing.TypeVar("T", bound=BaseCute)
-Message = MessageCute
-Update = UpdateCute
+
+Message: typing.TypeAlias = MessageCute
+Update: typing.TypeAlias = UpdateCute
 
 
 def with_caching_translations(func):
     """Should be used as decorator for .translate method. Caches rule translations."""
 
-    async def wrapper(self: "ABCRule", translator: ABCTranslator):
+    async def wrapper(self: "ABCRule[typing.Any]", translator: ABCTranslator):
         if translation := get_cached_translation(self, translator.locale):
             return translation
         translation = await func(self, translator)
@@ -59,7 +60,7 @@ class ABCRule(ABC, typing.Generic[T]):
     def __repr__(self) -> str:
         return "<rule: {!r}, adapter: {!r}>".format(
             self.__class__.__name__,
-            self.adapter.__class__.__name__,
+            self.adapter,
         )
 
     async def translate(self, translator: ABCTranslator) -> typing.Self:

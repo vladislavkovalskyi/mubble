@@ -35,6 +35,8 @@ class ProgrammingLanguage(str, enum.Enum):
     HTML = "html"
     YAML = "yaml"
     JSON = "json"
+    MARKDOWN = "markdown"
+    MARKUP = "markup"
 
 
 class ChatAction(str, enum.Enum):
@@ -65,8 +67,120 @@ class ChatAction(str, enum.Enum):
     UPLOAD_VIDEO_NOTE = "upload_video_note"
 
 
+class ReactionEmoji(str, enum.Enum):
+    """Type of ReactionEmoji.
+
+    Currently, it can be one of `👍`, `👎`, `❤`, `🔥`, `🥰`, `👏`,
+    `😁`, `🤔`, `🤯`, `😱`, `🤬`, `😢`, `🎉`, `🤩`, `🤮`, `💩`, `🙏`, `👌`, `🕊`, `🤡`, `🥱`,
+    `🥴`, `😍`, `🐳`, `❤‍🔥`, `🌚`, `🌭`, `💯`, `🤣`, `⚡`, `🍌`, `🏆`, `💔`, `🤨`, `😐`, `🍓`,
+    `🍾`, `💋`, `🖕`, `😈`, `😴`, `😭`, `🤓`, `👻`, `👨‍💻`, `👀`, `🎃`, `🙈`, `😇`, `😨`, `🤝`,
+    `✍`, `🤗`, `🫡`, `🎅`, `🎄`, `☃`, `💅`, `🤪`, `🗿`, `🆒`, `💘`, `🙉`, `🦄`, `😘`, `💊`,
+    `🙊`, `😎`, `👾`, `🤷‍♂`, `🤷`, `🤷‍♀`, `😡`.
+
+    Docs: https://core.telegram.org/bots/api#reactiontypeemoji"""
+
+    THUMBS_UP = "👍"
+    THUMBS_DOWN = "👎"
+    RED_HEART = "❤"
+    FIRE = "🔥"
+    SMILING_FACE_WITH_HEARTS = "🥰"
+    CLAPPING_HANDS = "👏"
+    BEAMING_FACE_WITH_SMILING_EYES = "😁"
+    THINKING_FACE = "🤔"
+    EXPLODING_HEAD = "🤯"
+    FACE_SCREAMING_IN_FEAR = "😱"
+    FACE_WITH_SYMBOLS_ON_MOUTH = "🤬"
+    CRYING_FACE = "😢"
+    PARTY_POPPER = "🎉"
+    STAR_STRUCK = "🤩"
+    FACE_VOMITING = "🤮"
+    PILE_OF_POO = "💩"
+    FOLDED_HANDS = "🙏"
+    OK_HAND = "👌"
+    DOVE = "🕊"
+    CLOWN_FACE = "🤡"
+    YAWNING_FACE = "🥱"
+    WOOZY_FACE = "🥴"
+    SMILING_FACE_WITH_HEART_EYES = "😍"
+    SPOUTING_WHALE = "🐳"
+    HEART_ON_FIRE = "❤‍🔥"
+    NEW_MOON_FACE = "🌚"
+    HOT_DOG = "🌭"
+    HUNDRED_POINTS = "💯"
+    ROLLING_ON_THE_FLOOR_LAUGHING = "🤣"
+    HIGH_VOLTAGE = "⚡"
+    BANANA = "🍌"
+    TROPHY = "🏆"
+    BROKEN_HEART = "💔"
+    FACE_WITH_RAISED_EYEBROW = "🤨"
+    NEUTRAL_FACE = "😐"
+    STRAWBERRY = "🍓"
+    BOTTLE_WITH_POPPING_CORK = "🍾"
+    KISS_MARK = "💋"
+    MIDDLE_FINGER = "🖕"
+    SMILING_FACE_WITH_HORNS = "😈"
+    SLEEPING_FACE = "😴"
+    LOUDLY_CRYING_FACE = "😭"
+    NERD_FACE = "🤓"
+    GHOST = "👻"
+    MAN_TECHNOLOGIST = "👨‍💻"
+    EYES = "👀"
+    JACK_O_LANTERN = "🎃"
+    SEE_NO_EVIL_MONKEY = "🙈"
+    SMILING_FACE_WITH_HALO = "😇"
+    FEARFUL_FACE = "😨"
+    HANDSHAKE = "🤝"
+    WRITING_HAND = "✍"
+    SMILING_FACE_WITH_OPEN_HANDS = "🤗"
+    SALUTING_FACE = "🫡"
+    SANTA_CLAUS = "🎅"
+    CHRISTMAS_TREE = "🎄"
+    SNOWMAN = "☃"
+    NAIL_POLISH = "💅"
+    ZANY_FACE = "🤪"
+    MOAI = "🗿"
+    COOL_BUTTON = "🆒"
+    HEART_WITH_ARROW = "💘"
+    HEAR_NO_EVIL_MONKEY = "🙉"
+    UNICORN = "🦄"
+    FACE_BLOWING_A_KISS = "😘"
+    PILL = "💊"
+    SPEAK_NO_EVIL_MONKEY = "🙊"
+    SMILING_FACE_WITH_SUNGLASSES = "😎"
+    ALIEN_MONSTER = "👾"
+    MAN_SHRUGGING = "🤷‍♂"
+    PERSON_SHRUGGING = "🤷"
+    WOMAN_SHRUGGING = "🤷‍♀"
+    ENRAGED_FACE = "😡"
+
+
+class DefaultAccentColor(int, enum.Enum):
+    """Type of DefaultAccentColor.
+
+    One of 7 possible user colors:
+    - Red
+    - Orange
+    - Purple
+    - Green
+    - Cyan
+    - Blue
+    - Pink
+
+    Docs: https://core.telegram.org/bots/api#accent-colors
+    """
+
+    RED = 0
+    ORANGE = 1
+    PURPLE = 2
+    GREEN = 3
+    CYAN = 4
+    BLUE = 5
+    PINK = 6
+
+
 class TopicIconColor(int, enum.Enum):
     """Type of TopicIconColor.
+
     Docs: https://github.com/telegramdesktop/tdesktop/blob/991fe491c5ae62705d77aa8fdd44a79caf639c45/Telegram/SourceFiles/data/data_forum_topic.cpp#L51-L56
     """
 
@@ -113,6 +227,7 @@ class ContentType(str, enum.Enum):
     NEW_CHAT_PHOTO = "new_chat_photo"
     DELETE_CHAT_PHOTO = "delete_chat_photo"
     GROUP_CHAT_CREATED = "group_chat_created"
+    BOOST_ADDED = "boost_added"
     SUPERGROUP_CHAT_CREATED = "supergroup_chat_created"
     CHANNEL_CHAT_CREATED = "channel_chat_created"
     MESSAGE_AUTO_DELETE_TIMER_CHANGED = "message_auto_delete_timer_changed"
@@ -300,6 +415,10 @@ class UpdateType(str, enum.Enum):
     CHAT_JOIN_REQUEST = "chat_join_request"
     CHAT_BOOST = "chat_boost"
     REMOVED_CHAT_BOOST = "removed_chat_boost"
+    BUSINESS_CONNECTION = "business_connection"
+    BUSINESS_MESSAGE = "business_message"
+    EDITED_BUSINESS_MESSAGE = "edited_business_message"
+    DELETE_BUSINESS_MESSAGE = "delete_business_messages"
 
 
 class BotCommandScopeType(str, enum.Enum):
@@ -530,105 +649,6 @@ class EncryptedPassportElementType(str, enum.Enum):
     TEMPORARY_REGISTRATION = "temporary_registration"
     PHONE_NUMBER = "phone_number"
     EMAIL = "email"
-
-
-class PassportElementErrorDataFieldType(str, enum.Enum):
-    """The section of the user's Telegram Passport which has the error, one of “personal_details”,
-    “passport”, “driver_license”, “identity_card”, “internal_passport”,
-    “address”"""
-
-    PERSONAL_DETAILS = "personal_details"
-    PASSPORT = "passport"
-    DRIVER_LICENSE = "driver_license"
-    IDENTITY_CARD = "identity_card"
-    INTERNAL_PASSPORT = "internal_passport"
-    ADDRESS = "address"
-
-
-class PassportElementErrorFrontSideType(str, enum.Enum):
-    """The section of the user's Telegram Passport which has the issue, one of “passport”,
-    “driver_license”, “identity_card”, “internal_passport”"""
-
-    PASSPORT = "passport"
-    DRIVER_LICENSE = "driver_license"
-    IDENTITY_CARD = "identity_card"
-    INTERNAL_PASSPORT = "internal_passport"
-
-
-class PassportElementErrorReverseSideType(str, enum.Enum):
-    """The section of the user's Telegram Passport which has the issue, one of “driver_license”,
-    “identity_card”"""
-
-    DRIVER_LICENSE = "driver_license"
-    IDENTITY_CARD = "identity_card"
-
-
-class PassportElementErrorSelfieType(str, enum.Enum):
-    """The section of the user's Telegram Passport which has the issue, one of “passport”,
-    “driver_license”, “identity_card”, “internal_passport”"""
-
-    PASSPORT = "passport"
-    DRIVER_LICENSE = "driver_license"
-    IDENTITY_CARD = "identity_card"
-    INTERNAL_PASSPORT = "internal_passport"
-
-
-class PassportElementErrorFileType(str, enum.Enum):
-    """The section of the user's Telegram Passport which has the issue, one of “utility_bill”,
-    “bank_statement”, “rental_agreement”, “passport_registration”,
-    “temporary_registration”"""
-
-    UTILITY_BILL = "utility_bill"
-    BANK_STATEMENT = "bank_statement"
-    RENTAL_AGREEMENT = "rental_agreement"
-    PASSPORT_REGISTRATION = "passport_registration"
-    TEMPORARY_REGISTRATION = "temporary_registration"
-
-
-class PassportElementErrorFilesType(str, enum.Enum):
-    """The section of the user's Telegram Passport which has the issue, one of “utility_bill”,
-    “bank_statement”, “rental_agreement”, “passport_registration”,
-    “temporary_registration”"""
-
-    UTILITY_BILL = "utility_bill"
-    BANK_STATEMENT = "bank_statement"
-    RENTAL_AGREEMENT = "rental_agreement"
-    PASSPORT_REGISTRATION = "passport_registration"
-    TEMPORARY_REGISTRATION = "temporary_registration"
-
-
-class PassportElementErrorTranslationFileType(str, enum.Enum):
-    """Type of element of the user's Telegram Passport which has the issue, one
-    of “passport”, “driver_license”, “identity_card”, “internal_passport”,
-    “utility_bill”, “bank_statement”, “rental_agreement”, “passport_registration”,
-    “temporary_registration”"""
-
-    PASSPORT = "passport"
-    DRIVER_LICENSE = "driver_license"
-    IDENTITY_CARD = "identity_card"
-    INTERNAL_PASSPORT = "internal_passport"
-    UTILITY_BILL = "utility_bill"
-    BANK_STATEMENT = "bank_statement"
-    RENTAL_AGREEMENT = "rental_agreement"
-    PASSPORT_REGISTRATION = "passport_registration"
-    TEMPORARY_REGISTRATION = "temporary_registration"
-
-
-class PassportElementErrorTranslationFilesType(str, enum.Enum):
-    """Type of element of the user's Telegram Passport which has the issue, one
-    of “passport”, “driver_license”, “identity_card”, “internal_passport”,
-    “utility_bill”, “bank_statement”, “rental_agreement”, “passport_registration”,
-    “temporary_registration”"""
-
-    PASSPORT = "passport"
-    DRIVER_LICENSE = "driver_license"
-    IDENTITY_CARD = "identity_card"
-    INTERNAL_PASSPORT = "internal_passport"
-    UTILITY_BILL = "utility_bill"
-    BANK_STATEMENT = "bank_statement"
-    RENTAL_AGREEMENT = "rental_agreement"
-    PASSPORT_REGISTRATION = "passport_registration"
-    TEMPORARY_REGISTRATION = "temporary_registration"
 
 
 class StickerFormat(str, enum.Enum):

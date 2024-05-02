@@ -1,11 +1,12 @@
 import abc
 import typing
 
+from fntypes.result import Result
+
 from mubble.api.abc import ABCAPI
 from mubble.bot.cute_types import BaseCute
 from mubble.bot.rules.adapter.errors import AdapterError
 from mubble.model import Model
-from mubble.result import Result
 
 UpdateT = typing.TypeVar("UpdateT", bound=Model)
 CuteT = typing.TypeVar("CuteT", bound=BaseCute)

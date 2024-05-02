@@ -1,3 +1,5 @@
+import dataclasses
+
 import typing_extensions as typing
 
 from mubble.api.abc import ABCAPI
@@ -13,54 +15,50 @@ from .abc import ABCHandler
 if typing.TYPE_CHECKING:
     from mubble.bot.rules import ABCRule
 
-F = typing.TypeVar(
-    "F", bound=typing.Callable[typing.Concatenate[typing.Any, ...], typing.Awaitable]
-)
+F = typing.TypeVar("F", bound=typing.Callable[typing.Concatenate[typing.Any, ...], typing.Awaitable[typing.Any]])
 EventT = typing.TypeVar("EventT", bound=BaseCute)
-ErrorHandlerT = typing.TypeVar(
-    "ErrorHandlerT", bound=ABCErrorHandler, default=ErrorHandler
-)
+ErrorHandlerT = typing.TypeVar("ErrorHandlerT", bound=ABCErrorHandler, default=ErrorHandler)
 
 
+@dataclasses.dataclass(repr=False)
 class FuncHandler(ABCHandler[EventT], typing.Generic[EventT, F, ErrorHandlerT]):
-    def __init__(
-        self,
-        func: F,
-        rules: list["ABCRule[EventT]"],
-        is_blocking: bool = True,
-        dataclass: type[typing.Any] | None = dict,
-        error_handler: ErrorHandlerT | None = None,
-    ):
-        self.func = func
-        self.is_blocking = is_blocking
-        self.rules = rules
-        self.dataclass = dataclass
-        self.error_handler: ErrorHandlerT = error_handler or ErrorHandler()  # type: ignore
-        self.ctx = Context()
+    func: F
+    rules: list["ABCRule[EventT]"]
+    _: dataclasses.KW_ONLY
+    is_blocking: bool = dataclasses.field(default=True)
+    dataclass: type[typing.Any] | None = dataclasses.field(default=dict)
+    error_handler: ErrorHandlerT = dataclasses.field(
+        default_factory=lambda: typing.cast(ErrorHandlerT, ErrorHandler()),
+    )
+    preset_context: Context = dataclasses.field(default_factory=lambda: Context())
 
-    @property
-    def on_error(self):
-        return self.error_handler.catch
-
-    async def check(
-        self, api: ABCAPI, event: Update, ctx: Context | None = None
-    ) -> bool:
+    def __repr__(self) -> str:
+        return "<{}: {}={!r} with rules={!r}, dataclass={!r}, error_handler={!r}>".format(
+            self.__class__.__name__,
+            "blocking function" if self.is_blocking else "function",
+            self.func.__name__,
+            self.rules,
+            self.dataclass,
+            self.error_handler,
+        )
+    
+    async def check(self, api: ABCAPI, event: Update, ctx: Context | None = None) -> bool:
         ctx = ctx or Context()
-        preset_ctx = self.ctx.copy()
-        self.ctx |= ctx
+        temp_ctx = ctx.copy()
+        temp_ctx |= self.preset_context
+
         for rule in self.rules:
-            if not await check_rule(api, rule, event, self.ctx):
+            if not await check_rule(api, rule, event, temp_ctx):
                 logger.debug("Rule {!r} failed!", rule)
-                self.ctx = preset_ctx
                 return False
+        
+        ctx |= temp_ctx
         return True
 
-    async def run(self, event: EventT) -> typing.Any:
+    async def run(self, event: EventT, ctx: Context) -> typing.Any:
         if self.dataclass is not None:
             event = self.dataclass(**event.to_dict())
-        return (
-            await self.error_handler.run(self.func, event, event.api, self.ctx)
-        ).unwrap()
+        return (await self.error_handler.run(self.func, event, event.api, ctx)).unwrap()
 
 
 __all__ = ("FuncHandler",)

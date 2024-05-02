@@ -2,7 +2,6 @@ import typing
 from abc import ABC, abstractmethod
 
 from mubble.bot.cute_types.base import BaseCute
-from mubble.bot.cute_types.callback_query import CallbackQueryCute
 
 if typing.TYPE_CHECKING:
     from mubble.api import ABCAPI

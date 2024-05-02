@@ -1,21 +1,30 @@
+import typing
+
+from fntypes.co import Nothing, Some
+
 from mubble.api import ABCAPI
-from mubble.option import Nothing, Option, Some
-from mubble.types import Update, UpdateType
+from mubble.msgspec_utils import Option
+from mubble.types import Model, Update
 
 from .base import BaseCute
+
+ModelT = typing.TypeVar("ModelT", bound=Model)
 
 
 class UpdateCute(BaseCute[Update], Update, kw_only=True):
     api: ABCAPI
 
     @property
-    def update_type(self) -> Option[UpdateType]:
-        for name, update in self.to_dict(
-            exclude_fields={"update_id"},
-        ).items():
-            if update is not None:
-                return Some(UpdateType(name))
-        return Nothing
+    def incoming_update(self) -> Model:
+        return getattr(
+            self,
+            self.update_type.expect("Update object has no incoming update.").value,
+        )
+    
+    def get_event(self, event_model: type[ModelT]) -> Option[ModelT]:
+        if isinstance(self.incoming_update, event_model):
+            return Some(self.incoming_update)
+        return Nothing()
 
 
 __all__ = ("UpdateCute",)

@@ -13,6 +13,7 @@ from .links import (
     get_resolve_domain_link,
     get_start_bot_link,
     get_start_group_link,
+    user_open_message_link,
 )
 from .spec_html_formats import SpecialFormat, is_spec_format
 
@@ -48,9 +49,7 @@ class StringFormatter(string.Formatter):
             )
         return fmt
 
-    def get_spec_formatter(
-        self, value: SpecialFormat
-    ) -> typing.Callable[..., "TagFormat"]:
+    def get_spec_formatter(self, value: SpecialFormat) -> typing.Callable[..., "TagFormat"]:
         return globals()[value.__formatter_name__]
 
     def check_formats(self, value: typing.Any, fmts: list[str]) -> "TagFormat":
@@ -201,11 +200,8 @@ def bold(string: str) -> TagFormat:
     return TagFormat(string, tag="b")
 
 
-def channel_boost_link(channel_username: str, string: str | None = None):
-    return link(
-        get_channel_boost_link(channel_username),
-        string or f"t.me/{channel_username}?boost",
-    )
+def channel_boost_link(channel_id: str | int, string: str | None = None):
+    return link(get_channel_boost_link(channel_id), string)
 
 
 def code_inline(string: str) -> TagFormat:
@@ -235,19 +231,12 @@ def spoiler(string: str) -> TagFormat:
     return TagFormat(string, tag="tg-spoiler")
 
 
-def start_bot_link(
-    bot_username: str, data: str, string: str | None = None
-) -> TagFormat:
-    return link(
-        get_start_bot_link(bot_username, data),
-        string or f"t.me/{bot_username}?start={data}",
-    )
+def start_bot_link(bot_id: str | int, data: str, string: str | None = None) -> TagFormat:
+    return link(get_start_bot_link(bot_id, data), string)
 
 
-def start_group_link(
-    bot_username: str, data: str, string: str | None = None
-) -> TagFormat:
-    return link(get_start_group_link(bot_username, data), string)
+def start_group_link(bot_id: str | int, data: str, string: str | None = None) -> TagFormat:
+    return link(get_start_group_link(bot_id, data), string)
 
 
 def strike(string: str) -> TagFormat:
@@ -280,6 +269,14 @@ def underline(string: str) -> TagFormat:
     return TagFormat(string, tag="u")
 
 
+def user_open_message(
+    user_id: int,
+    message: str | None = None,
+    string: str | None = None,
+) -> TagFormat:
+    return link(user_open_message_link(user_id, message), string)
+
+
 __all__ = (
     "FormatString",
     "HTMLFormatter",
@@ -307,4 +304,5 @@ __all__ = (
     "strike",
     "tg_emoji",
     "underline",
+    "user_open_message",
 )

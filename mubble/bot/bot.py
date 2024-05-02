@@ -12,10 +12,6 @@ LoopWrapperT = typing.TypeVar("LoopWrapperT", bound=ABCLoopWrapper, default=Loop
 
 
 class Mubble(typing.Generic[DispatchT, PollingT, LoopWrapperT]):
-    dispatch: DispatchT
-    polling: PollingT
-    loop_wrapper: LoopWrapperT
-
     def __init__(
         self,
         api: API,
@@ -23,11 +19,20 @@ class Mubble(typing.Generic[DispatchT, PollingT, LoopWrapperT]):
         polling: PollingT | None = None,
         dispatch: DispatchT | None = None,
         loop_wrapper: LoopWrapperT | None = None,
-    ):
+    ) -> None:
         self.api = api
-        self.dispatch = dispatch or Dispatch()  # type: ignore
-        self.polling = polling or Polling(api)  # type: ignore
-        self.loop_wrapper = loop_wrapper or LoopWrapper()  # type: ignore
+        self.dispatch = typing.cast(DispatchT, dispatch or Dispatch())
+        self.polling = typing.cast(PollingT, polling or Polling(api))
+        self.loop_wrapper = typing.cast(LoopWrapperT, loop_wrapper or LoopWrapper())
+
+    def __repr__(self) -> str:
+        return "<{}: api={!r}, dispatch={!r}, polling={!r}, loop_wrapper={!r}>".format(
+            self.__class__.__name__,
+            self.api,
+            self.dispatch,
+            self.polling,
+            self.loop_wrapper,
+        )
 
     @property
     def on(self) -> DispatchT:
@@ -38,7 +43,7 @@ class Mubble(typing.Generic[DispatchT, PollingT, LoopWrapperT]):
             return
         await self.api.delete_webhook()
 
-    async def run_polling(self, offset: int = 0, skip_updates: bool = False) -> None:
+    async def run_polling(self, *, offset: int = 0, skip_updates: bool = False) -> None:
         if skip_updates:
             logger.debug("Dropping pending updates")
             await self.reset_webhook()
@@ -50,9 +55,11 @@ class Mubble(typing.Generic[DispatchT, PollingT, LoopWrapperT]):
                 logger.debug("Received update (update_id={})", update.update_id)
                 self.loop_wrapper.add_task(self.dispatch.feed(update, self.api))
 
-    def run_forever(self, offset: int = 0, skip_updates: bool = False) -> None:
+    def run_forever(self, *, offset: int = 0, skip_updates: bool = False) -> None:
         logger.debug("Running blocking polling (id={})", self.api.id)
-        self.loop_wrapper.add_task(self.run_polling(offset, skip_updates=skip_updates))
+        self.loop_wrapper.add_task(
+            self.run_polling(offset=offset, skip_updates=skip_updates)
+        )
         self.loop_wrapper.run_event_loop()
 
 

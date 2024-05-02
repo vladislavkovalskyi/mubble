@@ -3,11 +3,10 @@ from copy import deepcopy
 from functools import wraps
 
 import typing_extensions as typing
+from fntypes.co import Error, Nothing, Ok, Option, Result, Some
 
-from mubble.model import msgspec_convert
 from mubble.modules import logger
-from mubble.option import Nothing, Option, Some
-from mubble.result import Error, Ok, Result
+from mubble.msgspec_utils import msgspec_convert
 
 from .abc import ABCGlobalContext, CtxVar, CtxVariable, GlobalCtxVar
 
@@ -16,13 +15,21 @@ F = typing.TypeVar("F", bound=typing.Callable)
 CtxValueT = typing.TypeVar("CtxValueT", default=typing.Any)
 
 if typing.TYPE_CHECKING:
+
     _: typing.TypeAlias = None
 else:
+
     _ = lambda: None
 
 
 def type_check(value: object, value_type: type[T]) -> typing.TypeGuard[T]:
-    return True if value_type is object else bool(msgspec_convert(value, value_type))
+    if value_type in (typing.Any, object):
+        return True
+    match msgspec_convert(value, value_type):
+        case Ok(v):
+            return type(value) is type(v)
+        case Error(_):
+            return False
 
 
 def is_dunder(name: str) -> bool:
@@ -43,23 +50,23 @@ def root_protection(func: F) -> F:
         )
 
     @wraps(func)
-    def wrapper(self: "GlobalContext", __name: str, *args) -> typing.Any:
-        if self.is_root_attribute(__name) and __name in (
+    def wrapper(self: "GlobalContext", name: str, /, *args) -> typing.Any:
+        if self.is_root_attribute(name) and name in (
             self.__dict__ | self.__class__.__dict__
         ):
-            root_attr = self.get_root_attribute(__name).unwrap()
+            root_attr = self.get_root_attribute(name).unwrap()
             if all((not root_attr.can_be_rewritten, not root_attr.can_be_read)):
                 raise AttributeError(
-                    f"Unable to set, get, delete root attribute {__name!r}."
+                    f"Unable to set, get, delete root attribute {name!r}."
                 )
             if func.__name__ == "__setattr__" and not root_attr.can_be_rewritten:
-                raise AttributeError(f"Unable to set root attribute {__name!r}.")
+                raise AttributeError(f"Unable to set root attribute {name!r}.")
             if func.__name__ == "__getattr__" and not root_attr.can_be_read:
-                raise AttributeError(f"Unable to get root attribute {__name!r}.")
+                raise AttributeError(f"Unable to get root attribute {name!r}.")
             if func.__name__ == "__delattr__":
-                raise AttributeError(f"Unable to delete root attribute {__name!r}.")
+                raise AttributeError(f"Unable to delete root attribute {name!r}.")
 
-        return func(self, __name, *args)  # type: ignore
+        return func(self, name, *args)  # type: ignore
 
     return wrapper  # type: ignore
 
@@ -112,7 +119,7 @@ class Storage:
 
     def get(self, ctx_name: str) -> Option["GlobalContext"]:
         ctx = self._storage.get(ctx_name)
-        return Some(ctx) if ctx is not None else Nothing
+        return Some(ctx) if ctx is not None else Nothing()
 
     def delete(self, ctx_name: str) -> None:
         assert (
@@ -125,9 +132,7 @@ class Storage:
     order_default=True,
     field_specifiers=(ctx_var,),
 )
-class GlobalContext(
-    ABCGlobalContext, typing.Generic[CtxValueT], dict[str, GlobalCtxVar[CtxValueT]]
-):
+class GlobalContext(ABCGlobalContext, typing.Generic[CtxValueT], dict[str, GlobalCtxVar[CtxValueT]]):
     """GlobalContext.
 
     ```
@@ -194,8 +199,8 @@ class GlobalContext(
             self.set_context_variables(variables)
 
     def __repr__(self) -> str:
-        return "<{!r} -> ({})>".format(
-            f"{self.__class__.__name__}@{self.ctx_name}",
+        return "<{} -> ({})>".format(
+            f"{self.__class__.__name__}@{self.ctx_name!r}",
             ", ".join(repr(var) for var in self),
         )
 
@@ -203,7 +208,10 @@ class GlobalContext(
         """Returns True if the names of context stores
         that use self and __value instances are equivalent."""
 
-        return self.ctx_name == __value.ctx_name
+        return (
+            isinstance(__value, GlobalContext)
+            and self.__ctx_name__ == __value.__ctx_name__
+        )
 
     def __setitem__(self, __name: str, __value: CtxValueT | CtxVariable[CtxValueT]):
         if is_dunder(__name):
@@ -278,7 +286,7 @@ class GlobalContext(
             for rattr in self.__root_attributes__:
                 if rattr.name == name:
                     return Some(rattr)
-        return Nothing
+        return Nothing()
 
     def items(self) -> list[tuple[str, GlobalCtxVar[CtxValueT]]]:
         """Return context variables as set-like items."""
@@ -303,85 +311,78 @@ class GlobalContext(
     def copy(self) -> typing.Self:
         """Copy context. Returns copied context without ctx_name."""
 
-        return self.__class__(**deepcopy(self.dict()))
+        return self.__class__(**self.dict())
 
     def dict(self) -> dict[str, GlobalCtxVar[CtxValueT]]:
         """Returns context as dict."""
 
-        return {name: var for name, var in self.items()}
+        return {name: deepcopy(var) for name, var in self.items()}
 
     @typing.overload
-    def pop(self, var_name: str) -> Option[GlobalCtxVar[CtxValueT]]:
-        ...
+    def pop(self, var_name: str) -> Option[GlobalCtxVar[CtxValueT]]: ...
 
     @typing.overload
     def pop(
         self,
         var_name: str,
         var_value_type: type[T],
-    ) -> Option[GlobalCtxVar[T]]:
-        ...
+    ) -> Option[GlobalCtxVar[T]]: ...
 
     def pop(
         self, var_name: str, var_value_type: type[T] = object
     ) -> Option[GlobalCtxVar[T]]:
-        """Pop context variable by name.
-        Returns Option[GlobalCtxVar[T]] object.
-        """
+        """Pop context variable by name."""
 
         val = self.get(var_name, var_value_type)
         if val:
             del self[var_name]
             return val
-        return Nothing
+        return Nothing()
 
     @typing.overload
-    def get(self, var_name: str) -> Option[GlobalCtxVar[CtxValueT]]:
-        ...
+    def get(self, var_name: str) -> Option[GlobalCtxVar[CtxValueT]]: ...
 
     @typing.overload
     def get(
         self,
         var_name: str,
         var_value_type: type[T],
-    ) -> Option[GlobalCtxVar[T]]:
-        ...
+    ) -> Option[GlobalCtxVar[T]]: ...
 
     def get(
         self,
         var_name: str,
         var_value_type: type[T] = object,
     ) -> Option[GlobalCtxVar[T]]:
-        """Get context variable by name.
-        Returns `GlobalCtxVar[value_type]` object."""
+        """Get context variable by name."""
 
         generic_types = typing.get_args(get_orig_class(self))
         if generic_types and var_value_type is object:
             var_value_type = generic_types[0]
         var = dict.get(self, var_name)
         if var is None:
-            return Nothing
+            return Nothing()
         assert type_check(
             var.value, var_value_type
         ), "Context variable value type of {!r} does not correspond to the expected type {!r}.".format(
             type(var.value).__name__,
-            getattr(var_value_type, "__name__")
-            if isinstance(var_value_type, type)
-            else repr(var_value_type),
+            (
+                getattr(var_value_type, "__name__")
+                if isinstance(var_value_type, type)
+                else repr(var_value_type)
+            ),
         )
         return Some(var)
 
     @typing.overload
-    def get_value(self, var_name: str) -> Option[CtxValueT]:
-        ...
+    def get_value(self, var_name: str) -> Option[CtxValueT]: ...
 
     @typing.overload
     def get_value(
         self,
         var_name: str,
         var_value_type: type[T],
-    ) -> Option[T]:
-        ...
+    ) -> Option[T]: ...
 
     def get_value(
         self,
@@ -398,8 +399,7 @@ class GlobalContext(
         var = self.get(old_var_name).unwrap()
         if var.const:
             return Error(
-                f"Unable to rename variable {old_var_name!r}, "
-                "because it's a constant."
+                f"Unable to rename variable {old_var_name!r}, " "because it's a constant."
             )
         del self[old_var_name]
         self[new_var_name] = var.value

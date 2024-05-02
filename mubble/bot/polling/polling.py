@@ -2,13 +2,14 @@ import asyncio
 import typing
 
 import aiohttp
+import msgspec
+from fntypes.result import Error, Ok
 
 from mubble.api.abc import ABCAPI
 from mubble.api.error import InvalidTokenError
 from mubble.bot.polling.abc import ABCPolling
-from mubble.model import Raw, decoder
 from mubble.modules import logger
-from mubble.result import Error, Ok
+from mubble.msgspec_utils import decoder
 from mubble.types import Update, UpdateType
 
 
@@ -28,12 +29,24 @@ class Polling(ABCPolling):
             include_updates=include_updates,
             exclude_updates=exclude_updates,
         )
-        self.reconnection_timeout = (
-            5 if reconnection_timeout < 0 else reconnection_timeout
-        )
+        self.reconnection_timeout = 5 if reconnection_timeout < 0 else reconnection_timeout
         self.max_reconnetions = 10 if max_reconnetions < 0 else max_reconnetions
         self.offset = offset
         self._stop = False
+    
+    def __repr__(self) -> str:
+        return (
+            "<{}: with api={!r}, stopped={}, offset={}, allowed_updates={!r}, "
+            "max_reconnetions={}, reconnection_timeout={}>"
+        ).format(
+            self.__class__.__name__,
+            self.api,
+            self._stop,
+            self.offset,
+            self.allowed_updates,
+            self.max_reconnetions,
+            self.reconnection_timeout,
+        )
 
     def get_allowed_updates(
         self,
@@ -58,7 +71,7 @@ class Polling(ABCPolling):
 
         return [x.value if isinstance(x, UpdateType) else x for x in allowed_updates]
 
-    async def get_updates(self) -> Raw | None:
+    async def get_updates(self) -> msgspec.Raw | None:
         raw_updates = await self.api.request_raw(
             "getUpdates",
             {"offset": self.offset, "allowed_updates": self.allowed_updates},
@@ -100,17 +113,13 @@ class Polling(ABCPolling):
                     exit(9)
                 else:
                     logger.warning(
-                        "Server disconnected, waiting 5 seconds to reconnetion..."
+                        "Server disconnected, waiting 5 seconds to reconnetion...",
                     )
                     reconn_counter += 1
                     await asyncio.sleep(self.reconnection_timeout)
             except aiohttp.ClientConnectorError:
-                logger.error(
-                    "Client connection failed, polling stopping! "
-                    "Please, check your internet connection."
-                )
-                self.stop()
-                exit(3)
+                logger.error("Client connection failed, attempted to reconnect...")
+                await asyncio.sleep(self.reconnection_timeout)
             except BaseException as e:
                 logger.exception(e)
 

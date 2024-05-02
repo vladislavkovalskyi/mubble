@@ -4,32 +4,26 @@ import typing
 from choicelib import choice_in_order
 
 
+@typing.runtime_checkable
 class JSONModule(typing.Protocol):
-    def loads(self, s: str) -> dict | list:
-        ...
+    def loads(self, s: str | bytes) -> typing.Any: ...
 
-    def dumps(self, o: dict | list) -> str:
-        ...
+    def dumps(self, o: typing.Any) -> str: ...
 
 
+@typing.runtime_checkable
 class LoggerModule(typing.Protocol):
-    def debug(self, __msg: object, *args: object, **kwargs: object):
-        ...
+    def debug(self, __msg: object, *args: object, **kwargs: object) -> None: ...
 
-    def info(self, __msg: object, *args: object, **kwargs: object):
-        ...
+    def info(self, __msg: object, *args: object, **kwargs: object) -> None: ...
 
-    def warning(self, __msg: object, *args: object, **kwargs: object):
-        ...
+    def warning(self, __msg: object, *args: object, **kwargs: object) -> None: ...
 
-    def error(self, __msg: object, *args: object, **kwargs: object):
-        ...
+    def error(self, __msg: object, *args: object, **kwargs: object) -> None: ...
 
-    def critical(self, __msg: object, *args: object, **kwargs: object):
-        ...
+    def critical(self, __msg: object, *args: object, **kwargs: object) -> None: ...
 
-    def exception(self, __msg: object, *args: object, **kwargs: object):
-        ...
+    def exception(self, __msg: object, *args: object, **kwargs: object) -> None: ...
 
     def set_level(
         self,
@@ -41,13 +35,12 @@ class LoggerModule(typing.Protocol):
             "CRITICAL",
             "EXCEPTION",
         ],
-    ) -> None:
-        ...
+    ) -> None: ...
 
 
 logger: LoggerModule
 json: JSONModule = choice_in_order(
-    ["ujson", "hyperjson", "orjson"], do_import=True, default="mubble.msgspec_json"
+    ["orjson", "ujson", "hyperjson"], do_import=True, default="mubble.msgspec_json"
 )
 logging_module = choice_in_order(["loguru"], default="logging")
 logging_level = os.getenv("LOGGER_LEVEL", default="DEBUG").upper()
@@ -182,7 +175,9 @@ elif logging_module == "logging":
             ).format(record)
 
     class LogMessage:
-        def __init__(self, fmt, args, kwargs):
+        def __init__(
+            self, fmt: typing.Any, args: typing.Any, kwargs: typing.Any
+        ) -> None:
             self.fmt = fmt
             self.args = args
             self.kwargs = kwargs
@@ -191,16 +186,25 @@ elif logging_module == "logging":
             return self.fmt.format(*self.args, **self.kwargs)
 
     class MubbleLoggingStyleAdapter(logging.LoggerAdapter):
-        def __init__(self, logger, extra=None):
+        def __init__(
+            self,
+            logger: LoggerModule,
+            extra: dict[str, typing.Any] | None = None,
+        ) -> None:
             super().__init__(logger, extra or {})
 
-        def log(self, level, msg, *args, **kwargs):
+        def log(self, level: int, msg: object, *args: object, **kwargs: object) -> None:
             if self.isEnabledFor(level):
                 kwargs.setdefault("stacklevel", 2)
                 msg, args, kwargs = self.proc(msg, args, kwargs)
                 self.logger._log(level, msg, args, **kwargs)
 
-        def proc(self, msg, args, kwargs):
+        def proc(
+            self,
+            msg: object,
+            args: tuple[object, ...],
+            kwargs: dict[str, object],
+        ) -> tuple[LogMessage | object, tuple[object, ...], dict[str, object]]:
             log_kwargs = {
                 key: kwargs[key]
                 for key in inspect.getfullargspec(self.logger._log).args[1:]
