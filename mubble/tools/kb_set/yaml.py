@@ -8,7 +8,7 @@ from mubble.tools.keyboard import InlineKeyboard, Keyboard
 
 from .base import KeyboardSetBase, KeyboardSetError
 
-PathLike = str | os.PathLike[str]
+PathLike: typing.TypeAlias = str | os.PathLike[str]
 
 
 class KeyboardSetYAML(KeyboardSetBase):
@@ -35,9 +35,7 @@ class KeyboardSetYAML(KeyboardSetBase):
 
             short_name = g.group(1)
             if short_name not in config:
-                raise KeyboardSetError(
-                    f"Keyboard {short_name!r} is undefined in config."
-                )
+                raise KeyboardSetError(f"Keyboard {short_name!r} is undefined in config.")
 
             kb_config = config[short_name]
             if (

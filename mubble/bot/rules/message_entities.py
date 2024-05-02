@@ -1,10 +1,12 @@
+import typing
+
 from mubble.bot.dispatch.context import Context
 from mubble.types.enums import MessageEntityType
 from mubble.types.objects import MessageEntity
 
 from .abc import Message, MessageRule
 
-Entity = str | MessageEntityType
+Entity: typing.TypeAlias = str | MessageEntityType
 
 
 class HasEntities(MessageRule):

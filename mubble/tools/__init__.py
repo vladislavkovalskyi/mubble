@@ -1,4 +1,5 @@
-from .error_handler import ABCErrorHandler, Catcher, ErrorHandler
+from .buttons import BaseButton
+from .error_handler import ABCErrorHandler, Catcher, CatcherError, ErrorHandler
 from .formatting import (
     BaseSpecFormat,
     ChannelBoostLink,
@@ -13,6 +14,7 @@ from .formatting import (
     StartBotLink,
     StartGroupLink,
     TgEmoji,
+    UserOpenMessage,
     block_quote,
     bold,
     channel_boost_link,
@@ -36,6 +38,8 @@ from .formatting import (
     strike,
     tg_emoji,
     underline,
+    user_open_message,
+    user_open_message_link,
 )
 from .global_context import (
     ABCGlobalContext,
@@ -61,9 +65,8 @@ from .keyboard import (
     InlineKeyboard,
     Keyboard,
     RowButtons,
-    keyboard_remove,
 )
-from .loop_wrapper import ABCLoopWrapper, DelayedTask, LoopWrapper
+from .loop_wrapper import ABCLoopWrapper, DelayedTask, Lifespan, LoopWrapper
 from .magic import magic_bundle, resolve_arg_names
 from .parse_mode import ParseMode
 
@@ -75,9 +78,11 @@ __all__ = (
     "ABCTranslator",
     "ABCTranslatorMiddleware",
     "AnyMarkup",
+    "BaseButton",
     "BaseSpecFormat",
     "Button",
     "Catcher",
+    "CatcherError",
     "ChannelBoostLink",
     "CtxVar",
     "DelayedTask",
@@ -94,6 +99,7 @@ __all__ = (
     "KeyboardSetBase",
     "KeyboardSetYAML",
     "Link",
+    "Lifespan",
     "LoopWrapper",
     "Mention",
     "ParseMode",
@@ -107,6 +113,7 @@ __all__ = (
     "StartGroupLink",
     "MubbleCtx",
     "TgEmoji",
+    "UserOpenMessage",
     "block_quote",
     "bold",
     "channel_boost_link",
@@ -121,7 +128,6 @@ __all__ = (
     "get_start_group_link",
     "invite_chat_link",
     "italic",
-    "keyboard_remove",
     "link",
     "magic_bundle",
     "mention",
@@ -134,4 +140,6 @@ __all__ = (
     "strike",
     "tg_emoji",
     "underline",
+    "user_open_message",
+    "user_open_message_link",
 )

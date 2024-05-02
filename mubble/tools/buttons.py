@@ -4,10 +4,20 @@ import typing
 import msgspec
 
 from mubble.model import encoder
+from mubble.types import (
+    CallbackGame,
+    KeyboardButtonPollType,
+    KeyboardButtonRequestChat,
+    KeyboardButtonRequestUsers,
+    SwitchInlineQueryChosenChat,
+    WebAppInfo,
+)
+from mubble.types.objects import LoginUrl
 
 ButtonT = typing.TypeVar("ButtonT", bound="BaseButton")
 
 
+@typing.runtime_checkable
 class DataclassInstance(typing.Protocol):
     __dataclass_fields__: typing.ClassVar[dict[str, dataclasses.Field[typing.Any]]]
 
@@ -40,8 +50,10 @@ class Button(BaseButton):
     _: dataclasses.KW_ONLY
     request_contact: bool = False
     request_location: bool = False
-    request_poll: dict | None = None
-    web_app: dict | None = None
+    request_chat: dict[str, typing.Any] | KeyboardButtonRequestChat | None = None
+    request_user: dict[str, typing.Any] | KeyboardButtonRequestUsers | None = None
+    request_poll: dict[str, typing.Any] | KeyboardButtonPollType | None = None
+    web_app: dict[str, typing.Any] | WebAppInfo | None = None
 
 
 @dataclasses.dataclass
@@ -49,18 +61,18 @@ class InlineButton(BaseButton):
     text: str
     _: dataclasses.KW_ONLY
     url: str | None = None
-    login_url: dict | None = None
+    login_url: dict[str, typing.Any] | LoginUrl | None = None
     pay: bool | None = None
-    callback_data: typing.Union[
-        str,
-        dict[str, typing.Any],
-        DataclassInstance,
-        msgspec.Struct,
-    ] | None = None
-    callback_game: dict | None = None
+    callback_data: (
+        str | dict[str, typing.Any] | DataclassInstance | msgspec.Struct | None
+    ) = None
+    callback_game: dict[str, typing.Any] | CallbackGame | None = None
     switch_inline_query: str | None = None
     switch_inline_query_current_chat: str | None = None
-    web_app: dict | None = None
+    switch_inline_query_chosen_chat: (
+        dict[str, typing.Any] | SwitchInlineQueryChosenChat | None
+    ) = None
+    web_app: dict[str, typing.Any] | WebAppInfo | None = None
 
 
 __all__ = (

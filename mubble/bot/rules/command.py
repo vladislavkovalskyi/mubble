@@ -44,10 +44,14 @@ class Command(TextMessageRule):
         self.lazy = lazy
 
     def remove_prefix(self, text: str) -> str | None:
-        for prefix in self.prefixes:
-            if text.startswith(prefix):
-                return text.removeprefix(prefix)
-        return None
+        return next(
+            (
+                text.removeprefix(prefix)
+                for prefix in self.prefixes
+                if text.startswith(prefix)
+            ),
+            None,
+        )
 
     def parse_argument(
         self,
@@ -58,24 +62,17 @@ class Command(TextMessageRule):
     ) -> dict | None:
         argument = arguments[0]
         data = argument.check(data_s)
-        if data is None and not argument.optional:
-            return None
-
         if data is None:
-            return self.parse_arguments(arguments[1:], s)
-
+            return self.parse_arguments(arguments[1:], s) if argument.optional else None
         with_argument = self.parse_arguments(arguments[1:], new_s)
         if with_argument is not None:
             return {argument.name: data, **with_argument}
 
-        if not argument.optional:
-            return None
-
-        return self.parse_arguments(arguments[1:], s)
+        return self.parse_arguments(arguments[1:], s) if argument.optional else None
 
     def parse_arguments(self, arguments: list[Argument], s: str) -> dict | None:
         if not arguments:
-            return {} if not s else None
+            return None if s else {}
 
         if self.lazy:
             return self.parse_argument(arguments, *single_split(s, self.separator), s)

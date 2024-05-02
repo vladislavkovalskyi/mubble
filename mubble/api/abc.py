@@ -4,10 +4,10 @@ from abc import ABC, abstractmethod
 
 import msgspec
 from envparse import env
+from fntypes.result import Result
 
 from mubble.api.error import APIError
 from mubble.client import ABCClient
-from mubble.result import Result
 
 from .error import InvalidTokenError
 
@@ -15,10 +15,11 @@ from .error import InvalidTokenError
 class Token(str):
     def __new__(cls, token: str) -> typing.Self:
         if token.count(":") != 1 or not token.split(":")[0].isdigit():
-            raise InvalidTokenError(
-                "Invalid token, it should look like this '123:abc'."
-            )
+            raise InvalidTokenError("Invalid token, it should look like this '123:ABC'.")
         return super().__new__(cls, token)
+    
+    def __repr__(self) -> str:
+        return f"<Token: {self.bot_id}:{''.join(self.split(':')[-1])[:6]}...>"
 
     @classmethod
     def from_env(
@@ -44,15 +45,17 @@ class ABCAPI(ABC):
     async def request(
         self,
         method: str,
-        data: dict | None = None,
-    ) -> Result[list | dict | bool, APIError]:
+        data: dict[str, typing.Any] | None = None,
+        files: dict[str, tuple[str, bytes]] | None = None,
+    ) -> Result[list[typing.Any] | dict[str, typing.Any] | bool, APIError]:
         pass
 
     @abstractmethod
     async def request_raw(
         self,
         method: str,
-        data: dict | None = None,
+        data: dict[str, typing.Any] | None = None,
+        files: dict[str, tuple[str, bytes]] | None = None,
     ) -> Result[msgspec.Raw, APIError]:
         pass
 

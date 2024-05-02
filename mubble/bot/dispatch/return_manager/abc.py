@@ -20,7 +20,7 @@ def get_union_types(t: types.UnionType) -> tuple[type, ...] | None:
 def register_manager(return_type: type | types.UnionType):
     def wrapper(func: typing.Callable[..., typing.Awaitable]):
         return Manager(get_union_types(return_type) or (return_type,), func)  # type: ignore
-
+    
     return wrapper
 
 
@@ -43,6 +43,12 @@ class ABCReturnManager(ABC, typing.Generic[EventT]):
 
 
 class BaseReturnManager(ABCReturnManager[EventT]):
+    def __repr__(self) -> str:
+        return "<{}: {}>".format(
+            self.__class__.__name__,
+            ", ".join(x.callback.__name__ + "=" + repr(x) for x in self.managers),
+        )
+
     @property
     def managers(self) -> list[Manager]:
         return [
@@ -55,45 +61,34 @@ class BaseReturnManager(ABCReturnManager[EventT]):
     @staticmethod
     async def ctx_manager(value: Context, event: EventT, ctx: Context) -> None:
         """Basic manager for returning context from handler."""
-
+        
         ctx.update(value)
-
+    
     async def run(self, response: typing.Any, event: EventT, ctx: Context) -> None:
         for manager in self.managers:
-            if typing.Any in manager.types or any(
-                type(response) is x for x in manager.types
-            ):
+            if typing.Any in manager.types or any(type(response) is x for x in manager.types):
                 await manager(response, event, ctx)
-
+    
     @typing.overload
-    def register_manager(
-        self, return_type: type[T]
-    ) -> typing.Callable[
+    def register_manager(self, return_type: type[T]) -> typing.Callable[
         [typing.Callable[[T, EventT, Context], typing.Awaitable]], Manager
     ]:
         ...
-
+    
     @typing.overload
-    def register_manager(
-        self, return_type: tuple[type[T], ...]
-    ) -> typing.Callable[
+    def register_manager(self, return_type: tuple[type[T], ...]) -> typing.Callable[
         [typing.Callable[[tuple[T, ...], EventT, Context], typing.Awaitable]], Manager
     ]:
         ...
 
-    def register_manager(
-        self, return_type: type[T] | tuple[type[T], ...]
-    ) -> typing.Callable[
-        [typing.Callable[[T | tuple[T, ...], EventT, Context], typing.Awaitable]],
-        Manager,
+    def register_manager(self, return_type: type[T] | tuple[type[T], ...]) -> typing.Callable[
+        [typing.Callable[[T | tuple[T, ...], EventT, Context], typing.Awaitable]], Manager
     ]:
-        def wrapper(
-            func: typing.Callable[[T, EventT, Context], typing.Awaitable]
-        ) -> Manager:
+        def wrapper(func: typing.Callable[[T, EventT, Context], typing.Awaitable]) -> Manager:
             manager = Manager(get_union_types(return_type) or (return_type,), func)  # type: ignore
             setattr(self.__class__, func.__name__, manager)
             return manager
-
+        
         return wrapper
 
 

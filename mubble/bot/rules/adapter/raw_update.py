@@ -1,12 +1,16 @@
+from fntypes.result import Ok, Result
+
 from mubble.api.abc import ABCAPI
 from mubble.bot.cute_types.update import UpdateCute
 from mubble.bot.rules.adapter.abc import ABCAdapter
 from mubble.bot.rules.adapter.errors import AdapterError
-from mubble.result import Ok, Result
 from mubble.types.objects import Update
 
 
 class RawUpdateAdapter(ABCAdapter[Update, UpdateCute]):
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__name__}: adapt Update -> UpdateCute>"
+
     async def adapt(
         self,
         api: ABCAPI,

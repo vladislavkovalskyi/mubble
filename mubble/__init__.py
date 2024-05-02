@@ -1,3 +1,39 @@
+"""Mubble
+
+Framework for effective and reliable telegram bot building.
+
+* Type hinted
+* Customizable and extensible
+* Ready to use scenarios and rules
+* Fast models built on msgspec
+* Both low-level and high-level API
+
+Basic example:
+
+```python
+from mubble import API, Message, Mubble, Token
+from mubble.modules import logger
+from mubble.rules import Text
+
+api = API(token=Token("123:token"))
+bot = Mubble(api)
+logger.set_level("INFO")
+
+
+@bot.on.message(Text("/start"))
+async def start(message: Message):
+    me = (await api.get_me()).unwrap()
+    await message.answer(
+        f"Hello, {message.from_user.full_name}! I'm {me.full_name}."
+    )
+
+
+bot.run_forever()
+```
+"""
+
+import typing
+
 from .api import ABCAPI, API, APIError, APIResponse, Token
 from .bot import (
     ABCDispatch,
@@ -34,11 +70,10 @@ from .bot import (
     register_manager,
 )
 from .client import ABCClient, AiohttpClient
-from .model import Model, decoder, encoder
+from .model import Model
 from .modules import logger
-from .option import Nothing, NothingType, Option, Some
-from .result import Error, Ok, Result
 from .tools import (
+    ABCErrorHandler,
     ABCGlobalContext,
     ABCLoopWrapper,
     ABCTranslator,
@@ -47,6 +82,7 @@ from .tools import (
     Button,
     CtxVar,
     DelayedTask,
+    ErrorHandler,
     FormatString,
     GlobalContext,
     HTMLFormatter,
@@ -56,26 +92,27 @@ from .tools import (
     Keyboard,
     KeyboardSetBase,
     KeyboardSetYAML,
+    Lifespan,
     LoopWrapper,
     ParseMode,
     RowButtons,
     SimpleI18n,
     SimpleTranslator,
     ctx_var,
-    keyboard_remove,
     magic_bundle,
 )
 
-Message = MessageCute
-CallbackQuery = CallbackQueryCute
-InlineQuery = InlineQueryCute
-Bot = Mubble
+Message: typing.TypeAlias = MessageCute
+CallbackQuery: typing.TypeAlias = CallbackQueryCute
+InlineQuery: typing.TypeAlias = InlineQueryCute
+Bot: typing.TypeAlias = Mubble
 
 
 __all__ = (
     "ABCAPI",
     "ABCClient",
     "ABCDispatch",
+    "ABCErrorHandler",
     "ABCGlobalContext",
     "ABCHandler",
     "ABCLoopWrapper",
@@ -107,7 +144,7 @@ __all__ = (
     "CtxVar",
     "DelayedTask",
     "Dispatch",
-    "Error",
+    "ErrorHandler",
     "FormatString",
     "FuncHandler",
     "GlobalContext",
@@ -121,6 +158,7 @@ __all__ = (
     "Keyboard",
     "KeyboardSetBase",
     "KeyboardSetYAML",
+    "Lifespan",
     "LoopWrapper",
     "Message",
     "MessageCute",
@@ -129,26 +167,17 @@ __all__ = (
     "MessageRule",
     "MessageView",
     "Model",
-    "Nothing",
-    "NothingType",
-    "Ok",
-    "Option",
     "ParseMode",
     "Polling",
-    "Result",
     "RowButtons",
     "SimpleI18n",
     "SimpleTranslator",
     "SingleChoice",
-    "Some",
     "Mubble",
     "Token",
     "ViewBox",
     "WaiterMachine",
     "ctx_var",
-    "decoder",
-    "encoder",
-    "keyboard_remove",
     "logger",
     "magic_bundle",
     "register_manager",

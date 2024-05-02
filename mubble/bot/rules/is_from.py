@@ -1,17 +1,42 @@
+import typing
+
+from mubble.bot.cute_types.base import BaseCute
 from mubble.bot.dispatch.context import Context
+from mubble.msgspec_utils import Option
 from mubble.types.enums import ChatType, DiceEmoji
+from mubble.types.objects import User
 
-from .abc import Message, MessageRule
+from .abc import ABCRule, Message, MessageRule
+
+T = typing.TypeVar("T", bound=BaseCute)
 
 
-class HasFrom(MessageRule):
-    async def check(self, message: Message, ctx: Context) -> bool:
-        return bool(message.from_)
+@typing.runtime_checkable
+class FromUserProto(typing.Protocol):
+    from_: User | Option[User]
+
+
+class HasFrom(ABCRule[T]):
+    async def check(self, event: T, ctx: Context) -> bool:
+        return isinstance(event, FromUserProto) and bool(event.from_)
 
 
 class HasDice(MessageRule):
     async def check(self, message: Message, ctx: Context) -> bool:
         return bool(message.dice)
+
+
+class IsForward(MessageRule):
+    async def check(self, message: Message, ctx: Context) -> bool:
+        return bool(message.forward_origin)
+
+
+class IsForwardType(MessageRule, requires=[IsForward()]):
+    def __init__(self, fwd_type: typing.Literal["user", "hidden_user", "chat", "channel"], /) -> None:
+        self.fwd_type = fwd_type
+
+    async def check(self, message: Message, ctx: Context) -> bool:
+        return message.forward_origin.unwrap().v.type == self.fwd_type
 
 
 class IsReply(MessageRule):
@@ -46,7 +71,7 @@ class IsLanguageCode(MessageRule, requires=[HasFrom()]):
     async def check(self, message: Message, ctx: Context) -> bool:
         if not message.from_user.language_code:
             return False
-        return message.from_user.language_code.unwrap_or_none() in self.lang_codes
+        return message.from_user.language_code.unwrap() in self.lang_codes
 
 
 class IsForum(MessageRule):
@@ -129,6 +154,8 @@ __all__ = (
     "IsDartDice",
     "IsDice",
     "IsForum",
+    "IsForward",
+    "IsForwardType",
     "IsGroup",
     "IsLanguageCode",
     "IsPremium",

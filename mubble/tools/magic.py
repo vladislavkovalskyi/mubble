@@ -8,8 +8,8 @@ if typing.TYPE_CHECKING:
 
     T = typing.TypeVar("T", bound=ABCRule)
 
-FuncType = types.FunctionType | typing.Callable
-TRANSLATIONS_KEY = "_translations"
+FuncType: typing.TypeAlias = types.FunctionType | typing.Callable[..., typing.Any]
+TRANSLATIONS_KEY: typing.Final[str] = "_translations"
 
 
 def resolve_arg_names(func: FuncType, start_idx: int = 1) -> tuple[str, ...]:
@@ -28,7 +28,7 @@ def to_str(s: str | enum.Enum) -> str:
 
 
 def magic_bundle(
-    handler: FuncType,
+    handler: FuncType, 
     kw: dict[str | enum.Enum, typing.Any],
     *,
     start_idx: int = 1,
