@@ -1,6 +1,6 @@
 """Mubble
 
-Framework for effective and reliable telegram bot building.
+Modern visionary telegram bot framework.
 
 * Type hinted
 * Customizable and extensible
@@ -51,20 +51,31 @@ from .bot import (
     BaseView,
     CallbackQueryCute,
     CallbackQueryReturnManager,
+    CallbackQueryRule,
     CallbackQueryView,
+    ChatJoinRequestCute,
+    ChatJoinRequestRule,
+    ChatJoinRequestView,
+    ChatMemberUpdatedCute,
+    ChatMemberView,
     Checkbox,
+    Choice,
+    CompositionDispatch,
     Dispatch,
     FuncHandler,
     InlineQueryCute,
     InlineQueryReturnManager,
+    InlineQueryRule,
     MessageCute,
     MessageReplyHandler,
     MessageReturnManager,
     MessageRule,
     MessageView,
     Polling,
-    SingleChoice,
+    RawEventView,
+    ShortState,
     Mubble,
+    UpdateCute,
     ViewBox,
     WaiterMachine,
     register_manager,
@@ -102,7 +113,10 @@ from .tools import (
     magic_bundle,
 )
 
+Update: typing.TypeAlias = UpdateCute
 Message: typing.TypeAlias = MessageCute
+ChatJoinRequest: typing.TypeAlias = ChatJoinRequestCute
+ChatMemberUpdated: typing.TypeAlias = ChatMemberUpdatedCute
 CallbackQuery: typing.TypeAlias = CallbackQueryCute
 InlineQuery: typing.TypeAlias = InlineQueryCute
 Bot: typing.TypeAlias = Mubble
@@ -140,8 +154,18 @@ __all__ = (
     "CallbackQueryCute",
     "CallbackQueryReturnManager",
     "CallbackQueryView",
+    "ChatJoinRequest",
+    "ChatJoinRequestCute",
+    "CallbackQueryRule",
+    "ChatJoinRequestRule",
+    "InlineQueryRule",
+    "ChatJoinRequestView",
+    "ChatMemberUpdated",
+    "ChatMemberUpdatedCute",
+    "ChatMemberView",
     "Checkbox",
     "CtxVar",
+    "CompositionDispatch",
     "DelayedTask",
     "Dispatch",
     "ErrorHandler",
@@ -169,12 +193,16 @@ __all__ = (
     "Model",
     "ParseMode",
     "Polling",
+    "RawEventView",
     "RowButtons",
+    "ShortState",
     "SimpleI18n",
     "SimpleTranslator",
-    "SingleChoice",
+    "Choice",
     "Mubble",
     "Token",
+    "Update",
+    "UpdateCute",
     "ViewBox",
     "WaiterMachine",
     "ctx_var",

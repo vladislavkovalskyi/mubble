@@ -9,6 +9,7 @@ from mubble.model import get_params
 from mubble.msgspec_utils import Option, decoder
 from mubble.types import (
     CallbackQuery,
+    Chat,
     InlineKeyboardMarkup,
     InputFile,
     InputMedia,
@@ -44,9 +45,7 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
         by the bot with the callback button that originated the query."""
 
         return self.message.map(
-            lambda m: m.only()
-            .map(lambda m: m.is_topic_message.unwrap_or(False))
-            .unwrap_or(False)
+            lambda m: m.only().map(lambda m: m.is_topic_message.unwrap_or(False)).unwrap_or(False),
         )
 
     @property
@@ -70,6 +69,14 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
         """
 
         return self.message.map(lambda m: m.v.message_id)
+    
+    @property
+    def chat(self) -> Option[Chat]:
+        """Optional. Chat the callback query originated from. This will be present
+        if the message is sent by the bot with the callback button that originated the query.
+        """
+
+        return self.message.map(lambda m: m.v.chat)
 
     def decode_callback_data(self) -> Option[dict[str, typing.Any]]:
         if "cached_callback_data" in self.__dict__:
@@ -219,7 +226,7 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
     )
     async def edit_text(
         self,
-        text: str | None,
+        text: str,
         inline_message_id: int | None = None,
         chat_id: int | str | None = None,
         message_id: int | None = None,

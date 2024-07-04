@@ -1,7 +1,8 @@
 from mubble.bot.dispatch.context import Context
 from mubble.tools.i18n.base import ABCTranslator
 
-from .abc import ABC, Message, MessageRule, with_caching_translations
+from .abc import ABC, Message, with_caching_translations
+from .message import MessageRule
 
 
 class HasText(MessageRule):
@@ -17,12 +18,12 @@ class Text(TextMessageRule):
     def __init__(self, texts: str | list[str], *, ignore_case: bool = False) -> None:
         if not isinstance(texts, list):
             texts = [texts]
-        self.texts = list(map(str.lower, texts)) if ignore_case else texts
+        self.texts = texts if not ignore_case else list(map(str.lower, texts))
         self.ignore_case = ignore_case
 
     async def check(self, message: Message, ctx: Context) -> bool:
         text = message.text.unwrap()
-        return (text.lower() if self.ignore_case else text) in self.texts
+        return (text if not self.ignore_case else text.lower()) in self.texts
 
     @with_caching_translations
     async def translate(self, translator: ABCTranslator) -> "Text":

@@ -33,19 +33,19 @@ class Checkbox(ABCScenario[CallbackQueryCute]):
         self,
         waiter_machine: WaiterMachine,
         chat_id: int,
-        msg: str,
+        message: str,
         *,
         ready_text: str = "Ready",
         max_in_row: int = 3,
     ) -> None:
         self.chat_id = chat_id
-        self.msg = msg
+        self.message = message
         self.choices: list[Choice] = []
         self.ready = ready_text
         self.max_in_row = max_in_row
         self.random_code = secrets.token_hex(8)
         self.waiter_machine = waiter_machine
-    
+
     def __repr__(self) -> str:
         return (
             "<{}@{!r}: (choices={!r}, max_in_row={}) with waiter_machine={!r}, ready_text={!r} "
@@ -58,7 +58,7 @@ class Checkbox(ABCScenario[CallbackQueryCute]):
             self.waiter_machine,
             self.ready,
             self.chat_id,
-            self.msg,
+            self.message,
         )
 
     def get_markup(self) -> InlineKeyboardMarkup:
@@ -69,14 +69,12 @@ class Checkbox(ABCScenario[CallbackQueryCute]):
                 choice = choices.pop(0)
                 kb.add(
                     InlineButton(
-                        text=choice.default_text
-                        if not choice.is_picked
-                        else choice.picked_text,
+                        text=(choice.default_text if not choice.is_picked else choice.picked_text),
                         callback_data=self.random_code + "/" + choice.code,
                     )
                 )
             kb.row()
-        
+
         kb.add(InlineButton(self.ready, callback_data=self.random_code + "/ready"))
         return kb.get_markup()
 
@@ -103,7 +101,7 @@ class Checkbox(ABCScenario[CallbackQueryCute]):
                 # Toggle choice
                 self.choices[i].is_picked = not self.choices[i].is_picked
                 await cb.edit_text(
-                    text=self.msg,
+                    text=self.message,
                     parse_mode=self.PARSE_MODE,
                     reply_markup=self.get_markup(),
                 )
@@ -120,19 +118,19 @@ class Checkbox(ABCScenario[CallbackQueryCute]):
         message = (
             await api.send_message(
                 chat_id=self.chat_id,
-                text=self.msg,
+                text=self.message,
                 parse_mode=self.PARSE_MODE,
                 reply_markup=self.get_markup(),
             )
         ).unwrap()
-        
+
         while True:
             q, _ = await self.waiter_machine.wait(view, (api, message.message_id))
             should_continue = await self.handle(q)
             await q.answer(self.CALLBACK_ANSWER)
             if not should_continue:
                 break
-        
+
         return (
             {choice.name: choice.is_picked for choice in self.choices},
             message.message_id,

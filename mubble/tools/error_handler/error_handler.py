@@ -57,10 +57,8 @@ class Catcher(typing.Generic[EventT]):
     ) -> Result[typing.Any, BaseException]:
         if self.match_exception(exception):
             logger.debug(
-                "Catcher {!r} caught an exception in handler {!r}, "
-                "running catcher...".format(
-                    self.func.__name__,
-                    handler_name,
+                "Error handler caught an exception {!r} in handler {!r}, running catcher {!r}...".format(
+                    exception, handler_name, self.func.__name__
                 )
             )
             return Ok(
@@ -69,9 +67,9 @@ class Catcher(typing.Generic[EventT]):
                     **magic_bundle(self.func, {"event": event, "api": api} | ctx),  # type: ignore
                 )
             )
-        logger.debug("Failed to match exception {!r}!", exception.__class__.__name__)
+        logger.debug("Failed to match exception {!r}.", exception.__class__.__name__)
         return Error(exception)
-    
+
     def match_exception(self, exception: BaseException) -> bool:
         for exc in self.exceptions:
             if isinstance(exc, type) and type(exception) is exc:
@@ -84,10 +82,11 @@ class Catcher(typing.Generic[EventT]):
 class ErrorHandler(ABCErrorHandler[EventT]):
     def __init__(self, catcher: Catcher[EventT] | None = None, /) -> None:
         self.catcher = catcher
-    
+
     def __repr__(self) -> str:
         return (
-            "<ErrorHandler: exceptions_handled=[{}], catcher={!r}>".format(
+            "<{}: exceptions_handled=[{}], catcher={!r}>".format(
+                self.__class__.__name__,
                 ", ".join(
                     e.__name__ if isinstance(e, type) else repr(e)
                     for e in self.catcher.exceptions
@@ -95,7 +94,7 @@ class ErrorHandler(ABCErrorHandler[EventT]):
                 self.catcher,
             )
             if self.catcher is not None
-            else "<ErrorHandler: No catcher>"
+            else "<{}()>".format(self.__class__.__name__)
         )
 
     def __call__(
@@ -106,7 +105,8 @@ class ErrorHandler(ABCErrorHandler[EventT]):
         ignore_errors: bool = False,
     ):
         """Register the catcher.
-        :param logging: Error logging in stderr.
+
+        :param logging: Logging the result of the catcher at the level 'DEBUG'.
         :param raise_exception: Raise an exception if the catcher hasn't started.
         :param ignore_errors: Ignore errors that may occur.
         """
@@ -121,8 +121,9 @@ class ErrorHandler(ABCErrorHandler[EventT]):
                     ignore_errors=ignore_errors,
                 )
             return func
+
         return decorator
-    
+
     async def process(
         self,
         handler: Handler[EventT],
@@ -131,27 +132,30 @@ class ErrorHandler(ABCErrorHandler[EventT]):
         ctx: Context,
     ) -> Result[typing.Any, BaseException]:
         assert self.catcher is not None
+        logger.debug("Processing the error handler for handler {!r}...", handler.__name__)
 
         try:
             return await self.catcher(handler, event, api, ctx)
         except BaseException as exc:
-            return Error(CatcherError(
-                exc,
-                "Exception {!r} was occurred during the running catcher {!r}.".format(
-                    repr(exc), self.catcher.func.__name__
+            return Error(
+                CatcherError(
+                    exc,
+                    "Exception {} was occurred during the running catcher {!r}.".format(
+                        repr(exc), self.catcher.func.__name__
+                    ),
                 )
-            ))
-        
-    def process_catcher_error(self, error: CatcherError) -> Result[None, str]:
+            )
+
+    def process_catcher_error(self, error: CatcherError) -> Result[None, BaseException]:
         assert self.catcher is not None
-        
+
         if self.catcher.raise_exception:
             raise error.exc from None
-        if not self.catcher.ignore_errors:
-            return Error(error.error)
         if self.catcher.logging:
-            logger.error(error.error)
-        
+            logger.error(error.message)
+        if not self.catcher.ignore_errors:
+            return Error(error.exc)
+
         return Ok(None)
 
     async def run(
@@ -160,16 +164,22 @@ class ErrorHandler(ABCErrorHandler[EventT]):
         event: EventT,
         api: ABCAPI,
         ctx: Context,
-    ) -> Result[typing.Any, typing.Any]:
+    ) -> Result[typing.Any, BaseException]:
         if not self.catcher:
             return Ok(await handler(event, **magic_bundle(handler, ctx)))  # type: ignore
-        
+
         match await self.process(handler, event, api, ctx):
-            case Ok(_) as ok:
+            case Ok(value) as ok:
+                if self.catcher.logging:
+                    logger.debug(
+                        "Catcher {!r} returned: {!r}",
+                        self.catcher.func.__name__,
+                        value,
+                    )
                 return ok
             case Error(exc) as err:
                 if isinstance(exc, CatcherError):
-                    return self.process_catcher_error(exc)              
+                    return self.process_catcher_error(exc)
                 if self.catcher.ignore_errors:
                     return Ok(None)
                 return err

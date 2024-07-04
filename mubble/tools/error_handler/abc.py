@@ -4,10 +4,9 @@ from abc import ABC, abstractmethod
 from fntypes.result import Result
 
 from mubble.api import ABCAPI
-from mubble.bot.cute_types import BaseCute
 from mubble.bot.dispatch.context import Context
 
-EventT = typing.TypeVar("EventT", bound=BaseCute)
+EventT = typing.TypeVar("EventT")
 Handler = typing.Callable[typing.Concatenate[EventT, ...], typing.Awaitable[typing.Any]]
 
 

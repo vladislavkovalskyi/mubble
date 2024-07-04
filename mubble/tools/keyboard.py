@@ -5,7 +5,6 @@ from types import NoneType
 
 from fntypes.option import Nothing, Some
 
-from mubble.msgspec_utils import Option
 from mubble.types.objects import (
     InlineKeyboardMarkup,
     ReplyKeyboardMarkup,
@@ -20,10 +19,10 @@ AnyMarkup: typing.TypeAlias = InlineKeyboardMarkup | ReplyKeyboardMarkup
 
 @dataclasses.dataclass
 class KeyboardModel:
-    resize_keyboard: bool | Option[bool]
-    one_time_keyboard: bool | Option[bool]
-    selective: bool | Option[bool]
-    is_persistent: bool | Option[bool]
+    resize_keyboard: bool
+    one_time_keyboard: bool
+    selective: bool
+    is_persistent: bool
     keyboard: list[list[DictStrAny]]
 
 
@@ -46,7 +45,7 @@ class ABCMarkup(ABC, typing.Generic[ButtonT]):
     def add(self, row_or_button: RowButtons[ButtonT] | ButtonT) -> typing.Self:
         if not len(self.keyboard):
             self.row()
-        
+
         if isinstance(row_or_button, RowButtons):
             self.keyboard[-1].extend(row_or_button.get_data())
             if row_or_button.auto_row:

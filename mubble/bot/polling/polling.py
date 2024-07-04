@@ -33,7 +33,7 @@ class Polling(ABCPolling):
         self.max_reconnetions = 10 if max_reconnetions < 0 else max_reconnetions
         self.offset = offset
         self._stop = False
-    
+
     def __repr__(self) -> str:
         return (
             "<{}: with api={!r}, stopped={}, offset={}, allowed_updates={!r}, "
@@ -60,9 +60,7 @@ class Polling(ABCPolling):
 
         if include_updates and exclude_updates:
             allowed_updates = [
-                x
-                for x in allowed_updates
-                if x in include_updates and x not in exclude_updates
+                x for x in allowed_updates if x in include_updates and x not in exclude_updates
             ]
         elif exclude_updates:
             allowed_updates = [x for x in allowed_updates if x not in exclude_updates]
@@ -99,7 +97,7 @@ class Polling(ABCPolling):
             except InvalidTokenError as e:
                 logger.error(e)
                 self.stop()
-                exit(6)
+                exit(3)
             except asyncio.CancelledError:
                 logger.info("Caught cancel, polling stopping...")
                 self.stop()
@@ -110,14 +108,14 @@ class Polling(ABCPolling):
                         self.max_reconnetions,
                     )
                     self.stop()
-                    exit(9)
+                    exit(6)
                 else:
                     logger.warning(
                         "Server disconnected, waiting 5 seconds to reconnetion...",
                     )
                     reconn_counter += 1
                     await asyncio.sleep(self.reconnection_timeout)
-            except aiohttp.ClientConnectorError:
+            except (aiohttp.ClientConnectorError, aiohttp.ClientOSError):
                 logger.error("Client connection failed, attempted to reconnect...")
                 await asyncio.sleep(self.reconnection_timeout)
             except BaseException as e:

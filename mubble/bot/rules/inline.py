@@ -5,7 +5,7 @@ from mubble.bot.cute_types import InlineQueryCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.abc import ABCRule
 from mubble.bot.rules.adapter import EventAdapter
-from mubble.types.enums import ChatType
+from mubble.types.enums import ChatType, UpdateType
 
 from .markup import Markup, PatternLike, check_string
 
@@ -13,7 +13,7 @@ InlineQuery: typing.TypeAlias = InlineQueryCute
 
 
 class InlineQueryRule(ABCRule[InlineQuery], abc.ABC):
-    adapter = EventAdapter("inline_query", InlineQuery)
+    adapter: EventAdapter[InlineQuery] = EventAdapter(UpdateType.INLINE_QUERY, InlineQuery)
 
     @abc.abstractmethod
     async def check(self, query: InlineQuery, ctx: Context) -> bool:
@@ -48,15 +48,15 @@ class InlineQueryText(InlineQueryRule):
 class InlineQueryMarkup(InlineQueryRule):
     def __init__(self, patterns: PatternLike | list[PatternLike], /) -> None:
         self.patterns = Markup(patterns).patterns
-    
+
     async def check(self, query: InlineQuery, ctx: Context) -> bool:
         return check_string(self.patterns, query.query, ctx)
 
 
 __all__ = (
     "HasLocation",
+    "InlineQueryChatType",
+    "InlineQueryMarkup",
     "InlineQueryRule",
     "InlineQueryText",
-    "InlineQueryMarkup",
-    "InlineQueryChatType",
 )

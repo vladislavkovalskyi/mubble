@@ -14,6 +14,7 @@ from mubble.types import (
     InlineKeyboardMarkup,
     InputFile,
     InputMedia,
+    InputPollOption,
     LabeledPrice,
     LinkPreviewOptions,
     Message,
@@ -70,17 +71,13 @@ async def execute_method_answer(
     link_preview_options = params.get("link_preview_options")
 
     if reply_parameters is not None and isinstance(reply_parameters, dict):
-        reply_parameters.setdefault(
-            "message_id", params.get("message_id", message.message_id)
-        )
+        reply_parameters.setdefault("message_id", params.get("message_id", message.message_id))
         reply_parameters.setdefault("chat_id", params.get("chat_id"))
         params["reply_parameters"] = compose_reply_params(**reply_parameters)
 
     if link_preview_options is not None and isinstance(link_preview_options, dict):
-        params["link_preview_options"] = compose_link_preview_options(
-            **link_preview_options
-        )
-        
+        params["link_preview_options"] = compose_link_preview_options(**link_preview_options)
+
     result = await getattr(message.ctx_api, method_name)(**params)
     return result.map(
         lambda x: (
@@ -123,8 +120,7 @@ async def execute_method_edit(
             "message_thread_id": lambda x: (
                 x.is_topic_message.unwrap_or(False)
                 if isinstance(x, MessageCute)
-                else bool(x.message)
-                and getattr(x.message.unwrap().v, "is_topic_message", False)
+                else bool(x.message) and getattr(x.message.unwrap().v, "is_topic_message", False)
             ),
         },
     )
@@ -195,6 +191,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         message_thread_id: int | None = None,
         business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         parse_mode: str | None = None,
         entities: list[MessageEntity] | None = None,
         disable_notification: bool | None = None,
@@ -225,6 +222,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param entities: A JSON-serialized list of special entities that appear in message text, \
         which can be specified instead of parse_mode.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param link_preview_options: Link preview generation options for the message.
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
@@ -251,6 +251,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_id: int | None = None,
         message_thread_id: int | None = None,
         business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         parse_mode: str | None = None,
         entities: list[MessageEntity] | None = None,
         disable_notification: bool | None = None,
@@ -280,6 +281,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param entities: A JSON-serialized list of special entities that appear in message text, \
         which can be specified instead of parse_mode.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param link_preview_options: Link preview generation options for the message.
 
@@ -329,9 +333,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         return await self.ctx_api.delete_message(**params)
 
@@ -449,9 +451,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
                 ("from_chat_id", "chat_id"),
                 "message_thread_id",
             },
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         if isinstance(reply_parameters, dict):
             reply_parameters.setdefault("message_id", params.get("message_id"))
@@ -466,11 +466,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     async def react(
         self,
         reaction: (
-            str
-            | ReactionEmoji
-            | ReactionType
-            | list[str | ReactionEmoji | ReactionType]
-            | None
+            str | ReactionEmoji | ReactionType | list[str | ReactionEmoji | ReactionType] | None
         ) = None,
         chat_id: int | str | None = None,
         message_thread_id: int | None = None,
@@ -506,9 +502,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         if reaction:
             params["reaction"] = compose_reactions(
@@ -556,9 +550,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
                 "message_id",
                 "message_thread_id",
             },
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         return (await self.ctx_api.forward_message(**params)).map(
             lambda message: MessageCute.from_update(message, bound_api=self.api),
@@ -598,9 +590,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         return await self.ctx_api.pin_chat_message(**params)
 
@@ -631,9 +621,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         return await self.ctx_api.pin_chat_message(**params)
 
@@ -648,6 +636,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         message_thread_id: int | None = None,
         business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
@@ -677,6 +666,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param audio: Audio file to send. Pass a file_id as String to send an audio file that exists \
         on the Telegram servers (recommended), pass an HTTP URL as a String for Telegram \
@@ -728,9 +720,11 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         message_thread_id: int | None = None,
         business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        show_caption_above_media: bool | None = None,
         duration: int | None = None,
         width: int | None = None,
         height: int | None = None,
@@ -756,6 +750,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param animation: Animation to send. Pass a file_id as String to send an animation that exists \
         on the Telegram servers (recommended), pass an HTTP URL as a String for Telegram \
@@ -785,6 +782,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param caption_entities: A JSON-serialized list of special entities that appear in the caption, \
         which can be specified instead of parse_mode.
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+
         :param has_spoiler: Pass True if the animation needs to be covered with a spoiler animation. \
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
@@ -810,10 +809,12 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         message_thread_id: int | None = None,
         business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
         disable_content_type_detection: bool | None = None,
+        show_caption_above_media: bool | None = None,
         thumbnail: InputFile | str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
@@ -829,6 +830,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
         will be sent.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
         (in the format @channelusername).
@@ -861,6 +865,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param disable_content_type_detection: Disables automatic server-side content type detection for files uploaded \
         using multipart/form-data.
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
@@ -884,9 +890,11 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         message_thread_id: int | None = None,
         business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        show_caption_above_media: bool | None = None,
         has_spoiler: bool | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
@@ -906,6 +914,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param photo: Photo to send. Pass a file_id as String to send a photo that exists on the Telegram \
         servers (recommended), pass an HTTP URL as a String for Telegram to get a \
@@ -929,6 +940,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
@@ -948,6 +961,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         emoji: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         business_connection_id: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
@@ -968,6 +982,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param sticker: Sticker to send. Pass a file_id as String to send a file that exists on the \
         Telegram servers (recommended), pass an HTTP URL as a String for Telegram \
@@ -997,19 +1014,12 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     )
     async def answer_video(
         self,
-        video: InputFile | str,
+        sticker: InputFile | str,
         chat_id: int | str | None = None,
+        emoji: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         business_connection_id: str | None = None,
-        caption: str | None = None,
-        parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        duration: int | None = None,
-        width: int | None = None,
-        height: int | None = None,
-        thumbnail: InputFile | str | None = None,
-        has_spoiler: bool | None = None,
-        supports_streaming: bool | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | dict[str, typing.Any] | None = None,
@@ -1031,6 +1041,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param video: Video to send. Pass a file_id as String to send a video that exists on the Telegram \
         servers (recommended), pass an HTTP URL as a String for Telegram to get a \
@@ -1066,6 +1079,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
         :param reply_parameters: Description of the message to reply to.
@@ -1086,6 +1101,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         video_note: InputFile | str,
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         duration: int | None = None,
         length: int | None = None,
         message_thread_id: int | None = None,
@@ -1110,6 +1126,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param video_note: Video note to send. Pass a file_id as String to send a video note that exists \
         on the Telegram servers (recommended) or upload a new video using multipart/form-data. \
@@ -1151,6 +1170,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         message_thread_id: int | None = None,
         business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
@@ -1177,6 +1197,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param voice: Audio file to send. Pass a file_id as String to send a file that exists on the \
         Telegram servers (recommended), pass an HTTP URL as a String for Telegram \
@@ -1213,13 +1236,17 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     async def answer_poll(
         self,
         question: str,
-        options: list[str],
+        options: list[InputPollOption],
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
+        question_parse_mode: str | None = None,
+        question_entities: list[MessageEntity] | None = None,
         is_anonymous: bool | None = None,
         type: typing.Literal["quiz", "regular"] | None = None,
         allows_multiple_answers: bool | None = None,
+        show_caption_above_media: bool | None = None,
         correct_option_id: int | None = None,
         explanation: str | None = None,
         explanation_parse_mode: str | None = None,
@@ -1246,10 +1273,18 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
+        :param question_parse_mode: Mode for parsing entities in the question. See formatting options for more \
+        details. Currently, only custom emoji entities are allowed.
+
+        :param question_entities: A JSON-serialized list of special entities that appear in the poll question. \
+        It can be specified instead of question_parse_mode.
+
         :param question: Poll question, 1-300 characters.
 
-        :param options: A JSON-serialized list of answer options, 2-10 strings 1-100 characters \
-        each.
+        :param options: A JSON-serialized list of 2-10 answer options.
 
         :param is_anonymous: True, if the poll needs to be anonymous, defaults to True.
 
@@ -1283,6 +1318,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
         :param reply_parameters: Description of the message to reply to.
@@ -1307,6 +1344,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         foursquare_id: str | None = None,
         foursquare_type: str | None = None,
         google_place_id: str | None = None,
@@ -1330,6 +1368,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param latitude: Latitude of the venue.
 
@@ -1371,6 +1412,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | dict[str, typing.Any] | None = None,
@@ -1390,6 +1432,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param emoji: Emoji on which the dice throw animation is based. Currently, must be one \
         of `🎲`, `🎯`, `🏀`, `⚽`, `🎳`, or `🎰`. Dice can have values 1-6 for `🎲`, `🎯` and \
@@ -1417,6 +1462,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         game_short_name: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
@@ -1435,6 +1481,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param game_short_name: Short name of the game, serves as the unique identifier for the game. Set \
         up your games via @BotFather.
@@ -1466,6 +1515,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         max_tip_amount: int | None = None,
         suggested_tip_amounts: list[int] | None = None,
         start_parameter: str | None = None,
@@ -1499,6 +1549,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param title: Product name, 1-32 characters.
 
@@ -1618,6 +1671,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
@@ -1640,6 +1694,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param media: A JSON-serialized array describing messages to be sent, must include 2-10 \
         items.
@@ -1686,6 +1743,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         message_thread_id: int | None = None,
         business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         horizontal_accuracy: float | None = None,
         heading: int | None = None,
         live_period: int | None = None,
@@ -1708,6 +1766,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param latitude: Latitude of the location.
 
@@ -1750,6 +1811,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | dict[str, typing.Any] | None = None,
@@ -1768,6 +1830,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param phone_number: Contact's phone number.
 
@@ -1798,8 +1863,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         audio: InputFile | str,
         chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
@@ -1829,6 +1895,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param audio: Audio file to send. Pass a file_id as String to send an audio file that exists \
         on the Telegram servers (recommended), pass an HTTP URL as a String for Telegram \
@@ -1878,11 +1947,13 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         animation: InputFile | str,
         chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        show_caption_above_media: bool | None = None,
         duration: int | None = None,
         width: int | None = None,
         height: int | None = None,
@@ -1908,6 +1979,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param animation: Animation to send. Pass a file_id as String to send an animation that exists \
         on the Telegram servers (recommended), pass an HTTP URL as a String for Telegram \
@@ -1941,6 +2015,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+        
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
         :param reply_parameters: Description of the message to reply to.
@@ -1960,12 +2036,14 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         document: InputFile | str,
         chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
         disable_content_type_detection: bool | None = None,
+        show_caption_above_media: bool | None = None,
         thumbnail: InputFile | str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
@@ -1987,6 +2065,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param document: File to send. Pass a file_id as String to send a file that exists on the Telegram \
         servers (recommended), pass an HTTP URL as a String for Telegram to get a \
@@ -2015,6 +2096,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
         :param reply_parameters: Description of the message to reply to.
@@ -2034,11 +2117,13 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         photo: InputFile | str,
         chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        show_caption_above_media: bool | None = None,
         has_spoiler: bool | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
@@ -2058,6 +2143,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param photo: Photo to send. Pass a file_id as String to send a photo that exists on the Telegram \
         servers (recommended), pass an HTTP URL as a String for Telegram to get a \
@@ -2079,6 +2167,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
         :param reply_parameters: Description of the message to reply to.
@@ -2098,9 +2188,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         sticker: InputFile | str,
         chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
         emoji: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
+        business_connection_id: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | dict[str, typing.Any] | None = None,
@@ -2120,6 +2211,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param sticker: Sticker to send. Pass a file_id as String to send a file that exists on the \
         Telegram servers (recommended), pass an HTTP URL as a String for Telegram \
@@ -2149,19 +2243,12 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     )
     async def reply_video(
         self,
-        video: InputFile | str,
+        sticker: InputFile | str,
         chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
+        emoji: str | None = None,
         message_thread_id: int | None = None,
-        caption: str | None = None,
-        parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        duration: int | None = None,
-        width: int | None = None,
-        height: int | None = None,
-        thumbnail: InputFile | str | None = None,
-        has_spoiler: bool | None = None,
-        supports_streaming: bool | None = None,
+        message_effect_id: str | None = None,
+        business_connection_id: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | dict[str, typing.Any] | None = None,
@@ -2183,6 +2270,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param video: Video to send. Pass a file_id as String to send a video that exists on the Telegram \
         servers (recommended), pass an HTTP URL as a String for Telegram to get a \
@@ -2237,9 +2327,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         video_note: InputFile | str,
         chat_id: int | str | None = None,
+        business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         duration: int | None = None,
         length: int | None = None,
-        business_connection_id: str | None = None,
         message_thread_id: int | None = None,
         thumbnail: InputFile | str | None = None,
         disable_notification: bool | None = None,
@@ -2262,6 +2353,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param video_note: Video note to send. Pass a file_id as String to send a video note that exists \
         on the Telegram servers (recommended) or upload a new video using multipart/form-data. \
@@ -2301,8 +2395,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         voice: InputFile | str,
         chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
@@ -2329,6 +2424,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param voice: Audio file to send. Pass a file_id as String to send a file that exists on the \
         Telegram servers (recommended), pass an HTTP URL as a String for Telegram \
@@ -2365,13 +2463,17 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     async def reply_poll(
         self,
         question: str,
-        options: list[str],
+        options: list[InputPollOption],
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
+        question_parse_mode: str | None = None,
+        question_entities: list[MessageEntity] | None = None,
         is_anonymous: bool | None = None,
         type: typing.Literal["quiz", "regular"] | None = None,
         allows_multiple_answers: bool | None = None,
+        show_caption_above_media: bool | None = None,
         correct_option_id: int | None = None,
         explanation: str | None = None,
         explanation_parse_mode: str | None = None,
@@ -2398,10 +2500,18 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
+        :param question_parse_mode: Mode for parsing entities in the question. See formatting options for more \
+        details. Currently, only custom emoji entities are allowed.
+
+        :param question_entities: A JSON-serialized list of special entities that appear in the poll question. \
+        It can be specified instead of question_parse_mode.
+
         :param question: Poll question, 1-300 characters.
 
-        :param options: A JSON-serialized list of answer options, 2-10 strings 1-100 characters \
-        each.
+        :param options: A JSON-serialized list of 2-10 answer options.
 
         :param is_anonymous: True, if the poll needs to be anonymous, defaults to True.
 
@@ -2434,6 +2544,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         poll preview.
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
+        
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
@@ -2459,6 +2571,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         foursquare_id: str | None = None,
         foursquare_type: str | None = None,
         google_place_id: str | None = None,
@@ -2482,6 +2595,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param latitude: Latitude of the venue.
 
@@ -2519,10 +2635,11 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     )
     async def reply_dice(
         self,
+        emoji: DiceEmoji | None = None,
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
-        emoji: DiceEmoji | None = None,
+        message_effect_id: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | dict[str, typing.Any] | None = None,
@@ -2542,6 +2659,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param emoji: Emoji on which the dice throw animation is based. Currently, must be one \
         of `🎲`, `🎯`, `🏀`, `⚽`, `🎳`, or `🎰`. Dice can have values 1-6 for `🎲`, `🎯` and \
@@ -2569,6 +2689,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         game_short_name: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
@@ -2587,6 +2708,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param game_short_name: Short name of the game, serves as the unique identifier for the game. Set \
         up your games via @BotFather.
@@ -2618,6 +2742,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         max_tip_amount: int | None = None,
         suggested_tip_amounts: list[int] | None = None,
         start_parameter: str | None = None,
@@ -2651,6 +2776,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param title: Product name, 1-32 characters.
 
@@ -2739,6 +2867,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
@@ -2761,6 +2890,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param media: A JSON-serialized array describing messages to be sent, must include 2-10 \
         items.
@@ -2793,8 +2925,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         latitude: float,
         longitude: float,
         chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        business_connection_id: str | None = None,
+        message_effect_id: str | None = None,
         horizontal_accuracy: float | None = None,
         heading: int | None = None,
         live_period: int | None = None,
@@ -2817,6 +2950,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param latitude: Latitude of the location.
 
@@ -2859,6 +2995,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        message_effect_id: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | dict[str, typing.Any] | None = None,
@@ -2877,6 +3014,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param phone_number: Contact's phone number.
 
@@ -2910,6 +3050,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         chat_id: int | str | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
+        inline_message_id: str | None = None,
+        live_period: int | None = None,
         horizontal_accuracy: float | None = None,
         heading: int | None = None,
         proximity_alert_radius: int | None = None,
@@ -2931,6 +3073,16 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only.
+
+        :param live_period: New period in seconds during which the location can be updated, starting \
+        from the message send date. If 0x7FFFFFFF is specified, then the location \
+        can be updated forever. Otherwise, the new value must not exceed the current \
+        live_period by more than a day, and the live location expiration date must \
+        remain within the next 90 days. If not specified, then live_period remains \
+        unchanged.
+
+        :param inline_message_id: Required if chat_id and message_id are not specified. Identifier of the \
+        inline message.
 
         :param latitude: Latitude of new location.
 
@@ -2961,6 +3113,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        show_caption_above_media: bool | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
         **other: typing.Any,
     ) -> Result[Variative[MessageCute, bool], APIError]:
@@ -2986,6 +3139,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param caption_entities: A JSON-serialized list of special entities that appear in the caption, \
         which can be specified instead of parse_mode.
+
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
 
         :param reply_markup: A JSON-serialized object for an inline keyboard."""
 

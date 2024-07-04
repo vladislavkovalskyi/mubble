@@ -8,7 +8,7 @@ from mubble.node.base import ComposeError, Node
 from mubble.node.update import UpdateNode
 
 
-class RuleContext(dict):
+class RuleChain(dict):
     dataclass = dict
     rules: tuple[ABCRule, ...] = ()
 
@@ -26,7 +26,7 @@ class RuleContext(dict):
     @classmethod
     def as_node(cls) -> type[typing.Self]:
         return cls
-    
+
     @classmethod
     def get_sub_nodes(cls) -> dict:
         return {"update": UpdateNode}
@@ -37,20 +37,21 @@ class RuleContext(dict):
 
     def __new__(cls, *rules: ABCRule) -> type[Node]:
         return type("_RuleNode", (cls,), {"dataclass": dict, "rules": rules})  # type: ignore
-    
-    def __class_getitem__(cls, item: tuple[ABCRule, ...]) -> typing.Self:
-        if not isinstance(item, tuple):
-            item = (item,)
-        return cls(*item)
-    
+
+    def __class_getitem__(cls, items: ABCRule | tuple[ABCRule, ...]) -> typing.Self:
+        if not isinstance(items, tuple):
+            items = (items,)
+        assert all(isinstance(rule, ABCRule) for rule in items), "All items must be instances of 'ABCRule'."
+        return cls(*items)
+
     @staticmethod
-    def generate_dataclass(cls_: type["RuleContext"]):  # noqa: ANN205
+    def generate_node_dataclass(cls_: type["RuleChain"]):  # noqa: ANN205
         return dataclasses.dataclass(type(cls_.__name__, (object,), dict(cls_.__dict__)))
-    
+
     def __init_subclass__(cls) -> None:
         if cls.__name__ == "_RuleNode":
             return
-        cls.dataclass = cls.generate_dataclass(cls)
+        cls.dataclass = cls.generate_node_dataclass(cls)
 
 
-__all__ = ("RuleContext",)
+__all__ = ("RuleChain",)

@@ -2,6 +2,8 @@ from .bot import Mubble
 from .cute_types import (
     BaseCute,
     CallbackQueryCute,
+    ChatJoinRequestCute,
+    ChatMemberUpdatedCute,
     InlineQueryCute,
     MessageCute,
     UpdateCute,
@@ -18,6 +20,8 @@ from .dispatch import (
     BaseView,
     CallbackQueryReturnManager,
     CallbackQueryView,
+    ChatJoinRequestView,
+    ChatMemberView,
     CompositionDispatch,
     Context,
     Dispatch,
@@ -27,13 +31,21 @@ from .dispatch import (
     MessageReplyHandler,
     MessageReturnManager,
     MessageView,
+    RawEventView,
+    ShortState,
     ViewBox,
     WaiterMachine,
     register_manager,
 )
 from .polling import ABCPolling, Polling
-from .rules import ABCRule, CallbackQueryRule, MessageRule
-from .scenario import ABCScenario, Checkbox, SingleChoice
+from .rules import (
+    ABCRule,
+    CallbackQueryRule,
+    ChatJoinRequestRule,
+    InlineQueryRule,
+    MessageRule,
+)
+from .scenario import ABCScenario, Checkbox, Choice
 
 __all__ = (
     "ABCDispatch",
@@ -53,6 +65,12 @@ __all__ = (
     "CallbackQueryReturnManager",
     "CallbackQueryRule",
     "CallbackQueryView",
+    "ChatJoinRequestRule",
+    "InlineQueryRule",
+    "ChatJoinRequestCute",
+    "ChatJoinRequestView",
+    "ChatMemberUpdatedCute",
+    "ChatMemberView",
     "Checkbox",
     "CompositionDispatch",
     "Context",
@@ -67,7 +85,9 @@ __all__ = (
     "MessageRule",
     "MessageView",
     "Polling",
-    "SingleChoice",
+    "RawEventView",
+    "ShortState",
+    "Choice",
     "Mubble",
     "UpdateCute",
     "ViewBox",
