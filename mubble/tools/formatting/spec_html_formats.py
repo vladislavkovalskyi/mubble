@@ -12,8 +12,7 @@ SpecialFormat: typing.TypeAlias = typing.Union[
     "ResolveDomain",
     "StartBotLink",
     "StartGroupLink",
-    "TgEmoji",
-    "UserOpenMessage",
+    "TgEmoji"
 ]
 
 
@@ -76,7 +75,7 @@ class PreCode(BaseSpecFormat):
 @dataclasses.dataclass(repr=False)
 class TgEmoji(BaseSpecFormat):
     __formatter_name__ = "tg_emoji"
-    
+
     string: str
     emoji_id: int
 
@@ -107,15 +106,6 @@ class ResolveDomain(BaseSpecFormat):
     string: str | None = None
 
 
-@dataclasses.dataclass(repr=False)
-class UserOpenMessage(BaseSpecFormat):
-    __formatter_name__ = "user_open_message"
-
-    user_id: int
-    message: str | None = None
-    string: str | None = None
-
-
 __all__ = (
     "BaseSpecFormat",
     "ChannelBoostLink",
@@ -128,5 +118,4 @@ __all__ = (
     "StartBotLink",
     "StartGroupLink",
     "TgEmoji",
-    "UserOpenMessage",
 )

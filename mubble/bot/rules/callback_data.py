@@ -10,24 +10,28 @@ from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.adapter import EventAdapter
 from mubble.model import decoder
 from mubble.tools.buttons import DataclassInstance
+from mubble.types.enums import UpdateType
 
 from .abc import ABCRule
 from .markup import Markup, PatternLike, check_string
 
-T = typing.TypeVar("T")
-
-Ref: typing.TypeAlias = typing.Annotated[T, ...]
 CallbackQuery: typing.TypeAlias = CallbackQueryCute
-Validator: typing.TypeAlias = typing.Callable[[typing.Any], bool | typing.Awaitable[bool]]
-MapDict: typing.TypeAlias = dict[
-    str, typing.Any | type[typing.Any] | Validator | list[Ref["MapDict"]] | Ref["MapDict"]
+Validator: typing.TypeAlias = typing.Callable[
+    [typing.Any], bool | typing.Awaitable[bool]
 ]
-CallbackMap: typing.TypeAlias = list[tuple[str, typing.Any | type | Validator | Ref["CallbackMap"]]]
-CallbackMapStrict: typing.TypeAlias = list[tuple[str, Validator | Ref["CallbackMapStrict"]]]
+MapDict: typing.TypeAlias = dict[
+    str, "typing.Any | type[typing.Any] | Validator | list[MapDict] | MapDict"
+]
+CallbackMap: typing.TypeAlias = list[
+    tuple[str, "typing.Any | type[typing.Any] | Validator | CallbackMap"]
+]
+CallbackMapStrict: typing.TypeAlias = list[tuple[str, "Validator | CallbackMapStrict"]]
 
 
 class CallbackQueryRule(ABCRule[CallbackQuery], abc.ABC):
-    adapter = EventAdapter("callback_query", CallbackQuery)
+    adapter: EventAdapter[CallbackQuery] = EventAdapter(
+        UpdateType.CALLBACK_QUERY, CallbackQuery
+    )
 
     @abc.abstractmethod
     async def check(self, event: CallbackQuery, ctx: Context) -> bool:
@@ -44,7 +48,7 @@ class CallbackQueryDataRule(CallbackQueryRule, abc.ABC, requires=[HasData()]):
 
 
 class CallbackDataMap(CallbackQueryDataRule):
-    def __init__(self, mapping: MapDict) -> None:
+    def __init__(self, mapping: MapDict, /) -> None:
         self.mapping = self.transform_to_callbacks(
             self.transform_to_map(mapping),
         )
@@ -52,20 +56,20 @@ class CallbackDataMap(CallbackQueryDataRule):
     @classmethod
     def transform_to_map(cls, mapping: MapDict) -> CallbackMap:
         """Transforms MapDict to CallbackMap."""
-        
+
         callback_map = []
-        
+
         for k, v in mapping.items():
             if isinstance(v, dict):
                 v = cls.transform_to_map(v)
             callback_map.append((k, v))
-        
+
         return callback_map
 
     @classmethod
     def transform_to_callbacks(cls, callback_map: CallbackMap) -> CallbackMapStrict:
         """Transforms `CallbackMap` to `CallbackMapStrict`."""
-        
+
         callback_map_result = []
 
         for key, value in callback_map:
@@ -78,41 +82,43 @@ class CallbackDataMap(CallbackQueryDataRule):
             else:
                 validator = value
             callback_map_result.append((key, validator))
-        
+
         return callback_map_result
 
     @staticmethod
     async def run_validator(value: typing.Any, validator: Validator) -> bool:
         """Run async or sync validator."""
-        
+
         with suppress(BaseException):
             result = validator(value)
             if inspect.isawaitable(result):
                 result = await result
-            return result  # type: ignore
-        
+            return result
+
         return False
-        
+
     @classmethod
-    async def match(cls, callback_data: dict, callback_map: CallbackMapStrict) -> bool:
+    async def match(
+        cls, callback_data: dict[str, typing.Any], callback_map: CallbackMapStrict
+    ) -> bool:
         """Matches callback_data with callback_map recursively."""
 
         for key, validator in callback_map:
             if key not in callback_data:
                 return False
-            
+
             if isinstance(validator, list):
                 if not (
                     isinstance(callback_data[key], dict)
                     and await cls.match(callback_data[key], validator)
                 ):
                     return False
-            
+
             elif not await cls.run_validator(callback_data[key], validator):
                 return False
 
         return True
-    
+
     async def check(self, event: CallbackQuery, ctx: Context) -> bool:
         callback_data = event.decode_callback_data().unwrap_or_none()
         if callback_data is None:
@@ -124,7 +130,7 @@ class CallbackDataMap(CallbackQueryDataRule):
 
 
 class CallbackData(CallbackQueryDataRule):
-    def __init__(self, value: str):
+    def __init__(self, value: str, /) -> None:
         self.value = value
 
     async def check(self, event: CallbackQuery, ctx: Context) -> bool:
@@ -132,7 +138,7 @@ class CallbackData(CallbackQueryDataRule):
 
 
 class CallbackDataJson(CallbackQueryDataRule):
-    def __init__(self, d: dict[str, typing.Any]):
+    def __init__(self, d: dict[str, typing.Any], /) -> None:
         self.d = d
 
     async def check(self, event: CallbackQuery, ctx: Context) -> bool:
@@ -140,9 +146,11 @@ class CallbackDataJson(CallbackQueryDataRule):
 
 
 class CallbackDataJsonModel(CallbackQueryDataRule):
-    def __init__(self, model: type[msgspec.Struct] | type[DataclassInstance]):
+    def __init__(
+        self, model: type[msgspec.Struct] | type[DataclassInstance], /
+    ) -> None:
         self.model = model
-        
+
     async def check(self, event: CallbackQuery, ctx: Context) -> bool:
         with suppress(BaseException):
             ctx.data = decoder.decode(event.data.unwrap().encode(), type=self.model)
@@ -151,7 +159,7 @@ class CallbackDataJsonModel(CallbackQueryDataRule):
 
 
 class CallbackDataMarkup(CallbackQueryDataRule):
-    def __init__(self, patterns: PatternLike | list[PatternLike]):
+    def __init__(self, patterns: PatternLike | list[PatternLike], /) -> None:
         self.patterns = Markup(patterns).patterns
 
     async def check(self, event: CallbackQuery, ctx: Context) -> bool:
@@ -159,8 +167,8 @@ class CallbackDataMarkup(CallbackQueryDataRule):
 
 
 __all__ = (
-    "CallbackDataEq",
-    "CallbackDataJsonEq",
+    "CallbackData",
+    "CallbackDataJson",
     "CallbackDataJsonModel",
     "CallbackDataMap",
     "CallbackDataMarkup",

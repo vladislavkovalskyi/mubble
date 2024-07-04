@@ -14,7 +14,6 @@ from .formatting import (
     StartBotLink,
     StartGroupLink,
     TgEmoji,
-    UserOpenMessage,
     block_quote,
     bold,
     channel_boost_link,
@@ -38,8 +37,6 @@ from .formatting import (
     strike,
     tg_emoji,
     underline,
-    user_open_message,
-    user_open_message_link,
 )
 from .global_context import (
     ABCGlobalContext,
@@ -66,8 +63,9 @@ from .keyboard import (
     Keyboard,
     RowButtons,
 )
+from .limited_dict import LimitedDict
 from .loop_wrapper import ABCLoopWrapper, DelayedTask, Lifespan, LoopWrapper
-from .magic import magic_bundle, resolve_arg_names
+from .magic import impl, magic_bundle, resolve_arg_names
 from .parse_mode import ParseMode
 
 __all__ = (
@@ -98,8 +96,9 @@ __all__ = (
     "Keyboard",
     "KeyboardSetBase",
     "KeyboardSetYAML",
-    "Link",
     "Lifespan",
+    "LimitedDict",
+    "Link",
     "LoopWrapper",
     "Mention",
     "ParseMode",
@@ -113,7 +112,6 @@ __all__ = (
     "StartGroupLink",
     "MubbleCtx",
     "TgEmoji",
-    "UserOpenMessage",
     "block_quote",
     "bold",
     "channel_boost_link",
@@ -131,6 +129,7 @@ __all__ = (
     "link",
     "magic_bundle",
     "mention",
+    "impl",
     "pre_code",
     "resolve_arg_names",
     "resolve_domain",
@@ -140,6 +139,4 @@ __all__ = (
     "strike",
     "tg_emoji",
     "underline",
-    "user_open_message",
-    "user_open_message_link",
 )

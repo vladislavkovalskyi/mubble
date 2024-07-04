@@ -19,10 +19,10 @@ def error_on_none(value: T | None) -> T:
     return value
 
 
-def generate(
-    subnodes: tuple[type[Node], ...], 
+def generate_node(
+    subnodes: tuple[type[Node], ...],
     func: typing.Callable[..., typing.Any],
-    casts: tuple[typing.Callable, ...] = (cast_false_to_none, error_on_none),
+    casts: tuple[typing.Callable[[typing.Any], typing.Any], ...] = (cast_false_to_none, error_on_none),
 ) -> type[ContainerNode]:
     async def compose(**kw: typing.Any) -> typing.Any:
         args = await ContainerNode.compose(**kw)
@@ -37,4 +37,4 @@ def generate(
     return type("_ContainerNode", (container,), {"compose": compose})
 
 
-__all__ = ("generate",)
+__all__ = ("generate_node",)

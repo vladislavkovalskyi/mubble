@@ -351,6 +351,7 @@ class Currency(str, enum.Enum):
     VND = "VND"
     YER = "YER"
     ZAR = "ZAR"
+    XTR = "XTR"
 
 
 class InlineQueryResultType(str, enum.Enum):
@@ -496,6 +497,7 @@ class MessageEntityType(str, enum.Enum):
     TEXT_LINK = "text_link"
     TEXT_MENTION = "text_mention"
     CUSTOM_EMOJI = "custom_emoji"
+    EXPANDABLE_BLOCKQUOTE = "expandable_blockquote"
 
 
 class PollType(str, enum.Enum):
@@ -657,3 +659,37 @@ class StickerFormat(str, enum.Enum):
     STATIC = "static"
     ANIMATED = "animated"
     VIDEO = "video"
+
+
+__all__ = (
+    "BotCommandScopeType",
+    "ChatAction",
+    "ChatBoostSourceType",
+    "ChatMemberStatus",
+    "ChatType",
+    "ContentType",
+    "Currency",
+    "DefaultAccentColor",
+    "DiceEmoji",
+    "EncryptedPassportElementType",
+    "InlineQueryChatType",
+    "InlineQueryResultDocumentMimeType",
+    "InlineQueryResultGifThumbnailMimeType",
+    "InlineQueryResultMimeType",
+    "InlineQueryResultMpeg4GifThumbnailMimeType",
+    "InlineQueryResultThumbnailMimeType",
+    "InlineQueryResultVideoMimeType",
+    "MaskPositionPoint",
+    "MessageEntityType",
+    "MessageOriginType",
+    "PassportElementErrorType",
+    "PollType",
+    "ProgrammingLanguage",
+    "ReactionEmoji",
+    "ReactionTypeType",
+    "StickerFormat",
+    "StickerSetStickerType",
+    "StickerType",
+    "TopicIconColor",
+    "UpdateType",
+)

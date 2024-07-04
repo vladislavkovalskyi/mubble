@@ -8,8 +8,11 @@ if typing.TYPE_CHECKING:
 
     T = typing.TypeVar("T", bound=ABCRule)
 
+Impl: typing.TypeAlias = type[classmethod]
 FuncType: typing.TypeAlias = types.FunctionType | typing.Callable[..., typing.Any]
+
 TRANSLATIONS_KEY: typing.Final[str] = "_translations"
+IMPL_MARK: typing.Final[str] = "_is_impl"
 
 
 def resolve_arg_names(func: FuncType, start_idx: int = 1) -> tuple[str, ...]:
@@ -28,7 +31,7 @@ def to_str(s: str | enum.Enum) -> str:
 
 
 def magic_bundle(
-    handler: FuncType, 
+    handler: FuncType,
     kw: dict[str | enum.Enum, typing.Any],
     *,
     start_idx: int = 1,
@@ -42,16 +45,25 @@ def magic_bundle(
     return args
 
 
-def get_cached_translation(rule: "T", locale: str) -> typing.Optional["T"]:
-    translations = getattr(rule, TRANSLATIONS_KEY, {})
-    if not translations or locale not in translations:
-        return None
-    return translations[locale]
+def get_cached_translation(rule: "T", locale: str) -> "T | None":
+    return getattr(rule, TRANSLATIONS_KEY, {}).get(locale)
 
 
 def cache_translation(base_rule: "T", locale: str, translated_rule: "T") -> None:
     translations = getattr(base_rule, TRANSLATIONS_KEY, {})
     setattr(base_rule, TRANSLATIONS_KEY, {locale: translated_rule, **translations})
+
+
+def get_impls(cls: type[typing.Any]) -> list[typing.Callable[..., typing.Any]]:
+    functions = [func.__func__ for func in vars(cls).values() if isinstance(func, classmethod)]
+    return [impl for impl in functions if getattr(impl, IMPL_MARK, False) is True]
+
+
+@typing.cast(typing.Callable[..., Impl], lambda f: f)
+def impl(method: typing.Callable[..., typing.Any]):
+    bound_method = classmethod(method)
+    setattr(method, IMPL_MARK, True)
+    return bound_method
 
 
 __all__ = (
@@ -61,6 +73,7 @@ __all__ = (
     "get_default_args",
     "get_default_args",
     "magic_bundle",
+    "impl",
     "resolve_arg_names",
     "to_str",
 )

@@ -16,7 +16,15 @@ from mubble.types import Update
 from .abc import ABCDispatch
 from .handler import ABCHandler, FuncHandler
 from .handler.func import ErrorHandlerT
-from .view.box import CallbackQueryViewT, InlineQueryViewT, MessageViewT, ViewBox
+from .view.box import (
+    CallbackQueryViewT,
+    ChatJoinRequestViewT,
+    ChatMemberViewT,
+    InlineQueryViewT,
+    MessageViewT,
+    RawEventViewT,
+    ViewBox,
+)
 
 T = typing.TypeVar("T")
 R = typing.TypeVar("R")
@@ -32,7 +40,14 @@ DEFAULT_DATACLASS: typing.Final[type[Update]] = Update
 @dataclasses.dataclass(repr=False, kw_only=True)
 class Dispatch(
     ABCDispatch,
-    ViewBox[CallbackQueryViewT, InlineQueryViewT, MessageViewT],
+    ViewBox[
+        CallbackQueryViewT,
+        ChatJoinRequestViewT,
+        ChatMemberViewT,
+        InlineQueryViewT,
+        MessageViewT,
+        RawEventViewT,
+    ],
 ):
     global_context: MubbleCtx = dataclasses.field(
         init=False,
@@ -134,18 +149,20 @@ class Dispatch(
 
     async def feed(self, event: Update, api: ABCAPI) -> bool:
         logger.debug("Processing update (update_id={})", event.update_id)
+        await self.raw_event.process(event, api)
+
         for view in self.get_views().values():
             if await view.check(event):
                 logger.debug(
-                    "Update (update_id={}) matched view {!r}",
+                    "Update (update_id={}) matched view {!r}.",
                     event.update_id,
                     view.__class__.__name__,
                 )
                 await view.process(event, api)
                 return True
 
-        loop = asyncio.get_running_loop()
         ctx = Context()
+        loop = asyncio.get_running_loop()
         found = False
         for handler in self.default_handlers:
             if await handler.check(api, event, ctx):

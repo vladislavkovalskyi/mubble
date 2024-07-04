@@ -19,6 +19,7 @@ class Argument:
     name: str
     validators: list[Validator] = dataclasses.field(default_factory=lambda: [])
     optional: bool = dataclasses.field(default=False, kw_only=True)
+    # NOTE: add optional param `description`
 
     def check(self, data: str) -> typing.Any | None:
         for validator in self.validators:
@@ -44,14 +45,10 @@ class Command(TextMessageRule):
         self.lazy = lazy
 
     def remove_prefix(self, text: str) -> str | None:
-        return next(
-            (
-                text.removeprefix(prefix)
-                for prefix in self.prefixes
-                if text.startswith(prefix)
-            ),
-            None,
-        )
+        for prefix in self.prefixes:
+            if text.startswith(prefix):
+                return text.removeprefix(prefix)
+        return None
 
     def parse_argument(
         self,
@@ -62,17 +59,24 @@ class Command(TextMessageRule):
     ) -> dict | None:
         argument = arguments[0]
         data = argument.check(data_s)
+        if data is None and not argument.optional:
+            return None
+
         if data is None:
-            return self.parse_arguments(arguments[1:], s) if argument.optional else None
+            return self.parse_arguments(arguments[1:], s)
+
         with_argument = self.parse_arguments(arguments[1:], new_s)
         if with_argument is not None:
             return {argument.name: data, **with_argument}
 
-        return self.parse_arguments(arguments[1:], s) if argument.optional else None
+        if not argument.optional:
+            return None
+
+        return self.parse_arguments(arguments[1:], s)
 
     def parse_arguments(self, arguments: list[Argument], s: str) -> dict | None:
         if not arguments:
-            return None if s else {}
+            return {} if not s else None
 
         if self.lazy:
             return self.parse_argument(arguments, *single_split(s, self.separator), s)

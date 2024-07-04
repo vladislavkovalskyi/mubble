@@ -6,7 +6,6 @@ from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.process import check_rule
 from mubble.bot.rules.abc import ABCRule
 from mubble.modules import logger
-from mubble.msgspec_utils import Nothing
 from mubble.types.objects import ReplyParameters, Update
 
 from .abc import ABCHandler
@@ -19,17 +18,19 @@ class MessageReplyHandler(ABCHandler[MessageCute]):
         *rules: ABCRule[MessageCute],
         is_blocking: bool = True,
         as_reply: bool = False,
+        preset_context: Context | None = None,
+        **default_params: typing.Any,
     ) -> None:
         self.text = text
         self.rules = list(rules)
         self.as_reply = as_reply
         self.is_blocking = is_blocking
-        self.preset_context = Context()
-    
+        self.default_params = default_params
+        self.preset_context = preset_context or Context()
+
     def __repr__(self) -> str:
         return "<{}: with rules={!r}, {}: {!r}>".format(
-            ("blocking " if self.is_blocking else "")
-            + self.__class__.__name__,
+            ("blocking " if self.is_blocking else "") + self.__class__.__name__,
             self.rules,
             "answer text as reply" if self.as_reply else "answer text",
             self.text,
@@ -52,6 +53,7 @@ class MessageReplyHandler(ABCHandler[MessageCute]):
         await event.answer(
             text=self.text,
             reply_parameters=ReplyParameters(event.message_id) if self.as_reply else None,
+            **self.default_params,
         )
 
 

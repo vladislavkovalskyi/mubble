@@ -1,9 +1,11 @@
 import typing
+from datetime import datetime
 
 from fntypes.co import Result, Variative
 
 from mubble.api.error import APIError
 from mubble.model import full_result, get_params
+from mubble.types.enums import *  # noqa: F403
 from mubble.types.objects import *  # noqa: F403
 
 if typing.TYPE_CHECKING:
@@ -11,7 +13,7 @@ if typing.TYPE_CHECKING:
 
 
 class APIMethods:
-    """Telegram Bot API 7.2 methods, released `March 31, 2024`."""
+    """Telegram Bot API 7.6 methods, released `July 1, 2024`."""
 
     def __init__(self, api: "ABCAPI") -> None:
         self.api = api
@@ -137,9 +139,7 @@ class APIMethods:
         )
         return full_result(method_response, bool)
 
-    async def get_webhook_info(
-        self, **other: typing.Any
-    ) -> Result[WebhookInfo, APIError]:
+    async def get_webhook_info(self, **other: typing.Any) -> Result[WebhookInfo, APIError]:
         """Method `getWebhookInfo`, see the [documentation](https://core.telegram.org/bots/api#getwebhookinfo)
 
         Use this method to get current webhook status. Requires no parameters.
@@ -211,14 +211,13 @@ class APIMethods:
         link_preview_options: LinkPreviewOptions | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendMessage`, see the [documentation](https://core.telegram.org/bots/api#sendmessage)
@@ -248,12 +247,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -352,26 +353,25 @@ class APIMethods:
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        show_caption_above_media: bool | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[MessageId, APIError]:
         """Method `copyMessage`, see the [documentation](https://core.telegram.org/bots/api#copymessage)
 
-        Use this method to copy messages of any kind. Service messages, giveaway 
-        messages, giveaway winners messages, and invoice messages can't be copied. 
-        A quiz poll can be copied only if the value of the field correct_option_id 
-        is known to the bot. The method is analogous to the method forwardMessage, 
-        but the copied message doesn't have a link to the original message. Returns 
-        the MessageId of the sent message on success.
+        Use this method to copy messages of any kind. Service messages, paid media 
+        messages, giveaway messages, giveaway winners messages, and invoice 
+        messages can't be copied. A quiz poll can be copied only if the value of the 
+        field correct_option_id is known to the bot. The method is analogous to 
+        the method forwardMessage, but the copied message doesn't have a link to 
+        the original message. Returns the MessageId of the sent message on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
         (in the format @channelusername).
@@ -393,6 +393,9 @@ class APIMethods:
         :param caption_entities: A JSON-serialized list of special entities that appear in the new caption, \
         which can be specified instead of parse_mode.
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media. Ignored \
+        if a new caption isn't specified.
+
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
@@ -400,7 +403,7 @@ class APIMethods:
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
-        keyboard, custom reply keyboard, instructions to remove reply keyboard \
+        keyboard, custom reply keyboard, instructions to remove a reply keyboard \
         or to force a reply from the user.
         """
 
@@ -424,13 +427,13 @@ class APIMethods:
         """Method `copyMessages`, see the [documentation](https://core.telegram.org/bots/api#copymessages)
 
         Use this method to copy messages of any kind. If some of the specified messages 
-        can't be found or copied, they are skipped. Service messages, giveaway 
-        messages, giveaway winners messages, and invoice messages can't be copied. 
-        A quiz poll can be copied only if the value of the field correct_option_id 
-        is known to the bot. The method is analogous to the method forwardMessages, 
-        but the copied messages don't have a link to the original message. Album 
-        grouping is kept for copied messages. On success, an array of MessageId 
-        of the sent messages is returned.
+        can't be found or copied, they are skipped. Service messages, paid media 
+        messages, giveaway messages, giveaway winners messages, and invoice 
+        messages can't be copied. A quiz poll can be copied only if the value of the 
+        field correct_option_id is known to the bot. The method is analogous to 
+        the method forwardMessages, but the copied messages don't have a link to 
+        the original message. Album grouping is kept for copied messages. On success, 
+        an array of MessageId of the sent messages is returned.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
         (in the format @channelusername).
@@ -467,17 +470,17 @@ class APIMethods:
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        show_caption_above_media: bool | None = None,
         has_spoiler: bool | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendPhoto`, see the [documentation](https://core.telegram.org/bots/api#sendphoto)
@@ -509,18 +512,22 @@ class APIMethods:
         :param caption_entities: A JSON-serialized list of special entities that appear in the caption, \
         which can be specified instead of parse_mode.
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+
         :param has_spoiler: Pass True if the photo needs to be covered with a spoiler animation.
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -544,14 +551,13 @@ class APIMethods:
         thumbnail: InputFile | str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendAudio`, see the [documentation](https://core.telegram.org/bots/api#sendaudio)
@@ -602,12 +608,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -629,14 +637,13 @@ class APIMethods:
         disable_content_type_detection: bool | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendDocument`, see the [documentation](https://core.telegram.org/bots/api#senddocument)
@@ -683,12 +690,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -710,18 +719,18 @@ class APIMethods:
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        show_caption_above_media: bool | None = None,
         has_spoiler: bool | None = None,
         supports_streaming: bool | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendVideo`, see the [documentation](https://core.telegram.org/bots/api#sendvideo)
@@ -768,6 +777,8 @@ class APIMethods:
         :param caption_entities: A JSON-serialized list of special entities that appear in the caption, \
         which can be specified instead of parse_mode.
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+
         :param has_spoiler: Pass True if the video needs to be covered with a spoiler animation.
 
         :param supports_streaming: Pass True if the uploaded video is suitable for streaming.
@@ -776,12 +787,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -803,17 +816,17 @@ class APIMethods:
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        show_caption_above_media: bool | None = None,
         has_spoiler: bool | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendAnimation`, see the [documentation](https://core.telegram.org/bots/api#sendanimation)
@@ -859,18 +872,22 @@ class APIMethods:
         :param caption_entities: A JSON-serialized list of special entities that appear in the caption, \
         which can be specified instead of parse_mode.
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+
         :param has_spoiler: Pass True if the animation needs to be covered with a spoiler animation. \
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -891,23 +908,23 @@ class APIMethods:
         duration: int | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendVoice`, see the [documentation](https://core.telegram.org/bots/api#sendvoice)
 
         Use this method to send audio files, if you want Telegram clients to display 
         the file as a playable voice message. For this to work, your audio must be 
-        in an .OGG file encoded with OPUS (other formats may be sent as Audio or Document). 
-        On success, the sent Message is returned. Bots can currently send voice 
-        messages of up to 50 MB in size, this limit may be changed in the future.
+        in an .OGG file encoded with OPUS, or in .MP3 format, or in .M4A format (other 
+        formats may be sent as Audio or Document). On success, the sent Message is 
+        returned. Bots can currently send voice messages of up to 50 MB in size, this 
+        limit may be changed in the future.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
         will be sent.
@@ -937,12 +954,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -962,14 +981,13 @@ class APIMethods:
         thumbnail: InputFile | str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendVideoNote`, see the [documentation](https://core.telegram.org/bots/api#sendvideonote)
@@ -1008,12 +1026,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -1022,16 +1042,73 @@ class APIMethods:
         )
         return full_result(method_response, Message)
 
+    async def send_paid_media(
+        self,
+        chat_id: int | str,
+        star_count: int,
+        media: list[InputPaidMedia],
+        caption: str | None = None,
+        parse_mode: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
+        show_caption_above_media: bool | None = None,
+        disable_notification: bool | None = None,
+        protect_content: bool | None = None,
+        reply_parameters: ReplyParameters | None = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
+        **other: typing.Any,
+    ) -> Result[Message, APIError]:
+        """Method `sendPaidMedia`, see the [documentation](https://core.telegram.org/bots/api#sendpaidmedia)
+
+        Use this method to send paid media to channel chats. On success, the sent 
+        Message is returned.
+
+        :param chat_id: Unique identifier for the target chat or username of the target channel \
+        (in the format @channelusername).
+
+        :param star_count: The number of Telegram Stars that must be paid to buy access to the media. \
+
+        :param media: A JSON-serialized array describing the media to be sent; up to 10 items. \
+
+        :param caption: Media caption, 0-1024 characters after entities parsing.
+
+        :param parse_mode: Mode for parsing entities in the media caption. See formatting options \
+        for more details.
+
+        :param caption_entities: A JSON-serialized list of special entities that appear in the caption, \
+        which can be specified instead of parse_mode.
+
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
+
+        :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
+
+        :param protect_content: Protects the contents of the sent message from forwarding and saving.
+
+        :param reply_parameters: Description of the message to reply to.
+
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
+        keyboard, custom reply keyboard, instructions to remove a reply keyboard \
+        or to force a reply from the user.
+        """
+
+        method_response = await self.api.request_raw(
+            "sendPaidMedia",
+            get_params(locals()),
+        )
+        return full_result(method_response, Message)
+
     async def send_media_group(
         self,
         chat_id: int | str,
-        media: list[
-            InputMediaAudio | InputMediaDocument | InputMediaPhoto | InputMediaVideo
-        ],
+        media: list[InputMediaAudio | InputMediaDocument | InputMediaPhoto | InputMediaVideo],
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[list[Message], APIError]:
@@ -1057,6 +1134,9 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent messages from forwarding and saving. \
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
         """
 
@@ -1079,14 +1159,13 @@ class APIMethods:
         proximity_alert_radius: int | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendLocation`, see the [documentation](https://core.telegram.org/bots/api#sendlocation)
@@ -1108,8 +1187,9 @@ class APIMethods:
 
         :param horizontal_accuracy: The radius of uncertainty for the location, measured in meters; 0-1500. \
 
-        :param live_period: Period in seconds for which the location will be updated (see Live Locations, \
-        should be between 60 and 86400.
+        :param live_period: Period in seconds during which the location will be updated (see Live Locations, \
+        should be between 60 and 86400, or 0x7FFFFFFF for live locations that can \
+        be edited indefinitely.
 
         :param heading: For live locations, a direction in which the user is moving, in degrees. \
         Must be between 1 and 360 if specified.
@@ -1121,12 +1201,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -1150,14 +1232,13 @@ class APIMethods:
         google_place_type: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendVenue`, see the [documentation](https://core.telegram.org/bots/api#sendvenue)
@@ -1195,12 +1276,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -1220,14 +1303,13 @@ class APIMethods:
         vcard: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendContact`, see the [documentation](https://core.telegram.org/bots/api#sendcontact)
@@ -1255,12 +1337,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -1273,9 +1357,11 @@ class APIMethods:
         self,
         chat_id: int | str,
         question: str,
-        options: list[str],
+        options: list[InputPollOption],
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        question_parse_mode: str | None = None,
+        question_entities: list[MessageEntity] | None = None,
         is_anonymous: bool | None = None,
         type: typing.Literal["quiz", "regular"] | None = None,
         allows_multiple_answers: bool | None = None,
@@ -1288,14 +1374,13 @@ class APIMethods:
         is_closed: bool | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendPoll`, see the [documentation](https://core.telegram.org/bots/api#sendpoll)
@@ -1313,8 +1398,13 @@ class APIMethods:
 
         :param question: Poll question, 1-300 characters.
 
-        :param options: A JSON-serialized list of answer options, 2-10 strings 1-100 characters \
-        each.
+        :param question_parse_mode: Mode for parsing entities in the question. See formatting options for more \
+        details. Currently, only custom emoji entities are allowed.
+
+        :param question_entities: A JSON-serialized list of special entities that appear in the poll question. \
+        It can be specified instead of question_parse_mode.
+
+        :param options: A JSON-serialized list of 2-10 answer options.
 
         :param is_anonymous: True, if the poll needs to be anonymous, defaults to True.
 
@@ -1333,8 +1423,8 @@ class APIMethods:
         :param explanation_parse_mode: Mode for parsing entities in the explanation. See formatting options for \
         more details.
 
-        :param explanation_entities: A JSON-serialized list of special entities that appear in the poll explanation, \
-        which can be specified instead of parse_mode.
+        :param explanation_entities: A JSON-serialized list of special entities that appear in the poll explanation. \
+        It can be specified instead of explanation_parse_mode.
 
         :param open_period: Amount of time in seconds the poll will be active after creation, 5-600. \
         Can't be used together with close_date.
@@ -1350,12 +1440,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -1372,14 +1464,13 @@ class APIMethods:
         emoji: DiceEmoji | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendDice`, see the [documentation](https://core.telegram.org/bots/api#senddice)
@@ -1404,12 +1495,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
         keyboard, custom reply keyboard, instructions to remove a reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -1707,7 +1800,8 @@ class APIMethods:
 
         :param can_post_stories: Pass True if the administrator can post stories to the chat.
 
-        :param can_edit_stories: Pass True if the administrator can edit stories posted by other users.
+        :param can_edit_stories: Pass True if the administrator can edit stories posted by other users, post \
+        stories to the chat page, pin chat stories, and access the chat's story archive. \
 
         :param can_delete_stories: Pass True if the administrator can delete stories posted by other users. \
 
@@ -2208,11 +2302,11 @@ class APIMethods:
         self,
         chat_id: int | str,
         **other: typing.Any,
-    ) -> Result[Chat, APIError]:
+    ) -> Result[ChatFullInfo, APIError]:
         """Method `getChat`, see the [documentation](https://core.telegram.org/bots/api#getchat)
 
-        Use this method to get up to date information about the chat. Returns a Chat 
-        object on success.
+        Use this method to get up-to-date information about the chat. Returns a 
+        ChatFullInfo object on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target supergroup \
         or channel (in the format @channelusername).
@@ -2222,7 +2316,7 @@ class APIMethods:
             "getChat",
             get_params(locals()),
         )
-        return full_result(method_response, Chat)
+        return full_result(method_response, ChatFullInfo)
 
     async def get_chat_administrators(
         self,
@@ -2380,9 +2474,7 @@ class APIMethods:
         )
         return full_result(method_response, bool)
 
-    async def get_forum_topic_icon_stickers(
-        self, **other: typing.Any
-    ) -> Result[list[Sticker], APIError]:
+    async def get_forum_topic_icon_stickers(self, **other: typing.Any) -> Result[list[Sticker], APIError]:
         """Method `getForumTopicIconStickers`, see the [documentation](https://core.telegram.org/bots/api#getforumtopiciconstickers)
 
         Use this method to get custom emoji stickers, which can be used as a forum
@@ -3012,9 +3104,7 @@ class APIMethods:
         self,
         chat_id: int | None = None,
         **other: typing.Any,
-    ) -> Result[
-        Variative[MenuButtonCommands, MenuButtonWebApp, MenuButtonDefault], APIError
-    ]:
+    ) -> Result[Variative[MenuButtonCommands, MenuButtonWebApp, MenuButtonDefault], APIError]:
         """Method `getChatMenuButton`, see the [documentation](https://core.telegram.org/bots/api#getchatmenubutton)
 
         Use this method to get the current value of the bot's menu button in a private 
@@ -3029,8 +3119,7 @@ class APIMethods:
             get_params(locals()),
         )
         return full_result(
-            method_response,
-            Variative[MenuButtonCommands, MenuButtonWebApp, MenuButtonDefault],
+            method_response, Variative[MenuButtonCommands, MenuButtonWebApp, MenuButtonDefault]
         )
 
     async def set_my_default_administrator_rights(
@@ -3084,6 +3173,7 @@ class APIMethods:
     async def edit_message_text(
         self,
         text: str,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
         message_id: int | None = None,
         inline_message_id: str | None = None,
@@ -3097,7 +3187,12 @@ class APIMethods:
 
         Use this method to edit text and game messages. On success, if the edited 
         message is not an inline message, the edited Message is returned, otherwise 
-        True is returned.
+        True is returned. Note that business messages that were not sent by the bot 
+        and do not contain an inline keyboard can only be edited within 48 hours from 
+        the time they were sent.
+
+        :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
+        to be edited was sent.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
         the target chat or username of the target channel (in the format @channelusername). \
@@ -3129,12 +3224,14 @@ class APIMethods:
 
     async def edit_message_caption(
         self,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
         message_id: int | None = None,
         inline_message_id: str | None = None,
         caption: str | None = None,
         parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        show_caption_above_media: bool | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
         **other: typing.Any,
     ) -> Result[Variative[Message, bool], APIError]:
@@ -3142,7 +3239,12 @@ class APIMethods:
 
         Use this method to edit captions of messages. On success, if the edited message 
         is not an inline message, the edited Message is returned, otherwise True 
-        is returned.
+        is returned. Note that business messages that were not sent by the bot and 
+        do not contain an inline keyboard can only be edited within 48 hours from 
+        the time they were sent.
+
+        :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
+        to be edited was sent.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
         the target chat or username of the target channel (in the format @channelusername). \
@@ -3161,6 +3263,9 @@ class APIMethods:
         :param caption_entities: A JSON-serialized list of special entities that appear in the caption, \
         which can be specified instead of parse_mode.
 
+        :param show_caption_above_media: Pass True, if the caption must be shown above the message media. Supported \
+        only for animation, photo and video messages.
+
         :param reply_markup: A JSON-serialized object for an inline keyboard.
         """
 
@@ -3173,6 +3278,7 @@ class APIMethods:
     async def edit_message_media(
         self,
         media: InputMedia,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
         message_id: int | None = None,
         inline_message_id: str | None = None,
@@ -3187,7 +3293,12 @@ class APIMethods:
         a video otherwise. When an inline message is edited, a new file can't be uploaded; 
         use a previously uploaded file via its file_id or specify a URL. On success, 
         if the edited message is not an inline message, the edited Message is returned, 
-        otherwise True is returned.
+        otherwise True is returned. Note that business messages that were not sent 
+        by the bot and do not contain an inline keyboard can only be edited within 
+        48 hours from the time they were sent.
+
+        :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
+        to be edited was sent.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
         the target chat or username of the target channel (in the format @channelusername). \
@@ -3213,9 +3324,11 @@ class APIMethods:
         self,
         latitude: float,
         longitude: float,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
         message_id: int | None = None,
         inline_message_id: str | None = None,
+        live_period: int | None = None,
         horizontal_accuracy: float | None = None,
         heading: int | None = None,
         proximity_alert_radius: int | None = None,
@@ -3229,6 +3342,9 @@ class APIMethods:
         to stopMessageLiveLocation. On success, if the edited message is not an 
         inline message, the edited Message is returned, otherwise True is returned.
 
+        :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
+        to be edited was sent.
+
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
         the target chat or username of the target channel (in the format @channelusername). \
 
@@ -3241,6 +3357,13 @@ class APIMethods:
         :param latitude: Latitude of new location.
 
         :param longitude: Longitude of new location.
+
+        :param live_period: New period in seconds during which the location can be updated, starting \
+        from the message send date. If 0x7FFFFFFF is specified, then the location \
+        can be updated forever. Otherwise, the new value must not exceed the current \
+        live_period by more than a day, and the live location expiration date must \
+        remain within the next 90 days. If not specified, then live_period remains \
+        unchanged.
 
         :param horizontal_accuracy: The radius of uncertainty for the location, measured in meters; 0-1500. \
 
@@ -3261,6 +3384,7 @@ class APIMethods:
 
     async def stop_message_live_location(
         self,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
         message_id: int | None = None,
         inline_message_id: str | None = None,
@@ -3272,6 +3396,9 @@ class APIMethods:
         Use this method to stop updating a live location message before live_period 
         expires. On success, if the message is not an inline message, the edited 
         Message is returned, otherwise True is returned.
+
+        :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
+        to be edited was sent.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
         the target chat or username of the target channel (in the format @channelusername). \
@@ -3293,6 +3420,7 @@ class APIMethods:
 
     async def edit_message_reply_markup(
         self,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
         message_id: int | None = None,
         inline_message_id: str | None = None,
@@ -3303,7 +3431,12 @@ class APIMethods:
 
         Use this method to edit only the reply markup of messages. On success, if 
         the edited message is not an inline message, the edited Message is returned, 
-        otherwise True is returned.
+        otherwise True is returned. Note that business messages that were not sent 
+        by the bot and do not contain an inline keyboard can only be edited within 
+        48 hours from the time they were sent.
+
+        :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
+        to be edited was sent.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
         the target chat or username of the target channel (in the format @channelusername). \
@@ -3327,6 +3460,7 @@ class APIMethods:
         self,
         chat_id: int | str,
         message_id: int,
+        business_connection_id: str | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
         **other: typing.Any,
     ) -> Result[Poll, APIError]:
@@ -3334,6 +3468,9 @@ class APIMethods:
 
         Use this method to stop a poll which was sent by the bot. On success, the stopped 
         Poll is returned.
+
+        :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
+        to be edited was sent.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
         (in the format @channelusername).
@@ -3415,14 +3552,13 @@ class APIMethods:
         emoji: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup
+        | ReplyKeyboardMarkup
+        | ReplyKeyboardRemove
+        | ForceReply
+        | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendSticker`, see the [documentation](https://core.telegram.org/bots/api#sendsticker)
@@ -3452,12 +3588,14 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: Additional interface options. A JSON-serialized object for an inline \
-        keyboard, custom reply keyboard, instructions to remove reply keyboard \
-        or to force a reply from the user. Not supported for messages sent on behalf \
-        of a business account.
+        keyboard, custom reply keyboard, instructions to remove a reply keyboard \
+        or to force a reply from the user.
         """
 
         method_response = await self.api.request_raw(
@@ -3917,10 +4055,10 @@ class APIMethods:
         title: str,
         description: str,
         payload: str,
-        provider_token: str,
         currency: str,
         prices: list[LabeledPrice],
         message_thread_id: int | None = None,
+        provider_token: str | None = None,
         max_tip_amount: int | None = None,
         suggested_tip_amounts: list[int] | None = None,
         start_parameter: str | None = None,
@@ -3938,6 +4076,7 @@ class APIMethods:
         is_flexible: bool | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
         **other: typing.Any,
@@ -3959,18 +4098,22 @@ class APIMethods:
         :param payload: Bot-defined invoice payload, 1-128 bytes. This will not be displayed to \
         the user, use for your internal processes.
 
-        :param provider_token: Payment provider token, obtained via @BotFather.
+        :param provider_token: Payment provider token, obtained via @BotFather. Pass an empty string \
+        for payments in Telegram Stars.
 
-        :param currency: Three-letter ISO 4217 currency code, see more on currencies.
+        :param currency: Three-letter ISO 4217 currency code, see more on currencies. Pass `XTR` \
+        for payments in Telegram Stars.
 
         :param prices: Price breakdown, a JSON-serialized list of components (e.g. product price, \
-        tax, discount, delivery cost, delivery tax, bonus, etc.).
+        tax, discount, delivery cost, delivery tax, bonus, etc.). Must contain \
+        exactly one item for payments in Telegram Stars.
 
         :param max_tip_amount: The maximum accepted amount for tips in the smallest units of the currency \
         (integer, not float/double). For example, for a maximum tip of US$ 1.45 \
         pass max_tip_amount = 145. See the exp parameter in currencies.json, it \
         shows the number of digits past the decimal point for each currency (2 for \
-        the majority of currencies). Defaults to 0.
+        the majority of currencies). Defaults to 0. Not supported for payments \
+        in Telegram Stars.
 
         :param suggested_tip_amounts: A JSON-serialized array of suggested amounts of tips in the smallest units \
         of the currency (integer, not float/double). At most 4 suggested tip amounts \
@@ -3997,23 +4140,33 @@ class APIMethods:
 
         :param photo_height: Photo height.
 
-        :param need_name: Pass True if you require the user's full name to complete the order.
+        :param need_name: Pass True if you require the user's full name to complete the order. Ignored \
+        for payments in Telegram Stars.
 
-        :param need_phone_number: Pass True if you require the user's phone number to complete the order.
+        :param need_phone_number: Pass True if you require the user's phone number to complete the order. Ignored \
+        for payments in Telegram Stars.
 
         :param need_email: Pass True if you require the user's email address to complete the order. \
+        Ignored for payments in Telegram Stars.
 
         :param need_shipping_address: Pass True if you require the user's shipping address to complete the order. \
+        Ignored for payments in Telegram Stars.
 
-        :param send_phone_number_to_provider: Pass True if the user's phone number should be sent to provider.
+        :param send_phone_number_to_provider: Pass True if the user's phone number should be sent to the provider. Ignored \
+        for payments in Telegram Stars.
 
-        :param send_email_to_provider: Pass True if the user's email address should be sent to provider.
+        :param send_email_to_provider: Pass True if the user's email address should be sent to the provider. Ignored \
+        for payments in Telegram Stars.
 
-        :param is_flexible: Pass True if the final price depends on the shipping method.
+        :param is_flexible: Pass True if the final price depends on the shipping method. Ignored for \
+        payments in Telegram Stars.
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
+
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
 
         :param reply_parameters: Description of the message to reply to.
 
@@ -4032,9 +4185,9 @@ class APIMethods:
         title: str,
         description: str,
         payload: str,
-        provider_token: str,
         currency: str,
         prices: list[LabeledPrice],
+        provider_token: str | None = None,
         max_tip_amount: int | None = None,
         suggested_tip_amounts: list[int] | None = None,
         provider_data: str | None = None,
@@ -4063,18 +4216,22 @@ class APIMethods:
         :param payload: Bot-defined invoice payload, 1-128 bytes. This will not be displayed to \
         the user, use for your internal processes.
 
-        :param provider_token: Payment provider token, obtained via BotFather.
+        :param provider_token: Payment provider token, obtained via @BotFather. Pass an empty string \
+        for payments in Telegram Stars.
 
-        :param currency: Three-letter ISO 4217 currency code, see more on currencies.
+        :param currency: Three-letter ISO 4217 currency code, see more on currencies. Pass `XTR` \
+        for payments in Telegram Stars.
 
         :param prices: Price breakdown, a JSON-serialized list of components (e.g. product price, \
-        tax, discount, delivery cost, delivery tax, bonus, etc.).
+        tax, discount, delivery cost, delivery tax, bonus, etc.). Must contain \
+        exactly one item for payments in Telegram Stars.
 
         :param max_tip_amount: The maximum accepted amount for tips in the smallest units of the currency \
         (integer, not float/double). For example, for a maximum tip of US$ 1.45 \
         pass max_tip_amount = 145. See the exp parameter in currencies.json, it \
         shows the number of digits past the decimal point for each currency (2 for \
-        the majority of currencies). Defaults to 0.
+        the majority of currencies). Defaults to 0. Not supported for payments \
+        in Telegram Stars.
 
         :param suggested_tip_amounts: A JSON-serialized array of suggested amounts of tips in the smallest units \
         of the currency (integer, not float/double). At most 4 suggested tip amounts \
@@ -4094,19 +4251,26 @@ class APIMethods:
 
         :param photo_height: Photo height.
 
-        :param need_name: Pass True if you require the user's full name to complete the order.
+        :param need_name: Pass True if you require the user's full name to complete the order. Ignored \
+        for payments in Telegram Stars.
 
-        :param need_phone_number: Pass True if you require the user's phone number to complete the order.
+        :param need_phone_number: Pass True if you require the user's phone number to complete the order. Ignored \
+        for payments in Telegram Stars.
 
         :param need_email: Pass True if you require the user's email address to complete the order. \
+        Ignored for payments in Telegram Stars.
 
         :param need_shipping_address: Pass True if you require the user's shipping address to complete the order. \
+        Ignored for payments in Telegram Stars.
 
-        :param send_phone_number_to_provider: Pass True if the user's phone number should be sent to the provider.
+        :param send_phone_number_to_provider: Pass True if the user's phone number should be sent to the provider. Ignored \
+        for payments in Telegram Stars.
 
-        :param send_email_to_provider: Pass True if the user's email address should be sent to the provider.
+        :param send_email_to_provider: Pass True if the user's email address should be sent to the provider. Ignored \
+        for payments in Telegram Stars.
 
-        :param is_flexible: Pass True if the final price depends on the shipping method.
+        :param is_flexible: Pass True if the final price depends on the shipping method. Ignored for \
+        payments in Telegram Stars.
         """
 
         method_response = await self.api.request_raw(
@@ -4183,6 +4347,50 @@ class APIMethods:
         )
         return full_result(method_response, bool)
 
+    async def get_star_transactions(
+        self,
+        offset: int | None = None,
+        limit: int | None = None,
+        **other: typing.Any,
+    ) -> Result[StarTransactions, APIError]:
+        """Method `getStarTransactions`, see the [documentation](https://core.telegram.org/bots/api#getstartransactions)
+
+        Returns the bot's Telegram Star transactions in chronological order. 
+        On success, returns a StarTransactions object.
+
+        :param offset: Number of transactions to skip in the response.
+
+        :param limit: The maximum number of transactions to be retrieved. Values between 1-100 \
+        are accepted. Defaults to 100.
+        """
+
+        method_response = await self.api.request_raw(
+            "getStarTransactions",
+            get_params(locals()),
+        )
+        return full_result(method_response, StarTransactions)
+
+    async def refund_star_payment(
+        self,
+        user_id: int,
+        telegram_payment_charge_id: str,
+        **other: typing.Any,
+    ) -> Result[bool, APIError]:
+        """Method `refundStarPayment`, see the [documentation](https://core.telegram.org/bots/api#refundstarpayment)
+
+        Refunds a successful payment in Telegram Stars. Returns True on success.
+
+        :param user_id: Identifier of the user whose payment will be refunded.
+
+        :param telegram_payment_charge_id: Telegram payment identifier.
+        """
+
+        method_response = await self.api.request_raw(
+            "refundStarPayment",
+            get_params(locals()),
+        )
+        return full_result(method_response, bool)
+
     async def set_passport_data_errors(
         self,
         user_id: int,
@@ -4219,6 +4427,7 @@ class APIMethods:
         message_thread_id: int | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
         **other: typing.Any,
@@ -4242,11 +4451,13 @@ class APIMethods:
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
+        :param message_effect_id: Unique identifier of the message effect to be added to the message; for private \
+        chats only.
+
         :param reply_parameters: Description of the message to reply to.
 
         :param reply_markup: A JSON-serialized object for an inline keyboard. If empty, one 'Play game_title' \
         button will be shown. If not empty, the first button must launch the game. \
-        Not supported for messages sent on behalf of a business account.
         """
 
         method_response = await self.api.request_raw(
