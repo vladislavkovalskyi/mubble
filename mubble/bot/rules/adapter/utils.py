@@ -31,20 +31,20 @@ def get_by_sources(model: Model, sources: type[T] | list[type[T]]) -> typing.Any
     @typing.runtime_checkable
     class HasFrom(Source, typing.Protocol):
         from_: User
-    
+
 
     @typing.runtime_checkable
     class HasUser(Source, typing.Protocol):
         user: User
-    
+
 
     class Message(Model):
         from_: User
-    
+
 
     class MessageReactionUpdated(Model):
         user: User
-    
+
 
     get_by_sources(Message(...), [HasFrom, HasUser])  # User(...)
     get_by_sources(Message(...), HasUser)  # None
@@ -66,18 +66,20 @@ def get_by_sources(model: Model, sources: type[T] | list[type[T]]) -> typing.Any
                 None,
             )
 
-        values = filter(None, [
-            getattr(model, field, None)
-            for field in model.__struct_fields__
-        ])
+        values = filter(
+            None, [getattr(model, field, None) for field in model.__struct_fields__]
+        )
         for value in values:
             value = unwrap_value(value)
-            if isinstance(value, Model) and (result := get_by_sources(value, sources)) is not None:
+            if (
+                isinstance(value, Model)
+                and (result := get_by_sources(value, sources)) is not None
+            ):
                 return result
             for t in typing.get_type_hints(source).values():
                 if isinstance(value, t):
                     return value
-    
+
     return None
 
 
