@@ -153,8 +153,10 @@ class CallbackDataJsonModel(CallbackQueryDataRule):
 
     async def check(self, event: CallbackQuery, ctx: Context) -> bool:
         with suppress(BaseException):
-            ctx.data = decoder.decode(event.data.unwrap().encode(), type=self.model)
-            return True
+            data = decoder.decode(event.data.unwrap().encode(), type=self.model)
+            if data.type == self.model.__name__:
+                ctx.data = data
+                return True
         return False
 
 
