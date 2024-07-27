@@ -2,5 +2,6 @@ dist
 tests*
 __pycache__
 .env
+.flake8
 poetry.lock
 mubble.*
