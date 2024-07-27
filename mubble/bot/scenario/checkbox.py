@@ -69,7 +69,11 @@ class Checkbox(ABCScenario[CallbackQueryCute]):
                 choice = choices.pop(0)
                 kb.add(
                     InlineButton(
-                        text=(choice.default_text if not choice.is_picked else choice.picked_text),
+                        text=(
+                            choice.default_text
+                            if not choice.is_picked
+                            else choice.picked_text
+                        ),
                         callback_data=self.random_code + "/" + choice.code,
                     )
                 )
@@ -114,7 +118,7 @@ class Checkbox(ABCScenario[CallbackQueryCute]):
         api: "API",
         view: "BaseStateView[CallbackQueryCute]",
     ) -> tuple[dict[str, bool], int]:
-        assert len(self.choices) > 1
+        assert len(self.choices) > 0
         message = (
             await api.send_message(
                 chat_id=self.chat_id,
