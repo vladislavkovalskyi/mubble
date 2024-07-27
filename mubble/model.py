@@ -1,5 +1,6 @@
 import dataclasses
 import enum
+import keyword
 import secrets
 import typing
 from datetime import datetime
@@ -15,10 +16,11 @@ if typing.TYPE_CHECKING:
 
 T = typing.TypeVar("T")
 
+
 MODEL_CONFIG: typing.Final[dict[str, typing.Any]] = {
     "omit_defaults": True,
     "dict": True,
-    "rename": {"from_": "from"},
+    "rename": {kw + "_": kw for kw in keyword.kwlist},
 }
 
 
@@ -44,14 +46,17 @@ def full_result(
 
 
 def get_params(params: dict[str, typing.Any]) -> dict[str, typing.Any]:
-    return {
-        k: v.unwrap() if isinstance(v, Some) else v
-        for k, v in (
-            *params.pop("other", {}).items(),
-            *params.items(),
-        )
-        if k != "self" and type(v) not in (NoneType, Nothing)
-    }
+    validated_params = {}
+    for k, v in (
+        *params.pop("other", {}).items(),
+        *params.items(),
+    ):
+        if isinstance(v, Proxy):
+            v = v.get()
+        if k == "self" or type(v) in (NoneType, Nothing):
+            continue
+        validated_params[k] = v.unwrap() if isinstance(v, Some) else v
+    return validated_params
 
 
 class Model(msgspec.Struct, **MODEL_CONFIG):
@@ -154,8 +159,43 @@ class DataConverter:
         return data
 
 
+class Proxy:
+    def __init__(self, cfg: "_ProxiedDict", key: str):
+        self.key = key
+        self.cfg = cfg
+
+    def get(self) -> typing.Any | None:
+        return self.cfg._defaults.get(self.key)
+
+
+class _ProxiedDict(typing.Generic[T]):
+    def __init__(self, tp: type[T]) -> None:
+        self.type = tp
+        self._defaults = {}
+
+    def __setattribute__(self, name: str, value: typing.Any, /) -> None:
+        self._defaults[name] = value
+
+    def __getitem__(self, key: str, /) -> None:
+        return Proxy(self, key)  # type: ignore
+
+    def __setitem__(self, key: str, value: typing.Any, /) -> None:
+        self._defaults[key] = value
+
+
+if typing.TYPE_CHECKING:
+
+    def ProxiedDict(typed_dct: type[T]) -> T | _ProxiedDict[T]:
+        ...
+
+else:
+    ProxiedDict = _ProxiedDict
+
+
 __all__ = (
+    "Proxy",
     "DataConverter",
+    "ProxiedDict",
     "MODEL_CONFIG",
     "Model",
     "full_result",
