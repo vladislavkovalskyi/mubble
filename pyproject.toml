@@ -18,7 +18,7 @@ choicelib = "^0.1.5"
 certifi = "^2024.2.2"
 colorama = "^0.4.0"
 typing-extensions = "^4.10.0"
-fntypes = "^0.1.2.post2"
+fntypes = "0.1.2.post1"
 
 [tool.poetry.dev-dependencies]
 
