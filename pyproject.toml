@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mubble"
-version = "1.2.2"
+version = "1.2.3"
 description = "Async Telegram framework for bot building"
 readme = "README.md"
 authors = ["vladislavkovalskyi <vladislavkovalskyi@icloud.com>"]
