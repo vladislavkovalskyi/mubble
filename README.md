@@ -3,9 +3,11 @@
 [![Downloads](https://img.shields.io/pypi/dm/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
 [![Downloads](https://img.shields.io/pypi/pyversions/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
 
-[![Mubble logo](images/mubble_logo.png)](https://github.com/vladislavkovalskyi/mubble/blob/master/images/mubble_logo.png)
-
 <a href="https://github.com/vladislavkovalskyi/mubble/blob/master/examples">
+  <img src="https://github.com/vladislavkovalskyi/mubble/blob/master/images/mubble_logo.png?raw=true" alt="Click me" width="100%">
+</a>
+
+<a href="https://github.com/vladislavkovalskyi/mubble">
   <img src="https://github.com/vladislavkovalskyi/mubble/blob/master/images/examples_button.png?raw=true" alt="Click me" width="100%">
 </a>
 
@@ -14,6 +16,7 @@
 **Mubble** is a next-generation framework known for its great speed and simplicity. It is written using aiohttp, asyncio, and msgspec.<br>
 *([Author](https://github.com/vladislavkovalskyi)'s words)*
 **Make the fastest bot ever!**
+
 <br>
 
 # Getting started
