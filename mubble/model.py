@@ -5,6 +5,7 @@ import secrets
 import typing
 from datetime import datetime
 from types import NoneType
+from typing import Callable, Any
 
 import msgspec
 from fntypes.co import Nothing, Result, Some
@@ -73,7 +74,9 @@ class Model(msgspec.Struct, **MODEL_CONFIG):
         if "model_as_dict" not in self.__dict__:
             self.__dict__["model_as_dict"] = msgspec.structs.asdict(self)
         return {
-            key: value for key, value in self.__dict__["model_as_dict"].items() if key not in exclude_fields
+            key: value
+            for key, value in self.__dict__["model_as_dict"].items()
+            if key not in exclude_fields
         }
 
 
@@ -111,7 +114,7 @@ class DataConverter:
             return converter(self, data, serialize)
         return data
 
-    def get_converter(self, t: type[typing.Any]):
+    def get_converter(self, t: type[typing.Any]) -> Callable[..., Any] | None:
         for type, converter in self.converters.items():
             if issubclass(t, type):
                 return converter
@@ -131,7 +134,9 @@ class DataConverter:
         serialize: bool = True,
     ) -> dict[str, typing.Any]:
         return {
-            k: self(v, serialize=serialize) for k, v in data.items() if type(v) not in (NoneType, Nothing)
+            k: self(v, serialize=serialize)
+            for k, v in data.items()
+            if type(v) not in (NoneType, Nothing)
         }
 
     def convert_lst(
@@ -185,8 +190,7 @@ class _ProxiedDict(typing.Generic[T]):
 
 if typing.TYPE_CHECKING:
 
-    def ProxiedDict(typed_dct: type[T]) -> T | _ProxiedDict[T]:
-        ...
+    def ProxiedDict(typed_dct: type[T]) -> T | _ProxiedDict[T]: ...
 
 else:
     ProxiedDict = _ProxiedDict
