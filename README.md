@@ -8,7 +8,7 @@
 </a>
 
 <a href="https://github.com/vladislavkovalskyi/mubble">
-  <img src="https://github.com/vladislavkovalskyi/mubble/blob/master/images/examples_button.png?raw=true" alt="Click me" width="100%">
+  <img src="https://github.com/vladislavkovalskyi/mubble/blob/master/images/click_here.png?raw=true" alt="Click me" width="100%">
 </a>
 
 <br>
