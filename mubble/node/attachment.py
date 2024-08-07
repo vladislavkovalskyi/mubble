@@ -5,24 +5,26 @@ from fntypes import Option, Some
 from fntypes.option import Nothing
 
 import mubble.types
-
-from .base import ComposeError, DataNode, ScalarNode
-from .message import MessageNode
+from mubble.node.base import ComposeError, DataNode, ScalarNode
+from mubble.node.message import MessageNode
 
 
 @dataclasses.dataclass
 class Attachment(DataNode):
     attachment_type: typing.Literal["audio", "document", "photo", "poll", "video"]
-    _: dataclasses.KW_ONLY
-    audio: Option[mubble.types.Audio] = dataclasses.field(default_factory=lambda: Nothing())
+    audio: Option[mubble.types.Audio] = dataclasses.field(
+        default_factory=lambda: Nothing(), kw_only=True
+    )
     document: Option[mubble.types.Document] = dataclasses.field(
-        default_factory=lambda: Nothing()
+        default_factory=lambda: Nothing(), kw_only=True
     )
     photo: Option[list[mubble.types.PhotoSize]] = dataclasses.field(
-        default_factory=lambda: Nothing()
+        default_factory=lambda: Nothing(), kw_only=True
     )
-    poll: Option[mubble.types.Poll] = dataclasses.field(default_factory=lambda: Nothing())
-    video: Option[mubble.types.Video] = dataclasses.field(default_factory=lambda: Nothing())
+    poll: Option[mubble.types.Poll] = dataclasses.field(default_factory=lambda: Nothing(), kw_only=True)
+    video: Option[mubble.types.Video] = dataclasses.field(
+        default_factory=lambda: Nothing(), kw_only=True
+    )
 
     @classmethod
     async def compose(cls, message: MessageNode) -> "Attachment":

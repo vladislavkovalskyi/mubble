@@ -49,10 +49,14 @@ def root_protection(func: F) -> F:
 
     @wraps(func)
     def wrapper(self: "GlobalContext", name: str, /, *args) -> typing.Any:
-        if self.is_root_attribute(name) and name in (self.__dict__ | self.__class__.__dict__):
+        if self.is_root_attribute(name) and name in (
+            self.__dict__ | self.__class__.__dict__
+        ):
             root_attr = self.get_root_attribute(name).unwrap()
             if all((not root_attr.can_be_rewritten, not root_attr.can_be_read)):
-                raise AttributeError(f"Unable to set, get, delete root attribute {name!r}.")
+                raise AttributeError(
+                    f"Unable to set, get, delete root attribute {name!r}."
+                )
             if func.__name__ == "__setattr__" and not root_attr.can_be_rewritten:
                 raise AttributeError(f"Unable to set root attribute {name!r}.")
             if func.__name__ == "__getattr__" and not root_attr.can_be_read:
@@ -60,9 +64,9 @@ def root_protection(func: F) -> F:
             if func.__name__ == "__delattr__":
                 raise AttributeError(f"Unable to delete root attribute {name!r}.")
 
-        return func(self, name, *args)  # type: ignore
+        return func(self, name, *args)
 
-    return wrapper  # type: ignore
+    return wrapper
 
 
 def ctx_var(value: T, *, const: bool = False) -> T:
@@ -84,7 +88,6 @@ def ctx_var(value: T, *, const: bool = False) -> T:
 @dataclasses.dataclass(frozen=True, eq=False)
 class RootAttr:
     name: str
-    _: dataclasses.KW_ONLY
     can_be_read: bool = dataclasses.field(default=True, kw_only=True)
     can_be_rewritten: bool = dataclasses.field(default=False, kw_only=True)
 
@@ -100,7 +103,9 @@ class Storage:
     )
 
     def __repr__(self) -> str:
-        return "<ContextStorage: %s>" % ", ".join("ctx @" + repr(x) for x in self._storage)
+        return "<ContextStorage: %s>" % ", ".join(
+            "ctx @" + repr(x) for x in self._storage
+        )
 
     @property
     def storage(self) -> dict[str, "GlobalContext"]:
@@ -176,7 +181,7 @@ class GlobalContext(
             cls.__storage__.set(ctx_name, ctx)
 
         ctx.set_context_variables(variables)
-        return ctx  # type: ignore
+        return ctx
 
     def __init__(
         self,
@@ -202,14 +207,19 @@ class GlobalContext(
         """Returns True if the names of context stores
         that use self and __value instances are equivalent."""
 
-        return isinstance(__value, GlobalContext) and self.__ctx_name__ == __value.__ctx_name__
+        return (
+            isinstance(__value, GlobalContext)
+            and self.__ctx_name__ == __value.__ctx_name__
+        )
 
     def __setitem__(self, __name: str, __value: CtxValueT | CtxVariable[CtxValueT]):
         if is_dunder(__name):
             raise NameError("Cannot set a context variable with dunder name.")
         var = self.get(__name)
         if var and var.unwrap().const:
-            raise TypeError(f"Unable to set variable {__name!r}, because it's a constant.")
+            raise TypeError(
+                f"Unable to set variable {__name!r}, because it's a constant."
+            )
         dict.__setitem__(self, __name, GlobalCtxVar.collect(__name, __value))
 
     def __getitem__(self, __name: str) -> CtxValueT:
@@ -218,7 +228,9 @@ class GlobalContext(
     def __delitem__(self, __name: str):
         var = self.get(__name).unwrap()
         if var.const:
-            raise TypeError(f"Unable to delete variable {__name!r}, because it's a constant.")
+            raise TypeError(
+                f"Unable to delete variable {__name!r}, because it's a constant."
+            )
         dict.__delitem__(self, __name)
 
     @root_protection
@@ -315,10 +327,10 @@ class GlobalContext(
         var_value_type: type[T],
     ) -> Option[GlobalCtxVar[T]]: ...
 
-    def pop(self, var_name, var_value_type=typing.Any):
+    def pop(self, var_name: str, var_value_type=object):
         """Pop context variable by name."""
 
-        val = self.get(var_name, var_value_type)  # type: ignore
+        val = self.get(var_name, var_value_type)
         if val:
             del self[var_name]
             return val
@@ -334,9 +346,10 @@ class GlobalContext(
         var_value_type: type[T],
     ) -> Option[GlobalCtxVar[T]]: ...
 
-    def get(self, var_name, var_value_type=typing.Any):
+    def get(self, var_name, var_value_type=object):
         """Get context variable by name."""
 
+        var_value_type = typing.Any if var_value_type is object else type
         generic_types = typing.get_args(get_orig_class(self))
         if generic_types and var_value_type is object:
             var_value_type = generic_types[0]
@@ -365,17 +378,20 @@ class GlobalContext(
         var_value_type: type[T],
     ) -> Option[T]: ...
 
-    def get_value(self, var_name, var_value_type=typing.Any):
+    def get_value(self, var_name, var_value_type=object):
         """Get context variable value by name."""
 
-        return self.get(var_name, var_value_type).map(lambda var: var.value)  # type: ignore
+        return self.get(var_name, var_value_type).map(lambda var: var.value)
 
     def rename(self, old_var_name: str, new_var_name: str) -> Result[_, str]:
         """Rename context variable."""
 
         var = self.get(old_var_name).unwrap()
         if var.const:
-            return Error(f"Unable to rename variable {old_var_name!r}, " "because it's a constant.")
+            return Error(
+                f"Unable to rename variable {old_var_name!r}, "
+                "because it's a constant."
+            )
         del self[old_var_name]
         self[new_var_name] = var.value
         return Ok(_())

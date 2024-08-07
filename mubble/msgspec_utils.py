@@ -34,8 +34,6 @@ else:
 
 
 T = typing.TypeVar("T")
-Type = typing.TypeVar("Type", bound=type | typing.Any)
-Ts = typing.TypeVarTuple("Ts")
 
 DecHook: typing.TypeAlias = typing.Callable[[type[T], typing.Any], typing.Any]
 EncHook: typing.TypeAlias = typing.Callable[[T], typing.Any]
@@ -192,9 +190,9 @@ class Decoder:
             self.dec_hooks,
         )
 
-    def add_dec_hook(self, t: T):  # type: ignore
+    def add_dec_hook(self, t: T):
         def decorator(func: DecHook[T]) -> DecHook[T]:
-            return self.dec_hooks.setdefault(get_origin(t), func)  # type: ignore
+            return self.dec_hooks.setdefault(get_origin(t), func)
 
         return decorator
 

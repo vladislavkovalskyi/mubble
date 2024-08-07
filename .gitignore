@@ -1,7 +1,7 @@
+.*
+!.gitignore
 dist
 tests*
-__pycache__
-.env
-.flake8
-poetry.lock
 mubble.*
+__pycache__
+poetry.lock

@@ -40,16 +40,19 @@ class LoggerModule(typing.Protocol):
 
 logger: LoggerModule
 json: JSONModule = choice_in_order(
-    ["orjson", "ujson", "hyperjson"], do_import=True, default="mubble.msgspec_json"
+    ["orjson", "ujson", "hyperjson"],
+    default="mubble.msgspec_json",
+    do_import=True,
 )
-logging_module = choice_in_order(["loguru"], default="logging")
 logging_level = os.getenv("LOGGER_LEVEL", default="DEBUG").upper()
+logging_module = choice_in_order(["loguru"], default="logging")
+asyncio_module = choice_in_order(["uvloop"], default="asyncio")
 
 if logging_module == "loguru":
     import os
     import sys
 
-    from loguru import logger  # type: ignore
+    from loguru import logger
 
     os.environ.setdefault("LOGURU_AUTOINIT", "0")
     log_format = (
@@ -58,8 +61,8 @@ if logging_module == "loguru":
         "<le>{name}</le>:<le>{function}</le>:"
         "<le>{line}</le> > <lw>{message}</lw>"
     )
-    logger.remove()  # type: ignore
-    handler_id = logger.add(  # type: ignore
+    logger.remove()
+    handler_id = logger.add(
         sink=sys.stderr,
         format=log_format,
         enqueue=True,
@@ -218,10 +221,17 @@ elif logging_module == "logging":
 
     handler = logging.StreamHandler(sys.stderr)
     handler.setFormatter(MubbleLoggingFormatter())
-    logger = logging.getLogger("mubble")  # type: ignore
-    logger.setLevel(logging.getLevelName(logging_level))  # type: ignore
-    logger.addHandler(handler)  # type: ignore
-    logger = MubbleLoggingStyleAdapter(logger)  # type: ignore
+    logger = logging.getLogger("mubble")
+    logger.setLevel(logging_level)
+    logger.addHandler(handler)
+    logger = MubbleLoggingStyleAdapter(logger)
+
+if asyncio_module == "uvloop":
+    import asyncio
+
+    import uvloop
+
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 def _set_logger_level(level):
@@ -231,13 +241,15 @@ def _set_logger_level(level):
 
         logging.getLogger("mubble").setLevel(logging.getLevelName(level))
     elif logging_module == "loguru":
-        import loguru  # type: ignore
+        import loguru
 
-        if handler_id in loguru.logger._core.handlers:  # type: ignore
-            loguru.logger._core.handlers[handler_id]._levelno = loguru.logger.level(level).no  # type: ignore
+        if handler_id in loguru.logger._core.handlers:
+            loguru.logger._core.handlers[handler_id]._levelno = loguru.logger.level(
+                level
+            ).no
 
 
-setattr(logger, "set_level", staticmethod(_set_logger_level))  # type: ignore
+setattr(logger, "set_level", staticmethod(_set_logger_level))
 
 
 __all__ = ("json", "logger")

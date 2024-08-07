@@ -24,6 +24,14 @@ def get_default_args(func: FuncType) -> dict[str, typing.Any]:
     return dict(zip(fspec.args[::-1], (fspec.defaults or ())[::-1]))
 
 
+def get_annotations(func: FuncType) -> dict[str, typing.Any]:
+    return {
+        name: parameter.annotation
+        for name, parameter in inspect.signature(func).parameters.items()
+        if parameter.annotation is not inspect._empty
+    }
+
+
 def to_str(s: str | enum.Enum) -> str:
     if isinstance(s, enum.Enum):
         return str(s.value)
@@ -55,7 +63,9 @@ def cache_translation(base_rule: "T", locale: str, translated_rule: "T") -> None
 
 
 def get_impls(cls: type[typing.Any]) -> list[typing.Callable[..., typing.Any]]:
-    functions = [func.__func__ for func in vars(cls).values() if isinstance(func, classmethod)]
+    functions = [
+        func.__func__ for func in vars(cls).values() if isinstance(func, classmethod)
+    ]
     return [impl for impl in functions if getattr(impl, IMPL_MARK, False) is True]
 
 
@@ -76,4 +86,5 @@ __all__ = (
     "impl",
     "resolve_arg_names",
     "to_str",
+    "get_annotations",
 )

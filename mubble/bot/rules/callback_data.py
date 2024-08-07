@@ -40,7 +40,7 @@ class CallbackQueryRule(ABCRule[CallbackQuery], abc.ABC):
 
 class HasData(CallbackQueryRule):
     async def check(self, event: CallbackQuery, ctx: Context) -> bool:
-        return bool(event.data or event.data.unwrap())
+        return bool(event.data.unwrap_or_none())
 
 
 class CallbackQueryDataRule(CallbackQueryRule, abc.ABC, requires=[HasData()]):
@@ -170,7 +170,7 @@ class CallbackDataMarkup(CallbackQueryDataRule):
 
 __all__ = (
     "CallbackData",
-    "CallbackDataJson",
+    "CallbackDataJsonEq",
     "CallbackDataJsonModel",
     "CallbackDataMap",
     "CallbackDataMarkup",

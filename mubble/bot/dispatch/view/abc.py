@@ -16,29 +16,26 @@ from mubble.msgspec_utils import Option
 from mubble.tools.error_handler.error_handler import ABCErrorHandler, ErrorHandler
 from mubble.types.objects import Update
 
-EventType = typing.TypeVar("EventType", bound=BaseCute)
+Event = typing.TypeVar("Event", bound=BaseCute)
 ErrorHandlerT = typing.TypeVar("ErrorHandlerT", bound=ABCErrorHandler)
 MiddlewareT = typing.TypeVar("MiddlewareT", bound=ABCMiddleware)
 
 FuncType: typing.TypeAlias = typing.Callable[
-    typing.Concatenate[EventType, ...],
+    typing.Concatenate[Event, ...],
     typing.Coroutine[typing.Any, typing.Any, typing.Any],
 ]
 
 
 class ABCView(ABC):
     def __repr__(self) -> str:
-        return "<{!r}: {}>".format(
-            self.__class__.__name__,
-            ", ".join(f"{k}={v!r}" for k, v in self.__dict__.items()),
-        )
+        return "<{!r}>".format(self.__class__.__name__)
 
     @abstractmethod
     async def check(self, event: Update) -> bool:
         pass
 
     @abstractmethod
-    async def process(self, event: Update, api: ABCAPI) -> None:
+    async def process(self, event: Update, api: ABCAPI) -> bool:
         pass
 
     @abstractmethod
@@ -46,72 +43,74 @@ class ABCView(ABC):
         pass
 
 
-class ABCStateView(ABCView, typing.Generic[EventType]):
+class ABCStateView(ABCView, typing.Generic[Event]):
     @abstractmethod
-    def get_state_key(self, event: EventType) -> int | None:
+    def get_state_key(self, event: Event) -> int | None:
         pass
 
 
-class BaseView(ABCView, typing.Generic[EventType]):
-    auto_rules: list[ABCRule[EventType]]
-    handlers: list[ABCHandler[EventType]]
-    middlewares: list[ABCMiddleware[EventType]]
-    return_manager: ABCReturnManager[EventType] | None
-
-    @classmethod
-    def get_event_type(cls) -> Option[type[EventType]]:
-        for base in cls.__dict__.get("__orig_bases__", ()):
-            if issubclass(typing.get_origin(base) or base, ABCView):
-                for generic_type in typing.get_args(base):
-                    if issubclass(typing.get_origin(generic_type) or generic_type, BaseCute):
-                        return Some(generic_type)
-        return Nothing()
+class BaseView(ABCView, typing.Generic[Event]):
+    auto_rules: list[ABCRule]
+    handlers: list[ABCHandler[Event]]
+    middlewares: list[ABCMiddleware[Event]]
+    return_manager: ABCReturnManager[Event] | None = None
 
     @staticmethod
     def get_raw_event(update: Update) -> Option[Model]:
         return getattr(update, update.update_type.value)
-    
+
+    @classmethod
+    def get_event_type(cls) -> Option[type[Event]]:
+        for base in cls.__dict__.get("__orig_bases__", ()):
+            if issubclass(typing.get_origin(base) or base, ABCView):
+                for generic_type in typing.get_args(base):
+                    if issubclass(
+                        typing.get_origin(generic_type) or generic_type, BaseCute
+                    ):
+                        return Some(generic_type)
+        return Nothing()
+
     @typing.overload
     @classmethod
     def to_handler(
         cls,
-        *rules: ABCRule[EventType],
+        *rules: ABCRule,
     ) -> typing.Callable[
-        [FuncType[EventType]],
-        FuncHandler[EventType, FuncType[EventType], ErrorHandler[EventType]],
+        [FuncType[Event]],
+        FuncHandler[Event, FuncType[Event], ErrorHandler[Event]],
     ]: ...
 
     @typing.overload
     @classmethod
     def to_handler(
         cls,
-        *rules: ABCRule[EventType],
+        *rules: ABCRule,
         error_handler: ErrorHandlerT,
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [FuncType[EventType]], FuncHandler[EventType, FuncType[EventType], ErrorHandlerT]
+        [FuncType[Event]], FuncHandler[Event, FuncType[Event], ErrorHandlerT]
     ]: ...
 
     @typing.overload
     @classmethod
     def to_handler(
         cls,
-        *rules: ABCRule[EventType],
+        *rules: ABCRule,
         error_handler: typing.Literal[None] = None,
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [FuncType[EventType]],
-        FuncHandler[EventType, FuncType[EventType], ErrorHandler[EventType]],
+        [FuncType[Event]],
+        FuncHandler[Event, FuncType[Event], ErrorHandler[Event]],
     ]: ...
 
     @classmethod
-    def to_handler(  # type: ignore
+    def to_handler(
         cls,
-        *rules: ABCRule[EventType],
+        *rules: ABCRule,
         error_handler: ABCErrorHandler | None = None,
         is_blocking: bool = True,
     ):
-        def wrapper(func: FuncType[EventType]):
+        def wrapper(func: FuncType[Event]):
             return FuncHandler(
                 func,
                 list(rules),
@@ -125,40 +124,40 @@ class BaseView(ABCView, typing.Generic[EventType]):
     @typing.overload
     def __call__(
         self,
-        *rules: ABCRule[EventType],
+        *rules: ABCRule,
     ) -> typing.Callable[
-        [FuncType[EventType]],
-        FuncHandler[EventType, FuncType[EventType], ErrorHandler[EventType]],
+        [FuncType[Event]],
+        FuncHandler[Event, FuncType[Event], ErrorHandler[Event]],
     ]: ...
 
     @typing.overload
     def __call__(
         self,
-        *rules: ABCRule[EventType],
+        *rules: ABCRule,
         error_handler: ErrorHandlerT,
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [FuncType[EventType]], FuncHandler[EventType, FuncType[EventType], ErrorHandlerT]
+        [FuncType[Event]], FuncHandler[Event, FuncType[Event], ErrorHandlerT]
     ]: ...
 
     @typing.overload
     def __call__(
         self,
-        *rules: ABCRule[EventType],
+        *rules: ABCRule,
         error_handler: typing.Literal[None] = None,
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [FuncType[EventType]],
-        FuncHandler[EventType, FuncType[EventType], ErrorHandler[EventType]],
+        [FuncType[Event]],
+        FuncHandler[Event, FuncType[Event], ErrorHandler[Event]],
     ]: ...
 
-    def __call__(  # type: ignore
+    def __call__(
         self,
-        *rules: ABCRule[EventType],
+        *rules: ABCRule,
         error_handler: ABCErrorHandler | None = None,
         is_blocking: bool = True,
     ):
-        def wrapper(func: FuncType[EventType]):
+        def wrapper(func: FuncType[Event]):
             func_handler = FuncHandler(
                 func,
                 [*self.auto_rules, *rules],
@@ -182,7 +181,9 @@ class BaseView(ABCView, typing.Generic[EventType]):
         match self.get_raw_event(event):
             case Some(e) if issubclass(
                 self.get_event_type().expect(
-                    "{!r} has no event type in generic.".format(self.__class__.__name__),
+                    "{!r} has no event type in generic.".format(
+                        self.__class__.__name__
+                    ),
                 ),
                 e.__class__,
             ):
@@ -190,8 +191,9 @@ class BaseView(ABCView, typing.Generic[EventType]):
             case _:
                 return False
 
-    async def process(self, event: Update, api: ABCAPI) -> None:
-        await process_inner(
+    async def process(self, event: Update, api: ABCAPI) -> bool:
+        return await process_inner(
+            api,
             self.get_event_type()
             .unwrap()
             .from_update(
@@ -210,9 +212,9 @@ class BaseView(ABCView, typing.Generic[EventType]):
         self.middlewares.extend(external.middlewares)
 
 
-class BaseStateView(ABCStateView[EventType], BaseView[EventType], ABC, typing.Generic[EventType]):
+class BaseStateView(ABCStateView[Event], BaseView[Event], ABC, typing.Generic[Event]):
     @abstractmethod
-    def get_state_key(self, event: EventType) -> int | None:
+    def get_state_key(self, event: Event) -> int | None:
         pass
 
 

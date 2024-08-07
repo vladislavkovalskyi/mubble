@@ -35,7 +35,9 @@ class KeyboardSetYAML(KeyboardSetBase):
 
             short_name = g.group(1)
             if short_name not in config:
-                raise KeyboardSetError(f"Keyboard {short_name!r} is undefined in config.")
+                raise KeyboardSetError(
+                    f"Keyboard {short_name!r} is undefined in config."
+                )
 
             kb_config = config[short_name]
             if (
@@ -56,7 +58,7 @@ class KeyboardSetYAML(KeyboardSetBase):
                     continue
                 if "text" not in button:
                     raise KeyboardSetError("Text is required in button.")
-                new_keyboard.add(new_keyboard.BUTTON(**button))  # type: ignore
+                new_keyboard.add(new_keyboard.BUTTON(**button))
 
             setattr(cls, name, new_keyboard)
 

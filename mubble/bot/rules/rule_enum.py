@@ -3,26 +3,28 @@ import typing
 
 from mubble.bot.dispatch.context import Context
 
-from .abc import ABCRule, AdaptTo, EventCute, Update, check_rule
+from .abc import ABCRule, Update, check_rule
 from .func import FuncRule
 
 
 @dataclasses.dataclass
-class RuleEnumState(typing.Generic[EventCute, AdaptTo]):
+class RuleEnumState:
     name: str
     rule: ABCRule
-    cls: type["RuleEnum[EventCute, AdaptTo]"]
+    cls: type["RuleEnum"]
 
     def __eq__(self, other: typing.Self) -> bool:
         return self.cls == other.cls and self.name == other.name
 
 
-class RuleEnum(ABCRule[EventCute, AdaptTo]):
-    __enum__: list[RuleEnumState[EventCute, AdaptTo]]
+class RuleEnum(ABCRule):
+    __enum__: list[RuleEnumState]
 
     def __init_subclass__(cls, *args: typing.Any, **kwargs: typing.Any) -> None:
-        new_attributes = set(cls.__dict__) - set(RuleEnum.__dict__) - {"__enum__", "__init__"}
-        enum_lst: list[RuleEnumState[EventCute, AdaptTo]] = []
+        new_attributes = (
+            set(cls.__dict__) - set(RuleEnum.__dict__) - {"__enum__", "__init__"}
+        )
+        enum_lst: list[RuleEnumState] = []
 
         self = cls.__new__(cls)
         self.__init__()
@@ -30,26 +32,26 @@ class RuleEnum(ABCRule[EventCute, AdaptTo]):
         for attribute_name in new_attributes:
             rules = getattr(cls, attribute_name)
             attribute = RuleEnumState(attribute_name, rules, cls)
-            
+
             setattr(
                 self,
                 attribute.name,
-                self & FuncRule(lambda _, ctx: self.must_be_state(ctx, attribute)),  # type: ignore
+                self & FuncRule(lambda _, ctx: self.must_be_state(ctx, attribute)),
             )
             enum_lst.append(attribute)
 
         setattr(cls, "__enum__", enum_lst)
 
     @classmethod
-    def save_state(cls, ctx: Context, enum: RuleEnumState[EventCute, AdaptTo]) -> None:
+    def save_state(cls, ctx: Context, enum: RuleEnumState) -> None:
         ctx.update({cls.__class__.__name__ + "_state": enum})
 
     @classmethod
-    def check_state(cls, ctx: Context) -> RuleEnumState[EventCute, AdaptTo] | None:
+    def check_state(cls, ctx: Context) -> RuleEnumState | None:
         return ctx.get(cls.__class__.__name__ + "_state")
 
     @classmethod
-    def must_be_state(cls, ctx: Context, state: RuleEnumState[EventCute, AdaptTo]) -> bool:
+    def must_be_state(cls, ctx: Context, state: RuleEnumState) -> bool:
         real_state = cls.check_state(ctx)
         if not real_state:
             return False
