@@ -1,7 +1,6 @@
 from mubble.bot.cute_types import CallbackQueryCute
-
-from .base import ComposeError, ScalarNode
-from .update import UpdateNode
+from mubble.node.base import ComposeError, ScalarNode
+from mubble.node.update import UpdateNode
 
 
 class CallbackQueryNode(ScalarNode, CallbackQueryCute):

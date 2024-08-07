@@ -1,10 +1,10 @@
 import abc
+import dataclasses
 import typing
 
 from fntypes.result import Result
 
 from mubble.api.abc import ABCAPI
-from mubble.bot.cute_types import BaseCute
 from mubble.bot.rules.adapter.errors import AdapterError
 from mubble.model import Model
 
@@ -18,4 +18,9 @@ class ABCAdapter(abc.ABC, typing.Generic[From, To]):
         pass
 
 
-__all__ = ("ABCAdapter",)
+@dataclasses.dataclass
+class Event(typing.Generic[To]):
+    obj: To
+
+
+__all__ = ("ABCAdapter", "Event")

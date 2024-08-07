@@ -1,16 +1,16 @@
 import typing
 from abc import ABC
 
-from mubble.bot.cute_types.base import BaseCute
 from mubble.bot.dispatch.context import Context
+from mubble.model import Model
 
-T = typing.TypeVar("T", bound=BaseCute)
+Event = typing.TypeVar("Event", bound=Model)
 
 
-class ABCMiddleware(ABC, typing.Generic[T]):
-    async def pre(self, event: T, ctx: Context) -> bool: ...
+class ABCMiddleware(ABC, typing.Generic[Event]):
+    async def pre(self, event: Event, ctx: Context) -> bool: ...
 
-    async def post(self, event: T, responses: list[typing.Any], ctx: Context) -> None: ...
+    async def post(self, event: Event, responses: list[typing.Any], ctx: Context) -> None: ...
 
 
 __all__ = ("ABCMiddleware",)

@@ -5,14 +5,14 @@ import vbml
 from mubble.tools.global_context import GlobalContext, ctx_var
 
 
-class MubbleCtx(GlobalContext):
+class MubbleContext(GlobalContext):
     """Basic type-hinted mubble context with context name `"mubble"`.
 
     You can use this class or GlobalContext:
     ```
-    from mubble.tools.global_context import GlobalContext, MubbleCtx
+    from mubble.tools.global_context import GlobalContext, MubbleContext
 
-    ctx1 = MubbleCtx()
+    ctx1 = MubbleContext()
     ctx2 = GlobalContext("mubble")  # same, but without the type-hints
     assert ctx1 == ctx2  # ok
     ```"""
@@ -22,4 +22,4 @@ class MubbleCtx(GlobalContext):
     vbml_patcher: typing.ClassVar[vbml.Patcher] = ctx_var(vbml.Patcher(), const=True)
 
 
-__all__ = ("MubbleCtx",)
+__all__ = ("MubbleContext",)

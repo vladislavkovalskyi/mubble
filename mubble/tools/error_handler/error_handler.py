@@ -13,19 +13,21 @@ from .error import CatcherError
 
 F = typing.TypeVar("F", bound="FuncCatcher")
 ExceptionT = typing.TypeVar("ExceptionT", bound=BaseException, contravariant=True)
-FuncCatcher = typing.Callable[typing.Concatenate[ExceptionT, ...], typing.Awaitable[typing.Any]]
+FuncCatcher = typing.Callable[
+    typing.Concatenate[ExceptionT, ...], typing.Awaitable[typing.Any]
+]
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
 class Catcher(typing.Generic[EventT]):
     func: FuncCatcher[BaseException]
-    _: dataclasses.KW_ONLY
     exceptions: list[type[BaseException] | BaseException] = dataclasses.field(
         default_factory=lambda: [],
+        kw_only=True,
     )
-    logging: bool = dataclasses.field(default=False)
-    raise_exception: bool = dataclasses.field(default=False)
-    ignore_errors: bool = dataclasses.field(default=False)
+    logging: bool = dataclasses.field(default=False, kw_only=True)
+    raise_exception: bool = dataclasses.field(default=False, kw_only=True)
+    ignore_errors: bool = dataclasses.field(default=False, kw_only=True)
 
     def __repr__(self) -> str:
         return "<Catcher: function={!r}, logging={}, raise_exception={}, ignore_errors={}>".format(
@@ -43,7 +45,7 @@ class Catcher(typing.Generic[EventT]):
         ctx: Context,
     ) -> Result[typing.Any, BaseException]:
         try:
-            return Ok(await handler(event, **magic_bundle(handler, ctx)))  # type: ignore
+            return Ok(await handler(event, **magic_bundle(handler, ctx)))
         except BaseException as exc:
             return await self.process_exception(api, event, ctx, exc, handler.__name__)
 
@@ -64,7 +66,7 @@ class Catcher(typing.Generic[EventT]):
             return Ok(
                 await self.func(
                     exception,
-                    **magic_bundle(self.func, {"event": event, "api": api} | ctx),  # type: ignore
+                    **magic_bundle(self.func, {"event": event, "api": api} | ctx),
                 )
             )
         logger.debug("Failed to match exception {!r}.", exception.__class__.__name__)
@@ -132,7 +134,9 @@ class ErrorHandler(ABCErrorHandler[EventT]):
         ctx: Context,
     ) -> Result[typing.Any, BaseException]:
         assert self.catcher is not None
-        logger.debug("Processing the error handler for handler {!r}...", handler.__name__)
+        logger.debug(
+            "Processing the error handler for handler {!r}...", handler.__name__
+        )
 
         try:
             return await self.catcher(handler, event, api, ctx)
@@ -166,7 +170,7 @@ class ErrorHandler(ABCErrorHandler[EventT]):
         ctx: Context,
     ) -> Result[typing.Any, BaseException]:
         if not self.catcher:
-            return Ok(await handler(event, **magic_bundle(handler, ctx)))  # type: ignore
+            return Ok(await handler(event, **magic_bundle(handler, ctx)))
 
         match await self.process(handler, event, api, ctx):
             case Ok(value) as ok:

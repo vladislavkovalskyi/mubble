@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import typing
 
-from fntypes.co import Option, Result, Some, Variative
+import fntypes.option
+from fntypes.co import Result, Some, Variative
 
 from mubble.api import ABCAPI, APIError
 from mubble.model import get_params
-from mubble.msgspec_utils import Nothing
-from mubble.types import (
+from mubble.msgspec_utils import Nothing, Option
+from mubble.types.objects import (
     ChatAction,
     DiceEmoji,
     ForceReply,
+    InaccessibleMessage,
     InlineKeyboardMarkup,
     InputFile,
     InputMedia,
@@ -39,7 +41,8 @@ from .utils import (
 if typing.TYPE_CHECKING:
     from datetime import datetime
 
-    from .callback_query import CallbackQueryCute
+    from mubble.bot.cute_types.callback_query import CallbackQueryCute
+
 
 MediaType: typing.TypeAlias = typing.Literal[
     "animation",
@@ -48,12 +51,9 @@ MediaType: typing.TypeAlias = typing.Literal[
     "photo",
     "video",
 ]
-ReplyMarkup: typing.TypeAlias = typing.Union[
-    InlineKeyboardMarkup,
-    ReplyKeyboardMarkup,
-    ReplyKeyboardRemove,
-    ForceReply,
-]
+ReplyMarkup: typing.TypeAlias = (
+    InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply
+)
 
 
 async def execute_method_answer(
@@ -71,12 +71,16 @@ async def execute_method_answer(
     link_preview_options = params.get("link_preview_options")
 
     if reply_parameters is not None and isinstance(reply_parameters, dict):
-        reply_parameters.setdefault("message_id", params.get("message_id", message.message_id))
+        reply_parameters.setdefault(
+            "message_id", params.get("message_id", message.message_id)
+        )
         reply_parameters.setdefault("chat_id", params.get("chat_id"))
         params["reply_parameters"] = compose_reply_params(**reply_parameters)
 
     if link_preview_options is not None and isinstance(link_preview_options, dict):
-        params["link_preview_options"] = compose_link_preview_options(**link_preview_options)
+        params["link_preview_options"] = compose_link_preview_options(
+            **link_preview_options
+        )
 
     result = await getattr(message.ctx_api, method_name)(**params)
     return result.map(
@@ -84,9 +88,9 @@ async def execute_method_answer(
             x
             if isinstance(x, bool)
             else (
-                MessageCute.from_update(x, bound_api=message.api)
+                message.from_update(x, bound_api=message.api)
                 if not isinstance(x, list)
-                else [MessageCute.from_update(m, bound_api=message.api) for m in x]
+                else [message.from_update(m, bound_api=message.api) for m in x]
             )
         )
     )
@@ -120,13 +124,16 @@ async def execute_method_edit(
             "message_thread_id": lambda x: (
                 x.is_topic_message.unwrap_or(False)
                 if isinstance(x, MessageCute)
-                else bool(x.message) and getattr(x.message.unwrap().v, "is_topic_message", False)
+                else bool(x.message)
+                and getattr(x.message.unwrap().v, "is_topic_message", False)
             ),
         },
     )
+
     if "inline_message_id" in params:
         params.pop("message_id", None)
         params.pop("chat_id", None)
+
     result = await getattr(update.ctx_api, method_name)(**params)
     return result.map(
         lambda v: Variative[MessageCute, bool](
@@ -141,9 +148,9 @@ async def execute_method_edit(
 
 def get_entity_value(
     entity_value: typing.Literal["user", "url", "custom_emoji_id", "language"],
-    entities: Option[list[MessageEntity]] = Nothing,
-    caption_entities: Option[list[MessageEntity]] = Nothing,
-) -> Option[typing.Any]:
+    entities: fntypes.option.Option[list[MessageEntity]] = Nothing,
+    caption_entities: fntypes.option.Option[list[MessageEntity]] = Nothing,
+) -> fntypes.option.Option[typing.Any]:
     ents = entities.unwrap_or(caption_entities.unwrap_or_none())
     if not ents:
         return Nothing
@@ -156,26 +163,36 @@ def get_entity_value(
 class MessageCute(BaseCute[Message], Message, kw_only=True):
     api: ABCAPI
 
+    reply_to_message: Option[MessageCute] = Nothing
+    """Optional. For replies in the same chat and message thread, the original
+    message. Note that the Message object in this field will not contain further
+    reply_to_message fields even if it itself is a reply."""
+
+    pinned_message: Option[Variative[MessageCute, InaccessibleMessage]] = Nothing
+    """Optional. Specified message was pinned. Note that the Message object in
+    this field will not contain further reply_to_message fields even if it
+    itself is a reply."""
+
     @property
-    def mentioned_user(self) -> Option[User]:
+    def mentioned_user(self) -> fntypes.option.Option[User]:
         """Mentioned user without username."""
 
         return get_entity_value("user", self.entities, self.caption_entities)
 
     @property
-    def url(self) -> Option[str]:
+    def url(self) -> fntypes.option.Option[str]:
         """Clickable text URL."""
 
         return get_entity_value("url", self.entities, self.caption_entities)
 
     @property
-    def programming_language(self) -> Option[str]:
+    def programming_language(self) -> fntypes.option.Option[str]:
         """The programming language of the entity text."""
 
         return get_entity_value("language", self.entities, self.caption_entities)
 
     @property
-    def custom_emoji_id(self) -> Option[str]:
+    def custom_emoji_id(self) -> fntypes.option.Option[str]:
         """Unique identifier of the custom emoji."""
 
         return get_entity_value("custom_emoji_id", self.entities, self.caption_entities)
@@ -183,7 +200,13 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_message",
         executor=execute_method_answer,
-        custom_params={"link_preview_options", "reply_parameters", "message_thread_id"},
+        custom_params={
+            "link_preview_options",
+            "reply_parameters",
+            "message_thread_id",
+            "chat_id",
+            "text",
+        },
     )
     async def answer(
         self,
@@ -242,7 +265,12 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_message",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={
+            "reply_parameters",
+            "message_thread_id",
+            "chat_id",
+            "message_id",
+        },
     )
     async def reply(
         self,
@@ -266,8 +294,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         Use this method to send a reply to a message with text messages. On success, the sent Message is returned.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
-        will be sent.    
-    
+        will be sent.
+
         :param chat_id: Unique identifier for the target chat or username of the target channel \
         (in the format @channelusername).
 
@@ -299,7 +327,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         ...
 
-    @shortcut("delete_message", custom_params={"message_thread_id"})
+    @shortcut(
+        "delete_message", custom_params={"message_thread_id", "chat_id", "message_id"}
+    )
     async def delete(
         self,
         chat_id: int | None = None,
@@ -309,16 +339,16 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[bool, APIError]:
         """Shortcut `API.delete_message()`, see the [documentation](https://core.telegram.org/bots/api#deletemessage)
 
-        Use this method to delete a message, including service messages, with the 
-        following limitations: - A message can only be deleted if it was sent less 
-        than 48 hours ago. - Service messages about a supergroup, channel, or forum 
-        topic creation can't be deleted. - A dice message in a private chat can only 
-        be deleted if it was sent more than 24 hours ago. - Bots can delete outgoing 
-        messages in private chats, groups, and supergroups. - Bots can delete incoming 
-        messages in private chats. - Bots granted can_post_messages permissions 
-        can delete outgoing messages in channels. - If the bot is an administrator 
-        of a group, it can delete any message there. - If the bot has can_delete_messages 
-        permission in a supergroup or a channel, it can delete any message there. 
+        Use this method to delete a message, including service messages, with the
+        following limitations: - A message can only be deleted if it was sent less
+        than 48 hours ago. - Service messages about a supergroup, channel, or forum
+        topic creation can't be deleted. - A dice message in a private chat can only
+        be deleted if it was sent more than 24 hours ago. - Bots can delete outgoing
+        messages in private chats, groups, and supergroups. - Bots can delete incoming
+        messages in private chats. - Bots granted can_post_messages permissions
+        can delete outgoing messages in channels. - If the bot is an administrator
+        of a group, it can delete any message there. - If the bot has can_delete_messages
+        permission in a supergroup or a channel, it can delete any message there.
         Returns True on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
@@ -333,14 +363,16 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         return await self.ctx_api.delete_message(**params)
 
     @shortcut(
         "edit_message_text",
         executor=execute_method_edit,
-        custom_params={"link_preview_options", "message_thread_id"},
+        custom_params={"link_preview_options", "message_thread_id", "message_id"},
     )
     async def edit(
         self,
@@ -356,8 +388,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_text()`, see the [documentation](https://core.telegram.org/bots/api#editmessagetext)
 
-        Use this method to edit text and game messages. On success, if the edited 
-        message is not an inline message, the edited Message is returned, otherwise 
+        Use this method to edit text and game messages. On success, if the edited
+        message is not an inline message, the edited Message is returned, otherwise
         True is returned.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
@@ -385,7 +417,13 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
     @shortcut(
         "copy_message",
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={
+            "reply_parameters",
+            "message_thread_id",
+            "chat_id",
+            "message_id",
+            "from_chat_id",
+        },
     )
     async def copy(
         self,
@@ -404,11 +442,11 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageId, APIError]:
         """Shortcut `API.copy_message()`, see the [documentation](https://core.telegram.org/bots/api#copymessage)
 
-        Use this method to copy messages of any kind. Service messages, giveaway 
-        messages, giveaway winners messages, and invoice messages can't be copied. 
-        A quiz poll can be copied only if the value of the field correct_option_id 
-        is known to the bot. The method is analogous to the method forwardMessage, 
-        but the copied message doesn't have a link to the original message. Returns 
+        Use this method to copy messages of any kind. Service messages, giveaway
+        messages, giveaway winners messages, and invoice messages can't be copied.
+        A quiz poll can be copied only if the value of the field correct_option_id
+        is known to the bot. The method is analogous to the method forwardMessage,
+        but the copied message doesn't have a link to the original message. Returns
         the MessageId of the sent message on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
@@ -451,7 +489,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
                 ("from_chat_id", "chat_id"),
                 "message_thread_id",
             },
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         if isinstance(reply_parameters, dict):
             reply_parameters.setdefault("message_id", params.get("message_id"))
@@ -461,12 +501,16 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
     @shortcut(
         "set_message_reaction",
-        custom_params={"message_thread_id"},
+        custom_params={"message_thread_id", "reaction", "chat_id", "message_id"},
     )
     async def react(
         self,
         reaction: (
-            str | ReactionEmoji | ReactionType | list[str | ReactionEmoji | ReactionType] | None
+            str
+            | ReactionEmoji
+            | ReactionType
+            | list[str | ReactionEmoji | ReactionType]
+            | None
         ) = None,
         chat_id: int | str | None = None,
         message_thread_id: int | None = None,
@@ -476,9 +520,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[bool, APIError]:
         """Shortcut `API.set_message_reaction()`, see the [documentation](https://core.telegram.org/bots/api#setmessagereaction)
 
-        Use this method to change the chosen reactions on a message. Service messages 
-        can't be reacted to. Automatically forwarded messages from a channel to 
-        its discussion group have the same available reactions as messages in the 
+        Use this method to change the chosen reactions on a message. Service messages
+        can't be reacted to. Automatically forwarded messages from a channel to
+        its discussion group have the same available reactions as messages in the
         channel. Returns True on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
@@ -502,7 +546,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         if reaction:
             params["reaction"] = compose_reactions(
@@ -510,7 +556,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             )
         return await self.ctx_api.set_message_reaction(**params)
 
-    @shortcut("forward_message", custom_params={"message_thread_id"})
+    @shortcut(
+        "forward_message",
+        custom_params={"message_thread_id", "from_chat_id", "message_id"},
+    )
     async def forward(
         self,
         chat_id: int | str,
@@ -523,8 +572,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.forward_message()`, see the [documentation](https://core.telegram.org/bots/api#forwardmessage)
 
-        Use this method to forward messages of any kind. Service messages and messages 
-        with protected content can't be forwarded. On success, the sent Message 
+        Use this method to forward messages of any kind. Service messages and messages
+        with protected content can't be forwarded. On success, the sent Message
         is returned.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
@@ -550,13 +599,17 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
                 "message_id",
                 "message_thread_id",
             },
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         return (await self.ctx_api.forward_message(**params)).map(
             lambda message: MessageCute.from_update(message, bound_api=self.api),
         )
 
-    @shortcut("pin_chat_message", custom_params={"message_thread_id"})
+    @shortcut(
+        "pin_chat_message", custom_params={"message_thread_id", "chat_id", "message_id"}
+    )
     async def pin(
         self,
         chat_id: int | str | None = None,
@@ -567,10 +620,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[bool, "APIError"]:
         """Shortcut `API.pin_chat_message()`, see the [documentation](https://core.telegram.org/bots/api#pinchatmessage)
 
-        Use this method to add a message to the list of pinned messages in a chat. If 
-        the chat is not a private chat, the bot must be an administrator in the chat 
-        for this to work and must have the 'can_pin_messages' administrator right 
-        in a supergroup or 'can_edit_messages' administrator right in a channel. 
+        Use this method to add a message to the list of pinned messages in a chat. If
+        the chat is not a private chat, the bot must be an administrator in the chat
+        for this to work and must have the 'can_pin_messages' administrator right
+        in a supergroup or 'can_edit_messages' administrator right in a channel.
         Returns True on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
@@ -590,11 +643,16 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         return await self.ctx_api.pin_chat_message(**params)
 
-    @shortcut("unpin_chat_message", custom_params={"message_thread_id"})
+    @shortcut(
+        "unpin_chat_message",
+        custom_params={"message_thread_id", "chat_id", "message_id"},
+    )
     async def unpin(
         self,
         chat_id: int | str | None = None,
@@ -604,10 +662,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[bool, "APIError"]:
         """Shortcut `API.unpin_chat_message()`, see the [documentation](https://core.telegram.org/bots/api#unpinchatmessage)
 
-        Use this method to remove a message from the list of pinned messages in a chat. 
-        If the chat is not a private chat, the bot must be an administrator in the chat 
-        for this to work and must have the 'can_pin_messages' administrator right 
-        in a supergroup or 'can_edit_messages' administrator right in a channel. 
+        Use this method to remove a message from the list of pinned messages in a chat.
+        If the chat is not a private chat, the bot must be an administrator in the chat
+        for this to work and must have the 'can_pin_messages' administrator right
+        in a supergroup or 'can_edit_messages' administrator right in a channel.
         Returns True on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
@@ -621,14 +679,16 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         return await self.ctx_api.pin_chat_message(**params)
 
     @shortcut(
         "send_audio",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_audio(
         self,
@@ -652,10 +712,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_audio()`, see the [documentation](https://core.telegram.org/bots/api#sendaudio)
 
-        Use this method to send audio files, if you want Telegram clients to display 
-        them in the music player. Your audio must be in the .MP3 or .M4A format. On 
-        success, the sent Message is returned. Bots can currently send audio files 
-        of up to 50 MB in size, this limit may be changed in the future. For sending 
+        Use this method to send audio files, if you want Telegram clients to display
+        them in the music player. Your audio must be in the .MP3 or .M4A format. On
+        success, the sent Message is returned. Bots can currently send audio files
+        of up to 50 MB in size, this limit may be changed in the future. For sending
         voice messages, use the sendVoice method instead.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -712,7 +772,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_animation",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_animation(
         self,
@@ -738,8 +798,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_animation()`, see the [documentation](https://core.telegram.org/bots/api#sendanimation)
 
-        Use this method to send animation files (GIF or H.264/MPEG-4 AVC video without 
-        sound). On success, the sent Message is returned. Bots can currently send 
+        Use this method to send animation files (GIF or H.264/MPEG-4 AVC video without
+        sound). On success, the sent Message is returned. Bots can currently send
         animation files of up to 50 MB in size, this limit may be changed in the future.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -801,7 +861,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_document",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_document(
         self,
@@ -824,8 +884,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_document()`, see the [documentation](https://core.telegram.org/bots/api#senddocument)
 
-        Use this method to send general files. On success, the sent Message is returned. 
-        Bots can currently send files of any type of up to 50 MB in size, this limit 
+        Use this method to send general files. On success, the sent Message is returned.
+        Bots can currently send files of any type of up to 50 MB in size, this limit
         may be changed in the future.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -882,7 +942,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_photo",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_photo(
         self,
@@ -953,7 +1013,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_sticker",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_sticker(
         self,
@@ -971,7 +1031,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_sticker()`, see the [documentation](https://core.telegram.org/bots/api#sendsticker)
 
-        Use this method to send static .WEBP, animated .TGS, or video .WEBM stickers. 
+        Use this method to send static .WEBP, animated .TGS, or video .WEBM stickers.
         On success, the sent Message is returned.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -1010,11 +1070,11 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_video",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_video(
         self,
-        sticker: InputFile | str,
+        video: InputFile | str,
         chat_id: int | str | None = None,
         emoji: str | None = None,
         message_thread_id: int | None = None,
@@ -1028,9 +1088,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_video()`, see the [documentation](https://core.telegram.org/bots/api#sendvideo)
 
-        Use this method to send video files, Telegram clients support MPEG4 videos 
-        (other formats may be sent as Document). On success, the sent Message is 
-        returned. Bots can currently send video files of up to 50 MB in size, this 
+        Use this method to send video files, Telegram clients support MPEG4 videos
+        (other formats may be sent as Document). On success, the sent Message is
+        returned. Bots can currently send video files of up to 50 MB in size, this
         limit may be changed in the future.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -1094,7 +1154,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_video_note",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_video_note(
         self,
@@ -1114,8 +1174,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_video_note()`, see the [documentation](https://core.telegram.org/bots/api#sendvideonote)
 
-        As of v.4.0, Telegram clients support rounded square MPEG4 videos of up 
-        to 1 minute long. Use this method to send video messages. On success, the 
+        As of v.4.0, Telegram clients support rounded square MPEG4 videos of up
+        to 1 minute long. Use this method to send video messages. On success, the
         sent Message is returned.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -1162,7 +1222,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_voice",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_voice(
         self,
@@ -1183,10 +1243,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_voice()`, see the [documentation](https://core.telegram.org/bots/api#sendvoice)
 
-        Use this method to send audio files, if you want Telegram clients to display 
-        the file as a playable voice message. For this to work, your audio must be 
-        in an .OGG file encoded with OPUS (other formats may be sent as Audio or Document). 
-        On success, the sent Message is returned. Bots can currently send voice 
+        Use this method to send audio files, if you want Telegram clients to display
+        the file as a playable voice message. For this to work, your audio must be
+        in an .OGG file encoded with OPUS (other formats may be sent as Audio or Document).
+        On success, the sent Message is returned. Bots can currently send voice
         messages of up to 50 MB in size, this limit may be changed in the future.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -1231,7 +1291,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_poll",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_poll(
         self,
@@ -1333,7 +1393,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_venue",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_venue(
         self,
@@ -1357,7 +1417,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_venue()`, see the [documentation](https://core.telegram.org/bots/api#sendvenue)
 
-        Use this method to send information about a venue. On success, the sent Message 
+        Use this method to send information about a venue. On success, the sent Message
         is returned.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -1404,7 +1464,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_dice",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_dice(
         self,
@@ -1421,7 +1481,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_dice()`, see the [documentation](https://core.telegram.org/bots/api#senddice)
 
-        Use this method to send an animated emoji that will display a random value. 
+        Use this method to send an animated emoji that will display a random value.
         On success, the sent Message is returned.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -1455,15 +1515,15 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_game",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_game(
         self,
+        game_short_name: str,
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
         message_effect_id: str | None = None,
-        game_short_name: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | dict[str, typing.Any] | None = None,
@@ -1502,18 +1562,18 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_invoice",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_invoice(
         self,
         title: str,
         description: str,
         payload: str,
-        provider_token: str,
         currency: str,
         prices: list[LabeledPrice],
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
+        provider_token: str | None = None,
         message_thread_id: int | None = None,
         message_effect_id: str | None = None,
         max_tip_amount: int | None = None,
@@ -1626,7 +1686,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_chat_action",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_chat_action(
         self,
@@ -1638,10 +1698,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[bool, APIError]:
         """Shortcut `API.send_chat_action()`, see the [documentation](https://core.telegram.org/bots/api#sendchataction)
 
-        Use this method when you need to tell the user that something is happening 
-        on the bot's side. The status is set for 5 seconds or less (when a message arrives 
-        from your bot, Telegram clients clear its typing status). Returns True 
-        on success. We only recommend using this method when a response from the 
+        Use this method when you need to tell the user that something is happening
+        on the bot's side. The status is set for 5 seconds or less (when a message arrives
+        from your bot, Telegram clients clear its typing status). Returns True
+        on success. We only recommend using this method when a response from the
         bot will take a noticeable amount of time to arrive.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -1682,8 +1742,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[list[MessageCute], APIError]:
         """Shortcut `API.send_media_group()`, see the [documentation](https://core.telegram.org/bots/api#sendmediagroup)
 
-        Use this method to send a group of photos, videos, documents or audios as 
-        an album. Documents and audio files can be only grouped in an album with messages 
+        Use this method to send a group of photos, videos, documents or audios as
+        an album. Documents and audio files can be only grouped in an album with messages
         of the same type. On success, an array of Messages that were sent is returned.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -1721,8 +1781,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             if isinstance(m, tuple):
                 media.insert(
                     i,
-                    input_media(  # type: ignore
-                        *media.pop(i),  # type: ignore
+                    input_media(
+                        *media.pop(i),
                         caption=caption,
                         caption_entities=caption_entities,
                         parse_mode=parse_mode,
@@ -1734,7 +1794,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_location",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_location(
         self,
@@ -1800,7 +1860,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_contact",
         executor=execute_method_answer,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def answer_contact(
         self,
@@ -1857,7 +1917,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_audio",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_audio(
         self,
@@ -1881,10 +1941,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_audio()`, see the [documentation](https://core.telegram.org/bots/api#sendaudio)
 
-        Use this method to send a reply to a message with audio files, if you want Telegram clients to display 
-        them in the music player. Your audio must be in the .MP3 or .M4A format. On 
-        success, the sent Message is returned. Bots can currently send audio files 
-        of up to 50 MB in size, this limit may be changed in the future. For sending 
+        Use this method to send a reply to a message with audio files, if you want Telegram clients to display
+        them in the music player. Your audio must be in the .MP3 or .M4A format. On
+        success, the sent Message is returned. Bots can currently send audio files
+        of up to 50 MB in size, this limit may be changed in the future. For sending
         voice messages, use the sendVoice method instead.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -1941,7 +2001,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_animation",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_animation(
         self,
@@ -1967,8 +2027,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_animation()`, see the [documentation](https://core.telegram.org/bots/api#sendanimation)
 
-        Use this method to send a reply to a message with animation files (GIF or H.264/MPEG-4 AVC video without 
-        sound). On success, the sent Message is returned. Bots can currently send 
+        Use this method to send a reply to a message with animation files (GIF or H.264/MPEG-4 AVC video without
+        sound). On success, the sent Message is returned. Bots can currently send
         animation files of up to 50 MB in size, this limit may be changed in the future.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -2016,7 +2076,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
         :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
-        
+
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
 
         :param reply_parameters: Description of the message to reply to.
@@ -2030,7 +2090,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_document",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_document(
         self,
@@ -2053,8 +2113,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_document()`, see the [documentation](https://core.telegram.org/bots/api#senddocument)
 
-        Use this method to send a reply to a message with general files. On success, the sent Message is returned. 
-        Bots can currently send files of any type of up to 50 MB in size, this limit 
+        Use this method to send a reply to a message with general files. On success, the sent Message is returned.
+        Bots can currently send files of any type of up to 50 MB in size, this limit
         may be changed in the future.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -2111,7 +2171,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_photo",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_photo(
         self,
@@ -2182,7 +2242,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_sticker",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_sticker(
         self,
@@ -2200,7 +2260,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_sticker()`, see the [documentation](https://core.telegram.org/bots/api#sendsticker)
 
-        Use this method to send a reply to a message with static .WEBP, animated .TGS, or video .WEBM stickers. 
+        Use this method to send a reply to a message with static .WEBP, animated .TGS, or video .WEBM stickers.
         On success, the sent Message is returned.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -2239,7 +2299,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_video",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_video(
         self,
@@ -2257,9 +2317,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_video()`, see the [documentation](https://core.telegram.org/bots/api#sendvideo)
 
-        Use this method to send a reply to a message with video files, Telegram clients support MPEG4 videos 
-        (other formats may be sent as Document). On success, the sent Message is 
-        returned. Bots can currently send video files of up to 50 MB in size, this 
+        Use this method to send a reply to a message with video files, Telegram clients support MPEG4 videos
+        (other formats may be sent as Document). On success, the sent Message is
+        returned. Bots can currently send video files of up to 50 MB in size, this
         limit may be changed in the future.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -2321,7 +2381,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_video_note",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_video_note(
         self,
@@ -2341,8 +2401,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_video_note()`, see the [documentation](https://core.telegram.org/bots/api#sendvideonote)
 
-        As of v.4.0, Telegram clients support rounded square MPEG4 videos of up 
-        to 1 minute long. Use this method to send a reply to a message with video messages. On success, the 
+        As of v.4.0, Telegram clients support rounded square MPEG4 videos of up
+        to 1 minute long. Use this method to send a reply to a message with video messages. On success, the
         sent Message is returned.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -2389,7 +2449,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_voice",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_voice(
         self,
@@ -2410,10 +2470,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_voice()`, see the [documentation](https://core.telegram.org/bots/api#sendvoice)
 
-        Use this method to send a reply to a message with audio files, if you want Telegram clients to display 
-        the file as a playable voice message. For this to work, your audio must be 
-        in an .OGG file encoded with OPUS (other formats may be sent as Audio or Document). 
-        On success, the sent Message is returned. Bots can currently send voice 
+        Use this method to send a reply to a message with audio files, if you want Telegram clients to display
+        the file as a playable voice message. For this to work, your audio must be
+        in an .OGG file encoded with OPUS (other formats may be sent as Audio or Document).
+        On success, the sent Message is returned. Bots can currently send voice
         messages of up to 50 MB in size, this limit may be changed in the future.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -2458,7 +2518,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_poll",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_poll(
         self,
@@ -2544,7 +2604,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         poll preview.
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
-        
+
         :param show_caption_above_media: Pass True, if the caption must be shown above the message media.
 
         :param protect_content: Protects the contents of the sent message from forwarding and saving.
@@ -2560,7 +2620,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_venue",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_venue(
         self,
@@ -2584,7 +2644,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_venue()`, see the [documentation](https://core.telegram.org/bots/api#sendvenue)
 
-        Use this method to send a reply to a message with information about a venue. On success, the sent Message 
+        Use this method to send a reply to a message with information about a venue. On success, the sent Message
         is returned.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -2631,7 +2691,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_dice",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_dice(
         self,
@@ -2648,7 +2708,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_dice()`, see the [documentation](https://core.telegram.org/bots/api#senddice)
 
-        Use this method to send a reply to a message with an animated emoji that will display a random value. 
+        Use this method to send a reply to a message with an animated emoji that will display a random value.
         On success, the sent Message is returned.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -2682,15 +2742,15 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_game",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_game(
         self,
+        game_short_name: str,
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
         message_effect_id: str | None = None,
-        game_short_name: str | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | dict[str, typing.Any] | None = None,
@@ -2729,19 +2789,19 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_invoice",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_invoice(
         self,
         title: str,
         description: str,
         payload: str,
-        provider_token: str,
         currency: str,
         prices: list[LabeledPrice],
         chat_id: int | str | None = None,
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
+        provider_token: str | None = None,
         message_effect_id: str | None = None,
         max_tip_amount: int | None = None,
         suggested_tip_amounts: list[int] | None = None,
@@ -2855,6 +2915,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         custom_params={
             "media",
             "reply_parameters",
+            "chat_id",
             "message_thread_id",
             "caption",
             "caption_entities",
@@ -2878,8 +2939,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[list[MessageCute], APIError]:
         """Shortcut `API.send_media_group()`, see the [documentation](https://core.telegram.org/bots/api#sendmediagroup)
 
-        Use this method to send a reply to a message with a group of photos, videos, documents or audios as 
-        an album. Documents and audio files can be only grouped in an album with messages 
+        Use this method to send a reply to a message with a group of photos, videos, documents or audios as
+        an album. Documents and audio files can be only grouped in an album with messages
         of the same type. On success, an array of Messages that were sent is returned.
 
         :param business_connection_id: Unique identifier of the business connection on behalf of which the message \
@@ -2918,7 +2979,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_location",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_location(
         self,
@@ -2984,7 +3045,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "send_contact",
         executor=execute_method_reply,
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={"reply_parameters", "message_thread_id", "chat_id"},
     )
     async def reply_contact(
         self,
@@ -3041,7 +3102,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "edit_message_live_location",
         executor=execute_method_edit,
-        custom_params={"message_thread_id"},
+        custom_params={"message_thread_id", "chat_id", "message_id"},
     )
     async def edit_live_location(
         self,
@@ -3060,9 +3121,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_live_location()`, see the [documentation](https://core.telegram.org/bots/api#editmessagelivelocation)
 
-        Use this method to edit live location messages. A location can be edited 
-        until its live_period expires or editing is explicitly disabled by a call 
-        to stopMessageLiveLocation. On success, if the edited message is not an 
+        Use this method to edit live location messages. A location can be edited
+        until its live_period expires or editing is explicitly disabled by a call
+        to stopMessageLiveLocation. On success, if the edited message is not an
         inline message, the edited Message is returned, otherwise True is returned.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
@@ -3103,7 +3164,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "edit_message_caption",
         executor=execute_method_edit,
-        custom_params={"message_thread_id"},
+        custom_params={"message_thread_id", "chat_id", "message_id"},
     )
     async def edit_caption(
         self,
@@ -3119,8 +3180,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_caption()`, see the [documentation](https://core.telegram.org/bots/api#editmessagecaption)
 
-        Use this method to edit captions of messages. On success, if the edited message 
-        is not an inline message, the edited Message is returned, otherwise True 
+        Use this method to edit captions of messages. On success, if the edited message
+        is not an inline message, the edited Message is returned, otherwise True
         is returned.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
@@ -3153,6 +3214,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             "type",
             "message_thread_id",
             "caption",
+            "chat_id",
+            "message_id",
             "parse_mode",
             "caption_entities",
         },
@@ -3172,12 +3235,12 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_media()`, see the [documentation](https://core.telegram.org/bots/api#editmessagemedia)
 
-        Use this method to edit animation, audio, document, photo, or video messages. 
-        If a message is part of a message album, then it can be edited only to an audio 
-        for audio albums, only to a document for document albums and to a photo or 
-        a video otherwise. When an inline message is edited, a new file can't be uploaded; 
-        use a previously uploaded file via its file_id or specify a URL. On success, 
-        if the edited message is not an inline message, the edited Message is returned, 
+        Use this method to edit animation, audio, document, photo, or video messages.
+        If a message is part of a message album, then it can be edited only to an audio
+        for audio albums, only to a document for document albums and to a photo or
+        a video otherwise. When an inline message is edited, a new file can't be uploaded;
+        use a previously uploaded file via its file_id or specify a URL. On success,
+        if the edited message is not an inline message, the edited Message is returned,
         otherwise True is returned.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
@@ -3198,7 +3261,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param caption_entities: A JSON-serialized list of special entities that appear in the caption, \
         which can be specified instead of parse_mode.
-        
+
         :param type: Required if media is not an `str | InputMedia` object. Type of the media, \
         must be one of `photo`, `video`, `animation`, `audio`, `document`.
 
@@ -3223,7 +3286,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @shortcut(
         "edit_message_reply_markup",
         executor=execute_method_edit,
-        custom_params={"message_thread_id"},
+        custom_params={"message_thread_id", "chat_id", "message_id"},
     )
     async def edit_reply_markup(
         self,
@@ -3235,8 +3298,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_reply_markup()`, see the [documentation](https://core.telegram.org/bots/api#editmessagereplymarkup)
 
-        Use this method to edit only the reply markup of messages. On success, if 
-        the edited message is not an inline message, the edited Message is returned, 
+        Use this method to edit only the reply markup of messages. On success, if
+        the edited message is not an inline message, the edited Message is returned,
         otherwise True is returned.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \

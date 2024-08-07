@@ -5,7 +5,6 @@ import secrets
 import typing
 from datetime import datetime
 from types import NoneType
-from typing import Callable, Any
 
 import msgspec
 from fntypes.co import Nothing, Result, Some
@@ -17,12 +16,16 @@ if typing.TYPE_CHECKING:
 
 T = typing.TypeVar("T")
 
-
 MODEL_CONFIG: typing.Final[dict[str, typing.Any]] = {
     "omit_defaults": True,
     "dict": True,
     "rename": {kw + "_": kw for kw in keyword.kwlist},
 }
+
+
+@typing.runtime_checkable
+class DataclassInstance(typing.Protocol):
+    __dataclass_fields__: typing.ClassVar[dict[str, dataclasses.Field[typing.Any]]]
 
 
 @typing.overload
@@ -43,7 +46,7 @@ def full_result(
     result: Result[msgspec.Raw, "APIError"],
     full_t: type[T] | tuple[type[T], ...],
 ) -> Result[T, "APIError"]:
-    return result.map(lambda v: decoder.decode(v, type=full_t))  # type: ignore
+    return result.map(lambda v: decoder.decode(v, type=full_t))
 
 
 def get_params(params: dict[str, typing.Any]) -> dict[str, typing.Any]:
@@ -114,7 +117,7 @@ class DataConverter:
             return converter(self, data, serialize)
         return data
 
-    def get_converter(self, t: type[typing.Any]) -> Callable[..., Any] | None:
+    def get_converter(self, t: type[typing.Any]):
         for type, converter in self.converters.items():
             if issubclass(t, type):
                 return converter
@@ -182,7 +185,7 @@ class _ProxiedDict(typing.Generic[T]):
         self._defaults[name] = value
 
     def __getitem__(self, key: str, /) -> None:
-        return Proxy(self, key)  # type: ignore
+        return Proxy(self, key)
 
     def __setitem__(self, key: str, value: typing.Any, /) -> None:
         self._defaults[key] = value
@@ -190,7 +193,8 @@ class _ProxiedDict(typing.Generic[T]):
 
 if typing.TYPE_CHECKING:
 
-    def ProxiedDict(typed_dct: type[T]) -> T | _ProxiedDict[T]: ...
+    def ProxiedDict(typed_dct: type[T]) -> T | _ProxiedDict[T]:  # noqa: N802
+        ...
 
 else:
     ProxiedDict = _ProxiedDict
@@ -199,6 +203,7 @@ else:
 __all__ = (
     "Proxy",
     "DataConverter",
+    "DataclassInstance",
     "ProxiedDict",
     "MODEL_CONFIG",
     "Model",

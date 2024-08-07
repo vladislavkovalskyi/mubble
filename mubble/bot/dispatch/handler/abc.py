@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from mubble.api.abc import ABCAPI
 from mubble.bot.dispatch.context import Context
 from mubble.model import Model
-from mubble.types import Update
+from mubble.types.objects import Update
 
 T = typing.TypeVar("T", bound=Model)
 
@@ -17,7 +17,7 @@ class ABCHandler(ABC, typing.Generic[T]):
         pass
 
     @abstractmethod
-    async def run(self, event: T, ctx: Context) -> typing.Any:
+    async def run(self, api: ABCAPI, event: T, ctx: Context) -> typing.Any:
         pass
 
 

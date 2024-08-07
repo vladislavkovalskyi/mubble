@@ -22,7 +22,6 @@ from .dispatch import (
     CallbackQueryView,
     ChatJoinRequestView,
     ChatMemberView,
-    CompositionDispatch,
     Context,
     Dispatch,
     FuncHandler,
@@ -35,6 +34,7 @@ from .dispatch import (
     ShortState,
     ViewBox,
     WaiterMachine,
+    clear_wm_storage_worker,
     register_manager,
 )
 from .polling import ABCPolling, Polling
@@ -72,7 +72,6 @@ __all__ = (
     "ChatMemberUpdatedCute",
     "ChatMemberView",
     "Checkbox",
-    "CompositionDispatch",
     "Context",
     "Dispatch",
     "FuncHandler",
@@ -93,4 +92,5 @@ __all__ = (
     "ViewBox",
     "WaiterMachine",
     "register_manager",
+    "clear_wm_storage_worker",
 )

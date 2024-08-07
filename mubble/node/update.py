@@ -1,6 +1,5 @@
 from mubble.bot.cute_types import UpdateCute
-
-from .base import ScalarNode
+from mubble.node.base import ScalarNode
 
 
 class UpdateNode(ScalarNode, UpdateCute):

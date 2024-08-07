@@ -1,7 +1,6 @@
 from .abc import ABCDispatch
-from .composition import CompositionDispatch
 from .context import Context
-from .dispatch import ABCRule, Dispatch, MubbleCtx
+from .dispatch import Dispatch, MubbleContext
 from .handler import ABCHandler, FuncHandler, MessageReplyHandler
 from .middleware import ABCMiddleware
 from .process import check_rule, process_inner
@@ -27,14 +26,13 @@ from .view import (
     RawEventView,
     ViewBox,
 )
-from .waiter_machine import ShortState, WaiterMachine
+from .waiter_machine import ShortState, WaiterMachine, clear_wm_storage_worker
 
 __all__ = (
     "ABCDispatch",
     "ABCHandler",
     "ABCMiddleware",
     "ABCReturnManager",
-    "ABCRule",
     "ABCStateView",
     "ABCView",
     "BaseReturnManager",
@@ -44,7 +42,6 @@ __all__ = (
     "CallbackQueryView",
     "ChatJoinRequestView",
     "ChatMemberView",
-    "CompositionDispatch",
     "Context",
     "Dispatch",
     "FuncHandler",
@@ -56,10 +53,11 @@ __all__ = (
     "MessageView",
     "RawEventView",
     "ShortState",
-    "MubbleCtx",
+    "MubbleContext",
     "ViewBox",
     "WaiterMachine",
     "check_rule",
     "process_inner",
     "register_manager",
+    "clear_wm_storage_worker",
 )

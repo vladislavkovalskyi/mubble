@@ -3,13 +3,13 @@ import typing
 import vbml
 
 from mubble.bot.dispatch.context import Context
-from mubble.tools.global_context import MubbleCtx
+from mubble.node.text import Text
+from mubble.tools.global_context.mubble_ctx import MubbleContext
 
-from .abc import Message
-from .text import TextMessageRule
+from .abc import ABCRule
 
 PatternLike: typing.TypeAlias = str | vbml.Pattern
-global_ctx = MubbleCtx()
+global_ctx = MubbleContext()
 
 
 def check_string(patterns: list[vbml.Pattern], s: str, ctx: Context) -> bool:
@@ -23,7 +23,7 @@ def check_string(patterns: list[vbml.Pattern], s: str, ctx: Context) -> bool:
     return False
 
 
-class Markup(TextMessageRule):
+class Markup(ABCRule):
     def __init__(self, patterns: PatternLike | list[PatternLike], /):
         if not isinstance(patterns, list):
             patterns = [patterns]
@@ -32,8 +32,8 @@ class Markup(TextMessageRule):
             for pattern in patterns
         ]
 
-    async def check(self, message: Message, ctx: Context) -> bool:
-        return check_string(self.patterns, message.text.unwrap(), ctx)
+    async def check(self, text: Text, ctx: Context) -> bool:
+        return check_string(self.patterns, text, ctx)
 
 
 __all__ = ("Markup", "check_string")

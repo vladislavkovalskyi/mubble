@@ -1,6 +1,6 @@
 import typing
 
-from .base import Node
+from mubble.node.base import Node
 
 
 class ContainerNode(Node):

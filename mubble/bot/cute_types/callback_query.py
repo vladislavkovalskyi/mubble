@@ -7,9 +7,10 @@ from fntypes.co import Nothing, Result, Some, Variative, unwrapping
 from mubble.api import ABCAPI, APIError
 from mubble.model import get_params
 from mubble.msgspec_utils import Option, decoder
-from mubble.types import (
+from mubble.types.objects import (
     CallbackQuery,
     Chat,
+    InaccessibleMessage,
     InlineKeyboardMarkup,
     InputFile,
     InputMedia,
@@ -24,8 +25,14 @@ from .base import BaseCute, compose_method_params, shortcut
 from .message import MediaType, MessageCute, ReplyMarkup, execute_method_edit
 
 
-class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, dict=True):
+class CallbackQueryCute(
+    BaseCute[CallbackQuery], CallbackQuery, kw_only=True, dict=True
+):
     api: ABCAPI
+
+    message: Option[Variative[MessageCute, InaccessibleMessage]] = Nothing()
+    """Optional. Message sent by the bot with the callback button that originated
+    the query."""
 
     @property
     def from_user(self) -> User:
@@ -45,7 +52,9 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
         by the bot with the callback button that originated the query."""
 
         return self.message.map(
-            lambda m: m.only().map(lambda m: m.is_topic_message.unwrap_or(False)).unwrap_or(False),
+            lambda m: m.only()
+            .map(lambda m: m.is_topic_message.unwrap_or(False))
+            .unwrap_or(False),
         )
 
     @property
@@ -69,7 +78,7 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
         """
 
         return self.message.map(lambda m: m.v.message_id)
-    
+
     @property
     def chat(self) -> Option[Chat]:
         """Optional. Chat the callback query originated from. This will be present
@@ -87,7 +96,7 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
         self.__dict__["cached_callback_data"] = data
         return data
 
-    @shortcut("answer_callback_query")
+    @shortcut("answer_callback_query", custom_params={"callback_query_id"})
     async def answer(
         self,
         text: str | None = None,
@@ -99,8 +108,8 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
     ) -> Result[bool, APIError]:
         """Shortcut `API.answer_callback_query()`, see the [documentation](https://core.telegram.org/bots/api#answercallbackquery)
 
-        Use this method to send answers to callback queries sent from inline keyboards. 
-        The answer will be displayed to the user as a notification at the top of the 
+        Use this method to send answers to callback queries sent from inline keyboards.
+        The answer will be displayed to the user as a notification at the top of the
         chat screen or as an alert. On success, True is returned.
 
         :param callback_query_id: Unique identifier for the query to be answered.
@@ -128,7 +137,14 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
 
     @shortcut(
         "copy_message",
-        custom_params={"reply_parameters", "message_thread_id"},
+        custom_params={
+            "reply_parameters",
+            "message_thread_id",
+            "chat_id",
+            "message_id",
+            "from_chat_id",
+            "reply_markup",
+        },
     )
     async def copy(
         self,
@@ -147,11 +163,11 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
     ) -> Result[MessageId, APIError]:
         """Shortcut `API.copy_message()`, see the [documentation](https://core.telegram.org/bots/api#copymessage)
 
-        Use this method to copy messages of any kind. Service messages, giveaway 
-        messages, giveaway winners messages, and invoice messages can't be copied. 
-        A quiz poll can be copied only if the value of the field correct_option_id 
-        is known to the bot. The method is analogous to the method forwardMessage, 
-        but the copied message doesn't have a link to the original message. Returns 
+        Use this method to copy messages of any kind. Service messages, giveaway
+        messages, giveaway winners messages, and invoice messages can't be copied.
+        A quiz poll can be copied only if the value of the field correct_option_id
+        is known to the bot. The method is analogous to the method forwardMessage,
+        but the copied message doesn't have a link to the original message. Returns
         the MessageId of the sent message on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
@@ -185,9 +201,11 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
         or to force a reply from the user.
         """
 
-        return await MessageCute.copy(self, **get_params(locals()))  # type: ignore
+        return await MessageCute.copy(self, **get_params(locals()))
 
-    @shortcut("delete_message", custom_params={"message_thread_id"})
+    @shortcut(
+        "delete_message", custom_params={"message_thread_id", "chat_id", "message_id"}
+    )
     async def delete(
         self,
         chat_id: int | None = None,
@@ -197,16 +215,16 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
     ) -> Result[bool, APIError]:
         """Shortcut `API.delete_message()`, see the [documentation](https://core.telegram.org/bots/api#deletemessage)
 
-        Use this method to delete a message, including service messages, with the 
-        following limitations: - A message can only be deleted if it was sent less 
-        than 48 hours ago. - Service messages about a supergroup, channel, or forum 
-        topic creation can't be deleted. - A dice message in a private chat can only 
-        be deleted if it was sent more than 24 hours ago. - Bots can delete outgoing 
-        messages in private chats, groups, and supergroups. - Bots can delete incoming 
-        messages in private chats. - Bots granted can_post_messages permissions 
-        can delete outgoing messages in channels. - If the bot is an administrator 
-        of a group, it can delete any message there. - If the bot has can_delete_messages 
-        permission in a supergroup or a channel, it can delete any message there. 
+        Use this method to delete a message, including service messages, with the
+        following limitations: - A message can only be deleted if it was sent less
+        than 48 hours ago. - Service messages about a supergroup, channel, or forum
+        topic creation can't be deleted. - A dice message in a private chat can only
+        be deleted if it was sent more than 24 hours ago. - Bots can delete outgoing
+        messages in private chats, groups, and supergroups. - Bots can delete incoming
+        messages in private chats. - Bots granted can_post_messages permissions
+        can delete outgoing messages in channels. - If the bot is an administrator
+        of a group, it can delete any message there. - If the bot has can_delete_messages
+        permission in a supergroup or a channel, it can delete any message there.
         Returns True on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
@@ -217,7 +235,7 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only."""
 
-        return await MessageCute.delete(self, **get_params(locals()))  # type: ignore
+        return await MessageCute.delete(self, **get_params(locals()))
 
     @shortcut(
         "edit_message_text",
@@ -239,8 +257,8 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_text()`, see the [documentation](https://core.telegram.org/bots/api#editmessagetext)
 
-        Use this method to edit text and game messages. On success, if the edited 
-        message is not an inline message, the edited Message is returned, otherwise 
+        Use this method to edit text and game messages. On success, if the edited
+        message is not an inline message, the edited Message is returned, otherwise
         True is returned.
 
         :param inline_message_id: Required if chat_id and message_id are not specified. Identifier of the \
@@ -290,9 +308,9 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_live_location()`, see the [documentation](https://core.telegram.org/bots/api#editmessagelivelocation)
 
-        Use this method to edit live location messages. A location can be edited 
-        until its live_period expires or editing is explicitly disabled by a call 
-        to stopMessageLiveLocation. On success, if the edited message is not an 
+        Use this method to edit live location messages. A location can be edited
+        until its live_period expires or editing is explicitly disabled by a call
+        to stopMessageLiveLocation. On success, if the edited message is not an
         inline message, the edited Message is returned, otherwise True is returned.
 
         :param inline_message_id: Required if chat_id and message_id are not specified. Identifier of the \
@@ -342,8 +360,8 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_caption()`, see the [documentation](https://core.telegram.org/bots/api#editmessagecaption)
 
-        Use this method to edit captions of messages. On success, if the edited message 
-        is not an inline message, the edited Message is returned, otherwise True 
+        Use this method to edit captions of messages. On success, if the edited message
+        is not an inline message, the edited Message is returned, otherwise True
         is returned.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
@@ -397,12 +415,12 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_media()`, see the [documentation](https://core.telegram.org/bots/api#editmessagemedia)
 
-        Use this method to edit animation, audio, document, photo, or video messages. 
-        If a message is part of a message album, then it can be edited only to an audio 
-        for audio albums, only to a document for document albums and to a photo or 
-        a video otherwise. When an inline message is edited, a new file can't be uploaded; 
-        use a previously uploaded file via its file_id or specify a URL. On success, 
-        if the edited message is not an inline message, the edited Message is returned, 
+        Use this method to edit animation, audio, document, photo, or video messages.
+        If a message is part of a message album, then it can be edited only to an audio
+        for audio albums, only to a document for document albums and to a photo or
+        a video otherwise. When an inline message is edited, a new file can't be uploaded;
+        use a previously uploaded file via its file_id or specify a URL. On success,
+        if the edited message is not an inline message, the edited Message is returned,
         otherwise True is returned.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \
@@ -426,13 +444,13 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
 
         :param caption_entities: A JSON-serialized list of special entities that appear in the caption, \
         which can be specified instead of parse_mode.
-        
+
         :param type: Required if media is not an `str | InputMedia` object. Type of the media, \
         must be one of `photo`, `video`, `animation`, `audio`, `document`.
 
         :param reply_markup: A JSON-serialized object for a new inline keyboard."""
 
-        return await MessageCute.edit_media(self, **get_params(locals()))  # type: ignore
+        return await MessageCute.edit_media(self, **get_params(locals()))
 
     @shortcut(
         "edit_message_reply_markup",
@@ -450,8 +468,8 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True, di
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_reply_markup()`, see the [documentation](https://core.telegram.org/bots/api#editmessagereplymarkup)
 
-        Use this method to edit only the reply markup of messages. On success, if 
-        the edited message is not an inline message, the edited Message is returned, 
+        Use this method to edit only the reply markup of messages. On success, if
+        the edited message is not an inline message, the edited Message is returned,
         otherwise True is returned.
 
         :param chat_id: Required if inline_message_id is not specified. Unique identifier for \

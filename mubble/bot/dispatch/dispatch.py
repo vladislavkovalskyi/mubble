@@ -6,29 +6,31 @@ from vbml.patcher import Patcher
 
 from mubble.api.abc import ABCAPI
 from mubble.bot.cute_types.base import BaseCute
+from mubble.bot.cute_types.update import UpdateCute
 from mubble.bot.dispatch.context import Context
-from mubble.bot.rules import ABCRule
+from mubble.bot.dispatch.handler.abc import ABCHandler
+from mubble.bot.dispatch.handler.func import ErrorHandlerT, FuncHandler
 from mubble.modules import logger
 from mubble.tools.error_handler.error_handler import ErrorHandler
-from mubble.tools.global_context import MubbleCtx
-from mubble.types import Update
+from mubble.tools.global_context import MubbleContext
+from mubble.types.enums import UpdateType
+from mubble.types.objects import Update
 
 from .abc import ABCDispatch
-from .handler import ABCHandler, FuncHandler
-from .handler.func import ErrorHandlerT
 from .view.box import (
-    CallbackQueryViewT,
-    ChatJoinRequestViewT,
-    ChatMemberViewT,
-    InlineQueryViewT,
-    MessageViewT,
-    RawEventViewT,
+    CallbackQueryView,
+    ChatJoinRequestView,
+    ChatMemberView,
+    InlineQueryView,
+    MessageView,
+    RawEventView,
     ViewBox,
 )
 
+if typing.TYPE_CHECKING:
+    from mubble.bot.rules.abc import ABCRule
+
 T = typing.TypeVar("T")
-R = typing.TypeVar("R")
-P = typing.ParamSpec("P")
 Handler = typing.Callable[
     typing.Concatenate[T, ...], typing.Coroutine[typing.Any, typing.Any, typing.Any]
 ]
@@ -41,21 +43,21 @@ DEFAULT_DATACLASS: typing.Final[type[Update]] = Update
 class Dispatch(
     ABCDispatch,
     ViewBox[
-        CallbackQueryViewT,
-        ChatJoinRequestViewT,
-        ChatMemberViewT,
-        InlineQueryViewT,
-        MessageViewT,
-        RawEventViewT,
+        CallbackQueryView,
+        ChatJoinRequestView,
+        ChatMemberView,
+        InlineQueryView,
+        MessageView,
+        RawEventView,
     ],
 ):
-    global_context: MubbleCtx = dataclasses.field(
-        init=False,
-        default_factory=lambda: MubbleCtx(),
-    )
     default_handlers: list[ABCHandler] = dataclasses.field(
         init=False,
         default_factory=lambda: [],
+    )
+    _global_context: MubbleContext = dataclasses.field(
+        init=False,
+        default_factory=lambda: MubbleContext(),
     )
 
     def __repr__(self) -> str:
@@ -64,72 +66,115 @@ class Dispatch(
         )
 
     @property
+    def global_context(self) -> MubbleContext:
+        return self._global_context
+
+    @property
     def patcher(self) -> Patcher:
-        """Alias `patcher` to get `vbml.Patcher` from the global context"""
+        """Alias `patcher` to get `vbml.Patcher` from the global context."""
+
         return self.global_context.vbml_patcher
 
     @typing.overload
     def handle(
         self,
-        *rules: ABCRule[Event],
-    ) -> typing.Callable[
-        [Handler[T]], FuncHandler[Event, Handler[T], ErrorHandler]
-    ]: ...
-
-    @typing.overload
-    def handle(
-        self,
-        *rules: ABCRule[Event],
+        *rules: "ABCRule",
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [Handler[T]], FuncHandler[Event, Handler[T], ErrorHandler]
+        [Handler[T]], FuncHandler[UpdateCute, Handler[T], ErrorHandler]
     ]: ...
 
     @typing.overload
     def handle(
         self,
-        *rules: ABCRule[Event],
+        *rules: "ABCRule",
         dataclass: type[T],
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [Handler[T]], FuncHandler[Event, Handler[T], ErrorHandler]
-    ]: ...
-
-    @typing.overload
-    def handle(  # type: ignore
-        self,
-        *rules: ABCRule[Event],
-        error_handler: ErrorHandlerT,
-        is_blocking: bool = True,
-    ) -> typing.Callable[
-        [Handler[T]], FuncHandler[Event, Handler[T], ErrorHandlerT]
+        [Handler[T]], FuncHandler[UpdateCute, Handler[T], ErrorHandler]
     ]: ...
 
     @typing.overload
     def handle(
         self,
-        *rules: ABCRule[Event],
+        *rules: "ABCRule",
+        update_type: UpdateType,
+        is_blocking: bool = True,
+    ) -> typing.Callable[
+        [Handler[T]], FuncHandler[UpdateCute, Handler[T], ErrorHandler]
+    ]: ...
+
+    @typing.overload
+    def handle(
+        self,
+        *rules: "ABCRule",
+        dataclass: type[T],
+        update_type: UpdateType,
+        is_blocking: bool = True,
+    ) -> typing.Callable[
+        [Handler[T]], FuncHandler[UpdateCute, Handler[T], ErrorHandler]
+    ]: ...
+
+    @typing.overload
+    def handle(
+        self,
+        *rules: "ABCRule",
+        error_handler: ErrorHandlerT,
+        is_blocking: bool = True,
+    ) -> typing.Callable[
+        [Handler[T]], FuncHandler[UpdateCute, Handler[T], ErrorHandlerT]
+    ]: ...
+
+    @typing.overload
+    def handle(
+        self,
+        *rules: "ABCRule",
+        update_type: UpdateType,
+        error_handler: ErrorHandlerT,
+        is_blocking: bool = True,
+    ) -> typing.Callable[
+        [Handler[T]], FuncHandler[UpdateCute, Handler[T], ErrorHandlerT]
+    ]: ...
+
+    @typing.overload
+    def handle(
+        self,
+        *rules: "ABCRule",
         dataclass: type[T],
         error_handler: ErrorHandlerT,
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [Handler[T]], FuncHandler[Event, Handler[T], ErrorHandlerT]
+        [Handler[T]], FuncHandler[UpdateCute, Handler[T], ErrorHandlerT]
     ]: ...
 
     @typing.overload
     def handle(
         self,
-        *rules: ABCRule[Event],
+        *rules: "ABCRule",
+        dataclass: type[T],
+        update_type: UpdateType,
+        error_handler: ErrorHandlerT,
+        is_blocking: bool = True,
+    ) -> typing.Callable[
+        [Handler[T]], FuncHandler[UpdateCute, Handler[T], ErrorHandlerT]
+    ]: ...
+
+    @typing.overload
+    def handle(
+        self,
+        *rules: "ABCRule",
+        update_type: UpdateType | None = None,
         dataclass: type[T] = DEFAULT_DATACLASS,
         error_handler: typing.Literal[None] = None,
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [Handler[T]], FuncHandler[Event, Handler[T], ErrorHandler]
+        [Handler[T]], FuncHandler[UpdateCute, Handler[T], ErrorHandler]
     ]: ...
 
-    def handle(  # type: ignore
+    def handle(
         self,
-        *rules: ABCRule,
+        *rules: "ABCRule",
+        update_type: UpdateType | None = None,
         dataclass: type[typing.Any] = DEFAULT_DATACLASS,
         error_handler: ErrorHandlerT | None = None,
         is_blocking: bool = True,
@@ -141,6 +186,7 @@ class Dispatch(
                 is_blocking=is_blocking,
                 dataclass=dataclass,
                 error_handler=error_handler or ErrorHandler(),
+                update_type=update_type,
             )
             self.default_handlers.append(handler)
             return handler
@@ -156,18 +202,18 @@ class Dispatch(
                 logger.debug(
                     "Update (update_id={}) matched view {!r}.",
                     event.update_id,
-                    view.__class__.__name__,
+                    view,
                 )
-                await view.process(event, api)
-                return True
+                if await view.process(event, api):
+                    return True
 
-        ctx = Context()
+        ctx = Context(raw_update=event)
         loop = asyncio.get_running_loop()
         found = False
         for handler in self.default_handlers:
             if await handler.check(api, event, ctx):
                 found = True
-                loop.create_task(handler.run(event, ctx))
+                loop.create_task(handler.run(api, event, ctx))
                 if handler.is_blocking:
                     break
         return found
@@ -180,6 +226,8 @@ class Dispatch(
             ), f"View {name!r} is undefined in external dispatch."
             view.load(view_external[name])
             setattr(external, name, view)
+
+    __call__ = handle
 
 
 __all__ = ("Dispatch",)

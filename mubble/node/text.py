@@ -1,13 +1,21 @@
-from .base import ComposeError, ScalarNode
-from .message import MessageNode
+from mubble.node.base import ComposeError, ScalarNode
+from mubble.node.message import MessageNode
 
 
 class Text(ScalarNode, str):
     @classmethod
-    async def compose(cls, message: MessageNode) -> "Text":
+    async def compose(cls, message: MessageNode) -> str:
         if not message.text:
             raise ComposeError("Message has no text")
-        return Text(message.text.unwrap())
+        return message.text.unwrap()
 
 
-__all__ = ("Text",)
+class TextInteger(ScalarNode, int):
+    @classmethod
+    async def compose(cls, text: Text) -> int:
+        if not text.isdigit():
+            raise ComposeError("Text is not digit")
+        return int(text)
+
+
+__all__ = ("Text", "TextInteger")

@@ -8,7 +8,6 @@ from mubble.model import get_params
 from mubble.types.objects import ChatMemberUpdated, ChatPermissions, User
 
 from .base import BaseCute, compose_method_params, shortcut
-from .utils import compose_chat_permissions
 
 
 async def chat_member_interaction(
@@ -17,7 +16,7 @@ async def chat_member_interaction(
     params: dict[str, typing.Any],
 ) -> Result[typing.Any, APIError]:
     if isinstance(params.get("permissions"), dict):
-        params["permissions"] = compose_chat_permissions(**params["permissions"])
+        params["permissions"] = ChatPermissions(**params["permissions"])
     params = compose_method_params(
         get_params(locals()),
         update,
@@ -40,10 +39,10 @@ class ChatMemberShortcuts:
     ) -> Result[bool, APIError]:
         """Shortcut `API.ban_chat_member()`, see the [documentation](https://core.telegram.org/bots/api#banchatmember)
 
-        Use this method to ban a user in a group, a supergroup or a channel. In the case 
-        of supergroups and channels, the user will not be able to return to the chat 
-        on their own using invite links, etc., unless unbanned first. The bot must 
-        be an administrator in the chat for this to work and must have the appropriate 
+        Use this method to ban a user in a group, a supergroup or a channel. In the case
+        of supergroups and channels, the user will not be able to return to the chat
+        on their own using invite links, etc., unless unbanned first. The bot must
+        be an administrator in the chat for this to work and must have the appropriate
         administrator rights. Returns True on success.
 
         :param chat_id: Unique identifier for the target group or username of the target supergroup \
@@ -72,12 +71,12 @@ class ChatMemberShortcuts:
     ) -> Result[bool, APIError]:
         """Shortcut `API.unban_chat_member()`, see the [documentation](https://core.telegram.org/bots/api#unbanchatmember)
 
-        Use this method to unban a previously banned user in a supergroup or channel. 
-        The user will not return to the group or channel automatically, but will 
-        be able to join via link, etc. The bot must be an administrator for this to 
-        work. By default, this method guarantees that after the call the user is 
-        not a member of the chat, but will be able to join it. So if the user is a member 
-        of the chat they will also be removed from the chat. If you don't want this, 
+        Use this method to unban a previously banned user in a supergroup or channel.
+        The user will not return to the group or channel automatically, but will
+        be able to join via link, etc. The bot must be an administrator for this to
+        work. By default, this method guarantees that after the call the user is
+        not a member of the chat, but will be able to join it. So if the user is a member
+        of the chat they will also be removed from the chat. If you don't want this,
         use the parameter only_if_banned. Returns True on success.
 
         :param chat_id: Unique identifier for the target group or username of the target supergroup \
@@ -106,9 +105,9 @@ class ChatMemberShortcuts:
     ) -> Result[bool, APIError]:
         """Shortcut `API.restrict_chat_member()`, see the [documentation](https://core.telegram.org/bots/api#restrictchatmember)
 
-        Use this method to restrict a user in a supergroup. The bot must be an administrator 
-        in the supergroup for this to work and must have the appropriate administrator 
-        rights. Pass True for all permissions to lift restrictions from a user. 
+        Use this method to restrict a user in a supergroup. The bot must be an administrator
+        in the supergroup for this to work and must have the appropriate administrator
+        rights. Pass True for all permissions to lift restrictions from a user.
         Returns True on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target supergroup \
@@ -155,9 +154,9 @@ class ChatMemberShortcuts:
     ) -> Result[bool, APIError]:
         """Shortcut `API.promote_chat_member()`, see the [documentation](https://core.telegram.org/bots/api#promotechatmember)
 
-        Use this method to promote or demote a user in a supergroup or a channel. The 
-        bot must be an administrator in the chat for this to work and must have the 
-        appropriate administrator rights. Pass False for all boolean parameters 
+        Use this method to promote or demote a user in a supergroup or a channel. The
+        bot must be an administrator in the chat for this to work and must have the
+        appropriate administrator rights. Pass False for all boolean parameters
         to demote a user. Returns True on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
@@ -217,7 +216,7 @@ class ChatMemberShortcuts:
     ) -> Result[bool, APIError]:
         """Shortcut `API.set_chat_administrator_custom_title()`, see the [documentation](https://core.telegram.org/bots/api#setchatadministratorcustomtitle)
 
-        Use this method to set a custom title for an administrator in a supergroup 
+        Use this method to set a custom title for an administrator in a supergroup
         promoted by the bot. Returns True on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target supergroup \
@@ -244,3 +243,9 @@ class ChatMemberUpdatedCute(
     @property
     def user_id(self) -> int:
         return self.from_user.id
+
+
+__all__ = (
+    "ChatMemberUpdatedCute",
+    "ChatMemberShortcuts",
+)

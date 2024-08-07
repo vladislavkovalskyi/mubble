@@ -3,16 +3,24 @@ from abc import ABC, abstractmethod
 
 import typing_extensions as typing
 
-from mubble.bot.cute_types import BaseCute, MessageCute, UpdateCute
+from mubble.bot.cute_types import MessageCute, UpdateCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.process import check_rule
 from mubble.bot.rules.adapter import ABCAdapter, RawUpdateAdapter
+from mubble.bot.rules.adapter.node import Event
+from mubble.node.base import Node, is_node
 from mubble.tools.i18n.base import ABCTranslator
-from mubble.tools.magic import cache_translation, get_cached_translation
+from mubble.tools.magic import (
+    cache_translation,
+    get_annotations,
+    get_cached_translation,
+)
 from mubble.types.objects import Update as UpdateObject
 
-AdaptTo = typing.TypeVar("AdaptTo", default=UpdateCute)
-EventCute = typing.TypeVar("EventCute", bound=BaseCute, default=UpdateCute)
+if typing.TYPE_CHECKING:
+    from mubble.node.composer import NodeCollection
+
+AdaptTo = typing.TypeVar("AdaptTo", default=typing.Any)
 
 Message: typing.TypeAlias = MessageCute
 Update: typing.TypeAlias = UpdateCute
@@ -21,7 +29,7 @@ Update: typing.TypeAlias = UpdateCute
 def with_caching_translations(func: typing.Callable[..., typing.Any]):
     """Should be used as decorator for .translate method. Caches rule translations."""
 
-    async def wrapper(self: "ABCRule[typing.Any]", translator: ABCTranslator):
+    async def wrapper(self: "ABCRule", translator: ABCTranslator):
         if translation := get_cached_translation(self, translator.locale):
             return translation
         translation = await func(self, translator)
@@ -31,28 +39,69 @@ def with_caching_translations(func: typing.Callable[..., typing.Any]):
     return wrapper
 
 
-class ABCRule(ABC, typing.Generic[EventCute, AdaptTo]):
-    adapter: ABCAdapter[UpdateObject, AdaptTo] = RawUpdateAdapter()  # type: ignore
-    requires: list["ABCRule[EventCute]"] = []
+class ABCRule(ABC, typing.Generic[AdaptTo]):
+    adapter: ABCAdapter[UpdateObject, AdaptTo] = RawUpdateAdapter()
+    requires: list["ABCRule"] = []
 
     @abstractmethod
-    async def check(self, event: AdaptTo, ctx: Context) -> bool:
+    async def check(self, event: AdaptTo, *, ctx: Context) -> bool:
         pass
 
-    def __init_subclass__(cls, requires: list["ABCRule[EventCute, AdaptTo]"] | None = None) -> None:
+    def get_required_nodes(self) -> dict[str, type[Node]]:
+        return {k: v for k, v in get_annotations(self.check).items() if is_node(v)}
+
+    async def bounding_check(
+        self,
+        adapted_value: AdaptTo,
+        ctx: Context,
+        node_col: "NodeCollection | None" = None,
+    ) -> bool:
+        kw = {}
+        node_col_values = node_col.values() if node_col is not None else {}
+
+        for i, (k, v) in enumerate(get_annotations(self.check).items()):
+            if (isinstance(adapted_value, Event) and not i) or (
+                isinstance(v, type) and isinstance(adapted_value, v)
+            ):
+                kw[k] = (
+                    adapted_value
+                    if not isinstance(adapted_value, Event)
+                    else adapted_value.obj
+                )
+            elif is_node(v):
+                assert k in node_col_values, "Node is undefined, error while bounding."
+                kw[k] = node_col_values[k]
+            elif k in ctx:
+                kw[k] = ctx[k]
+            elif v is Context:
+                kw[k] = ctx
+            else:
+                raise LookupError(
+                    f"Cannot bound {k!r} of type {v!r} to '{self.__class__.__name__}.check()', because it cannot be resolved."
+                )
+
+        return await self.check(**kw)
+
+    def optional(self) -> "ABCRule":
+        return self | Always()
+
+    def should_fail(self) -> "ABCRule":
+        return self & Never()
+
+    def __init_subclass__(cls, requires: list["ABCRule"] | None = None) -> None:
         """Merges requirements from inherited classes and rule-specific requirements."""
 
         requirements = []
         for base in inspect.getmro(cls):
             if issubclass(base, ABCRule) and base != cls:
-                requirements.extend(base.requires or ())  # type: ignore
+                requirements.extend(base.requires or ())
 
         requirements.extend(requires or ())
         cls.requires = list(dict.fromkeys(requirements))
 
-    def __and__(self, other: "ABCRule[EventCute, AdaptTo]") -> "AndRule[EventCute, AdaptTo]":
+    def __and__(self, other: "ABCRule") -> "AndRule":
         """And Rule.
-        
+
         ```python
         rule = HasText() & HasCaption()
         rule #> AndRule(HasText(), HasCaption()) -> True if all rules in an AndRule are True, otherwise False.
@@ -61,9 +110,9 @@ class ABCRule(ABC, typing.Generic[EventCute, AdaptTo]):
 
         return AndRule(self, other)
 
-    def __or__(self, other: "ABCRule[EventCute, AdaptTo]") -> "OrRule[EventCute, AdaptTo]":
+    def __or__(self, other: "ABCRule") -> "OrRule":
         """Or Rule.
-        
+
         ```python
         rule = HasText() | HasCaption()
         rule #> OrRule(HasText(), HasCaption()) -> True if any rule in an OrRule are True, otherwise False.
@@ -72,11 +121,11 @@ class ABCRule(ABC, typing.Generic[EventCute, AdaptTo]):
 
         return OrRule(self, other)
 
-    def __invert__(self) -> "NotRule[EventCute, AdaptTo]":
+    def __invert__(self) -> "NotRule":
         """Not Rule.
 
         ```python
-        rule = ~HasText() 
+        rule = ~HasText()
         rule # NotRule(HasText()) -> True if rule returned False, otherwise False.
         ```
         """
@@ -93,8 +142,8 @@ class ABCRule(ABC, typing.Generic[EventCute, AdaptTo]):
         return self
 
 
-class AndRule(ABCRule[EventCute, AdaptTo]):
-    def __init__(self, *rules: ABCRule[EventCute, AdaptTo]) -> None:
+class AndRule(ABCRule):
+    def __init__(self, *rules: ABCRule[AdaptTo]) -> None:
         self.rules = rules
 
     async def check(self, event: Update, ctx: Context) -> bool:
@@ -106,8 +155,8 @@ class AndRule(ABCRule[EventCute, AdaptTo]):
         return True
 
 
-class OrRule(ABCRule[EventCute, AdaptTo]):
-    def __init__(self, *rules: ABCRule[EventCute, AdaptTo]) -> None:
+class OrRule(ABCRule):
+    def __init__(self, *rules: ABCRule) -> None:
         self.rules = rules
 
     async def check(self, event: Update, ctx: Context) -> bool:
@@ -119,13 +168,23 @@ class OrRule(ABCRule[EventCute, AdaptTo]):
         return False
 
 
-class NotRule(ABCRule[EventCute, AdaptTo]):
-    def __init__(self, rule: ABCRule[EventCute, AdaptTo]) -> None:
+class NotRule(ABCRule):
+    def __init__(self, rule: ABCRule) -> None:
         self.rule = rule
 
     async def check(self, event: Update, ctx: Context) -> bool:
         ctx_copy = ctx.copy()
         return not await check_rule(event.ctx_api, self.rule, event, ctx_copy)
+
+
+class Never(ABCRule):
+    async def check(self) -> typing.Literal[False]:
+        return False
+
+
+class Always(ABCRule):
+    async def check(self) -> typing.Literal[True]:
+        return True
 
 
 __all__ = (
@@ -134,4 +193,6 @@ __all__ = (
     "NotRule",
     "OrRule",
     "with_caching_translations",
+    "Never",
+    "Always",
 )

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mubble"
-version = "1.2.3"
+version = "1.2.4"
 description = "Async Telegram framework for bot building"
 readme = "README.md"
 authors = ["vladislavkovalskyi <vladislavkovalskyi@icloud.com>"]
@@ -19,6 +19,7 @@ certifi = "^2024.2.2"
 colorama = "^0.4.0"
 typing-extensions = "^4.10.0"
 fntypes = "^0.1.2.post2"
+pillow = "^10.4.0"
 
 [tool.poetry.dev-dependencies]
 
