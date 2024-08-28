@@ -39,7 +39,9 @@ class WaiterMiddleware(ABCMiddleware[EventType]):
         if key is None:
             raise RuntimeError("Unable to get state key.")
 
-        short_state: "ShortState[EventType] | None" = self.machine.storage[view_name].get(key)
+        short_state: "ShortState[EventType] | None" = self.machine.storage[
+            view_name
+        ].get(key)
         if not short_state:
             return True
 
@@ -47,7 +49,10 @@ class WaiterMiddleware(ABCMiddleware[EventType]):
         if short_state.context is not None:
             preset_context.update(short_state.context.context)
 
-        if short_state.expiration_date is not None and datetime.datetime.now() >= short_state.expiration_date:
+        if (
+            short_state.expiration_date is not None
+            and datetime.datetime.now() >= short_state.expiration_date
+        ):
             await self.machine.drop(
                 self.view,
                 short_state.key,
@@ -58,12 +63,15 @@ class WaiterMiddleware(ABCMiddleware[EventType]):
             return True
 
         # before running the handler we check if the user wants to exit waiting
-        if short_state.exit_behaviour is not None and await self.machine.call_behaviour(
-            self.view,
-            event,
-            ctx.raw_update,
-            behaviour=short_state.exit_behaviour,
-            **preset_context,
+        if (
+            short_state.exit_behaviour is not None
+            and await self.machine.call_behaviour(
+                self.view,
+                event,
+                ctx.raw_update,
+                behaviour=short_state.exit_behaviour,
+                **preset_context,
+            )
         ):
             await self.machine.drop(
                 self.view,

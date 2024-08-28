@@ -1,14 +1,16 @@
 import abc
 import inspect
 import typing
+from types import AsyncGeneratorType
 
 from mubble.node.scope import NodeScope
-from mubble.tools.magic import get_annotations
+from mubble.tools.magic import (
+    cache_magic_value,
+    get_annotations,
+)
 
 ComposeResult: typing.TypeAlias = (
-    typing.Coroutine[typing.Any, typing.Any, typing.Any]
-    | typing.AsyncGenerator[typing.Any, None]
-    | typing.Any
+    typing.Awaitable[typing.Any] | typing.AsyncGenerator[typing.Any, None]
 )
 
 
@@ -20,6 +22,33 @@ def is_node(maybe_node: type[typing.Any]) -> typing.TypeGuard[type["Node"]]:
         or isinstance(maybe_node, Node)
         or hasattr(maybe_node, "as_node")
     )
+
+
+@cache_magic_value("__nodes__")
+def get_nodes(function: typing.Callable[..., typing.Any]) -> dict[str, type["Node"]]:
+    return {k: v for k, v in get_annotations(function).items() if is_node(v)}
+
+
+@cache_magic_value("__is_generator__")
+def is_generator(
+    function: typing.Callable[..., typing.Any]
+) -> typing.TypeGuard[AsyncGeneratorType[typing.Any, None]]:
+    return inspect.isasyncgenfunction(function)
+
+
+def get_node_calc_lst(node: type["Node"]) -> list[type["Node"]]:
+    """Returns flattened list of node types in ordering required to calculate given node.
+    Provides caching for passed node type"""
+
+    if calc_lst := getattr(node, "__nodes_calc_lst__", None):
+        return calc_lst
+    nodes_lst: list[type["Node"]] = []
+    annotations = list(node.as_node().get_subnodes().values())
+    for node_type in annotations:
+        nodes_lst.extend(get_node_calc_lst(node_type))
+    calc_lst = [*nodes_lst, node]
+    setattr(node, "__nodes_calc_lst__", calc_lst)
+    return calc_lst
 
 
 class ComposeError(BaseException):
@@ -40,8 +69,8 @@ class Node(abc.ABC):
         raise ComposeError(error)
 
     @classmethod
-    def get_sub_nodes(cls) -> dict[str, type[typing.Self]]:
-        return get_annotations(cls.compose)
+    def get_subnodes(cls) -> dict[str, type["Node"]]:
+        return get_nodes(cls.compose)
 
     @classmethod
     def as_node(cls) -> type[typing.Self]:
@@ -49,7 +78,7 @@ class Node(abc.ABC):
 
     @classmethod
     def is_generator(cls) -> bool:
-        return inspect.isasyncgenfunction(cls.compose)
+        return is_generator(cls.compose)
 
 
 class DataNode(Node, abc.ABC):
@@ -79,6 +108,14 @@ if typing.TYPE_CHECKING:
 
 else:
 
+    def __init_subclass__(cls, *args, **kwargs):  # noqa: N807
+        if any(
+            issubclass(base, ScalarNode)
+            for base in cls.__bases__
+            if base is not ScalarNode
+        ):
+            raise RuntimeError("Scalar nodes do not support inheritance.")
+
     def create_node(cls, bases, dct):
         dct.update(cls.__dict__)
         return type(cls.__name__, bases, dct)
@@ -90,6 +127,7 @@ else:
             {
                 "as_node": classmethod(lambda cls: create_node(cls, bases, dct)),
                 "scope": Node.scope,
+                "__init_subclass__": __init_subclass__,
             },
         )
 
@@ -103,5 +141,7 @@ __all__ = (
     "Node",
     "SCALAR_NODE",
     "ScalarNode",
+    "ScalarNodeProto",
+    "get_nodes",
     "is_node",
 )

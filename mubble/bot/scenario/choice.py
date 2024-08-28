@@ -1,8 +1,7 @@
 import typing
 
 from mubble.bot.cute_types import CallbackQueryCute
-
-from .checkbox import Checkbox
+from mubble.bot.scenario.checkbox import Checkbox
 
 if typing.TYPE_CHECKING:
     from mubble.api import API

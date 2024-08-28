@@ -1,64 +1,83 @@
+import dataclasses
 import typing
 
 import msgspec
 
-from mubble.api.abc import ABCAPI
-from mubble.bot.cute_types.base import BaseCute
+from mubble.api import API
+from mubble.bot.cute_types import BaseCute
 from mubble.bot.dispatch.context import Context
-from mubble.model import DataclassInstance, Model
-from mubble.node.base import ComposeError, DataNode, Node
+from mubble.msgspec_utils import DataclassInstance, decoder
+from mubble.node.base import ComposeError, Node
 from mubble.node.update import UpdateNode
 
-Dataclass = typing.TypeVar("Dataclass", bound="DataclassType")
+if typing.TYPE_CHECKING:
+    Dataclass = typing.TypeVar("Dataclass", bound="DataclassType")
 
-DataclassType: typing.TypeAlias = (
-    "DataclassInstance | DataNode | DataNodeCute | msgspec.Struct | dict[str, typing.Any]"
-)
+    DataclassType: typing.TypeAlias = (
+        DataclassInstance | msgspec.Struct | dict[str, typing.Any]
+    )
 
 EVENT_NODE_KEY = "_event_node"
 
 
+class _EventNode(Node):
+    dataclass: type["DataclassType"]
+
+    def __new__(cls, dataclass: type["DataclassType"], /) -> type[typing.Self]:
+        namespace = dict(**cls.__dict__)
+        namespace.pop("__new__", None)
+        new_cls = type("EventNode", (cls,), {"dataclass": dataclass, **namespace})
+        return new_cls  # type: ignore
+
+    def __class_getitem__(cls, dataclass: type["DataclassType"], /) -> typing.Self:
+        return cls(dataclass)
+
+    @classmethod
+    async def compose(
+        cls, raw_update: UpdateNode, ctx: Context, api: API
+    ) -> "DataclassType":
+        dataclass_type = typing.get_origin(cls.dataclass) or cls.dataclass
+
+        try:
+            if issubclass(dataclass_type, dict):
+                dataclass = cls.dataclass(**raw_update.incoming_update.to_full_dict())
+
+            elif issubclass(dataclass_type, BaseCute):
+                if isinstance(raw_update.incoming_update, dataclass_type):
+                    dataclass = raw_update.incoming_update
+                else:
+                    dataclass = dataclass_type.from_update(
+                        raw_update.incoming_update, bound_api=api
+                    )
+
+            elif issubclass(dataclass_type, msgspec.Struct) or dataclasses.is_dataclass(
+                dataclass_type
+            ):
+                # FIXME: must be used with rename_field
+                dataclass = decoder.convert(
+                    raw_update.incoming_update.to_full_dict(),
+                    type=cls.dataclass,
+                    str_keys=True,
+                )
+
+            else:
+                dataclass = cls.dataclass(**raw_update.incoming_update.to_dict())
+
+            ctx[EVENT_NODE_KEY] = cls
+            return dataclass
+        except Exception as exc:
+            raise ComposeError(
+                f"Cannot parse update into {cls.dataclass.__name__!r}, error: {exc}"
+            )
+
+
 if typing.TYPE_CHECKING:
-    EventNode: typing.TypeAlias = typing.Annotated[Dataclass, ...]
+    EventNode: typing.TypeAlias = typing.Annotated["Dataclass", ...]
 
 else:
 
-    class EventNode(Node):
-        dataclass: type[DataclassType]
-
-        def __new__(cls, dataclass: type[DataclassType], /) -> type[typing.Self]:
-            namespace = dict(**cls.__dict__)
-            namespace.pop("__new__", None)
-            new_cls = type("EventNode", (cls,), {"dataclass": dataclass, **namespace})
-            return new_cls
-
-        def __class_getitem__(
-            cls, dataclass: type[DataclassType], /
-        ) -> type[typing.Self]:
-            return cls(dataclass)
-
-        @classmethod
-        async def compose(cls, raw_update: UpdateNode, ctx: Context) -> DataclassType:
-            try:
-                if issubclass(
-                    typing.get_origin(cls.dataclass) or cls.dataclass, DataNodeCute
-                ):
-                    dataclass = cls.dataclass.from_update(
-                        update=raw_update.incoming_update, bound_api=raw_update.api
-                    )
-                else:
-                    dataclass = cls.dataclass(**raw_update.incoming_update.to_dict())
-
-                ctx[EVENT_NODE_KEY] = cls
-                return dataclass
-            except Exception:
-                raise ComposeError(
-                    f"Cannot parse update to {cls.dataclass.__name__!r}."
-                )
+    class EventNode(_EventNode):
+        pass
 
 
-class DataNodeCute(DataNode, BaseCute[Model]):
-    api: ABCAPI
-
-
-__all__ = ("DataNodeCute", "EventNode")
+__all__ = ("EventNode",)

@@ -4,14 +4,16 @@ import typing
 from fntypes.option import Nothing, Option
 
 from mubble.api.api import API
+from mubble.bot.cute_types import ChatJoinRequestCute
 from mubble.node.base import ComposeError, DataNode, ScalarNode
 from mubble.node.callback_query import CallbackQueryNode
+from mubble.node.event import EventNode
 from mubble.node.message import MessageNode
 from mubble.node.polymorphic import Polymorphic, impl
 from mubble.types.objects import Chat, Message, User
 
 
-@dataclasses.dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True, slots=True)
 class Source(Polymorphic, DataNode):
     api: API
     chat: Chat
@@ -23,17 +25,34 @@ class Source(Polymorphic, DataNode):
         return cls(
             api=message.ctx_api,
             chat=message.chat,
-            from_user=message.from_.expect(ComposeError("MessageNode has no from_user")),
+            from_user=message.from_.expect(
+                ComposeError("MessageNode has no from_user")
+            ),
             thread_id=message.message_thread_id,
         )
 
     @impl
-    async def compose_callback_query(cls, callback_query: CallbackQueryNode) -> typing.Self:
+    async def compose_callback_query(
+        cls, callback_query: CallbackQueryNode
+    ) -> typing.Self:
         return cls(
             api=callback_query.ctx_api,
-            chat=callback_query.chat.expect(ComposeError("CallbackQueryNode has no chat")),
+            chat=callback_query.chat.expect(
+                ComposeError("CallbackQueryNode has no chat")
+            ),
             from_user=callback_query.from_user,
             thread_id=callback_query.message_thread_id,
+        )
+
+    @impl
+    async def compose_chat_join_request(
+        cls, chat_join_request: EventNode[ChatJoinRequestCute]
+    ) -> typing.Self:
+        return cls(
+            api=chat_join_request.ctx_api,
+            chat=chat_join_request.chat,
+            from_user=chat_join_request.from_user,
+            thread_id=Nothing(),
         )
 
     async def send(self, text: str) -> Message:

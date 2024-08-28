@@ -1,5 +1,5 @@
-from .bot import Mubble
-from .cute_types import (
+from mubble.bot.bot import Mubble
+from mubble.bot.cute_types import (
     BaseCute,
     CallbackQueryCute,
     ChatJoinRequestCute,
@@ -8,7 +8,7 @@ from .cute_types import (
     MessageCute,
     UpdateCute,
 )
-from .dispatch import (
+from mubble.bot.dispatch import (
     ABCDispatch,
     ABCHandler,
     ABCMiddleware,
@@ -37,15 +37,15 @@ from .dispatch import (
     clear_wm_storage_worker,
     register_manager,
 )
-from .polling import ABCPolling, Polling
-from .rules import (
+from mubble.bot.polling import ABCPolling, Polling
+from mubble.bot.rules import (
     ABCRule,
     CallbackQueryRule,
     ChatJoinRequestRule,
     InlineQueryRule,
     MessageRule,
 )
-from .scenario import ABCScenario, Checkbox, Choice
+from mubble.bot.scenario import ABCScenario, Checkbox, Choice
 
 __all__ = (
     "ABCDispatch",

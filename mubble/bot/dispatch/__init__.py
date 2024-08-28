@@ -1,10 +1,10 @@
-from .abc import ABCDispatch
-from .context import Context
-from .dispatch import Dispatch, MubbleContext
-from .handler import ABCHandler, FuncHandler, MessageReplyHandler
-from .middleware import ABCMiddleware
-from .process import check_rule, process_inner
-from .return_manager import (
+from mubble.bot.dispatch.abc import ABCDispatch
+from mubble.bot.dispatch.context import Context
+from mubble.bot.dispatch.dispatch import Dispatch, MubbleContext
+from mubble.bot.dispatch.handler import ABCHandler, FuncHandler, MessageReplyHandler
+from mubble.bot.dispatch.middleware import ABCMiddleware
+from mubble.bot.dispatch.process import check_rule, process_inner
+from mubble.bot.dispatch.return_manager import (
     ABCReturnManager,
     BaseReturnManager,
     CallbackQueryReturnManager,
@@ -13,7 +13,7 @@ from .return_manager import (
     MessageReturnManager,
     register_manager,
 )
-from .view import (
+from mubble.bot.dispatch.view import (
     ABCStateView,
     ABCView,
     BaseStateView,
@@ -26,7 +26,11 @@ from .view import (
     RawEventView,
     ViewBox,
 )
-from .waiter_machine import ShortState, WaiterMachine, clear_wm_storage_worker
+from mubble.bot.dispatch.waiter_machine import (
+    ShortState,
+    WaiterMachine,
+    clear_wm_storage_worker,
+)
 
 __all__ = (
     "ABCDispatch",

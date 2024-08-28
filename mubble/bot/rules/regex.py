@@ -10,7 +10,7 @@ PatternLike: typing.TypeAlias = str | typing.Pattern[str]
 
 
 class Regex(ABCRule):
-    def __init__(self, regexp: PatternLike | list[PatternLike]):
+    def __init__(self, regexp: PatternLike | list[PatternLike]) -> None:
         self.regexp: list[re.Pattern[str]] = []
         match regexp:
             case re.Pattern() as pattern:
@@ -19,7 +19,8 @@ class Regex(ABCRule):
                 self.regexp.append(re.compile(regex))
             case _:
                 self.regexp.extend(
-                    re.compile(regexp) if isinstance(regexp, str) else regexp for regexp in regexp
+                    re.compile(regexp) if isinstance(regexp, str) else regexp
+                    for regexp in regexp
                 )
 
     async def check(self, text: Text, ctx: Context) -> bool:

@@ -1,10 +1,10 @@
 import typing
 from dataclasses import dataclass, field
 
-from fntypes import Nothing, Option, Some
+from fntypes.option import Nothing, Option, Some
 
-from .base import DataNode
-from .text import Text
+from mubble.node.base import DataNode
+from mubble.node.text import Text
 
 
 def single_split(s: str, separator: str) -> tuple[str, str]:
@@ -17,7 +17,7 @@ def cut_mention(text: str) -> tuple[str, Option[str]]:
     return left, Some(right) if right else Nothing()
 
 
-@dataclass
+@dataclass(slots=True)
 class CommandInfo(DataNode):
     name: str
     arguments: str

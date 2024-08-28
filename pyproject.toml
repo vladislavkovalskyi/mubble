@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "mubble"
-version = "1.2.4"
+version = "1.3.0"
 description = "Async Telegram framework for bot building"
 readme = "README.md"
 authors = ["vladislavkovalskyi <vladislavkovalskyi@icloud.com>"]
@@ -29,3 +29,6 @@ black = "^24.4.2"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+mubble = "mubble.tools.cli.cli:main"

@@ -7,7 +7,7 @@ from .abc import ABCRule, Update, check_rule
 from .func import FuncRule
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class RuleEnumState:
     name: str
     rule: ABCRule
@@ -36,7 +36,7 @@ class RuleEnum(ABCRule):
             setattr(
                 self,
                 attribute.name,
-                self & FuncRule(lambda _, ctx: self.must_be_state(ctx, attribute)),
+                self & FuncRule(lambda _, ctx: self.must_be_state(ctx, attribute)),  # type: ignore
             )
             enum_lst.append(attribute)
 

@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from mubble.bot.cute_types.base import BaseCute
 
 if typing.TYPE_CHECKING:
-    from mubble.api import ABCAPI
+    from mubble.api import API
     from mubble.bot.dispatch.view.abc import ABCStateView
 
 EventT = typing.TypeVar("EventT", bound=BaseCute)
@@ -12,7 +12,7 @@ EventT = typing.TypeVar("EventT", bound=BaseCute)
 
 class ABCScenario(ABC, typing.Generic[EventT]):
     @abstractmethod
-    def wait(self, api: "ABCAPI", view: "ABCStateView[EventT]") -> typing.Any:
+    def wait(self, api: "API", view: "ABCStateView[EventT]") -> typing.Any:
         pass
 
 

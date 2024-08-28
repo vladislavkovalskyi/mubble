@@ -1,7 +1,7 @@
 import typing
 from abc import ABC, abstractmethod
 
-from mubble.api.abc import ABCAPI
+from mubble.api import API
 from mubble.tools.global_context.abc import ABCGlobalContext
 from mubble.types.objects import Update
 
@@ -13,7 +13,7 @@ class ABCDispatch(ABC):
         pass
 
     @abstractmethod
-    async def feed(self, event: Update, api: ABCAPI) -> bool:
+    async def feed(self, event: Update, api: API) -> bool:
         pass
 
     @abstractmethod

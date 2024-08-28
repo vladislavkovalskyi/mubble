@@ -1,10 +1,13 @@
 import typing_extensions as typing
 
-from mubble.api import API
-from mubble.bot.dispatch import ABCDispatch, Dispatch
-from mubble.bot.polling import ABCPolling, Polling
+from mubble.api.api import API
+from mubble.bot.dispatch.abc import ABCDispatch
+from mubble.bot.dispatch.dispatch import Dispatch
+from mubble.bot.polling.abc import ABCPolling
+from mubble.bot.polling.polling import Polling
 from mubble.modules import logger
-from mubble.tools.loop_wrapper import ABCLoopWrapper, LoopWrapper
+from mubble.tools.loop_wrapper import ABCLoopWrapper
+from mubble.tools.loop_wrapper.loop_wrapper import LoopWrapper
 
 DispatchT = typing.TypeVar("DispatchT", bound=ABCDispatch, default=Dispatch)
 PollingT = typing.TypeVar("PollingT", bound=ABCPolling, default=Polling)
@@ -57,7 +60,11 @@ class Mubble(typing.Generic[DispatchT, PollingT, LoopWrapperT]):
 
         async for updates in self.polling.listen():
             for update in updates:
-                logger.debug("Received update (update_id={})", update.update_id)
+                logger.debug(
+                    "Received update (update_id={}, update_type={!r})",
+                    update.update_id,
+                    update.update_type.name,
+                )
                 self.loop_wrapper.add_task(self.dispatch.feed(update, self.api))
 
     def run_forever(self, *, offset: int = 0, skip_updates: bool = False) -> None:

@@ -5,7 +5,14 @@ import typing
 import fntypes.option
 from fntypes.co import Result, Some, Variative
 
-from mubble.api import ABCAPI, APIError
+from mubble.api import API, APIError
+from mubble.bot.cute_types.base import BaseCute, compose_method_params, shortcut
+from mubble.bot.cute_types.utils import (
+    compose_link_preview_options,
+    compose_reactions,
+    compose_reply_params,
+    input_media,
+)
 from mubble.model import get_params
 from mubble.msgspec_utils import Nothing, Option
 from mubble.types.objects import (
@@ -28,14 +35,6 @@ from mubble.types.objects import (
     ReplyKeyboardRemove,
     ReplyParameters,
     User,
-)
-
-from .base import BaseCute, compose_method_params, shortcut
-from .utils import (
-    compose_link_preview_options,
-    compose_reactions,
-    compose_reply_params,
-    input_media,
 )
 
 if typing.TYPE_CHECKING:
@@ -161,7 +160,7 @@ def get_entity_value(
 
 
 class MessageCute(BaseCute[Message], Message, kw_only=True):
-    api: ABCAPI
+    api: API
 
     reply_to_message: Option[MessageCute] = Nothing
     """Optional. For replies in the same chat and message thread, the original
@@ -1781,8 +1780,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             if isinstance(m, tuple):
                 media.insert(
                     i,
-                    input_media(
-                        *media.pop(i),
+                    input_media(  # type: ignore
+                        *media.pop(i),  # type: ignore
                         caption=caption,
                         caption_entities=caption_entities,
                         parse_mode=parse_mode,

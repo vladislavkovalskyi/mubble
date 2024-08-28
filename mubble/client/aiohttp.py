@@ -79,7 +79,7 @@ class AiohttpClient(ABCClient):
         data: dict[str, typing.Any] | aiohttp.FormData | None = None,
         **kwargs: typing.Any,
     ) -> str:
-        response = await self.request_raw(url, method, data, **kwargs)
+        response = await self.request_raw(url, method, data, **kwargs)  # type: ignore
         return await response.text(encoding="utf-8")
 
     async def request_bytes(
@@ -89,7 +89,7 @@ class AiohttpClient(ABCClient):
         data: dict[str, typing.Any] | aiohttp.FormData | None = None,
         **kwargs: typing.Any,
     ) -> bytes:
-        response = await self.request_raw(url, method, data, **kwargs)
+        response = await self.request_raw(url, method, data, **kwargs)  # type: ignore
         if response._body is None:
             await response.read()
         return response._body

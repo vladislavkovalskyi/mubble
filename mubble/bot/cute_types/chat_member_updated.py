@@ -3,11 +3,10 @@ from datetime import datetime
 
 from fntypes.result import Result
 
-from mubble.api import ABCAPI, APIError
+from mubble.api import API, APIError
+from mubble.bot.cute_types.base import BaseCute, compose_method_params, shortcut
 from mubble.model import get_params
 from mubble.types.objects import ChatMemberUpdated, ChatPermissions, User
-
-from .base import BaseCute, compose_method_params, shortcut
 
 
 async def chat_member_interaction(
@@ -234,7 +233,7 @@ class ChatMemberShortcuts:
 class ChatMemberUpdatedCute(
     BaseCute[ChatMemberUpdated], ChatMemberUpdated, ChatMemberShortcuts, kw_only=True
 ):
-    api: ABCAPI
+    api: API
 
     @property
     def from_user(self) -> User:

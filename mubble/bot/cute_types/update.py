@@ -1,23 +1,23 @@
 import typing
+from functools import cached_property
 
 from fntypes.co import Nothing, Some
 
-from mubble.api import ABCAPI
+from mubble.api.api import API
+from mubble.bot.cute_types.base import BaseCute
+from mubble.bot.cute_types.callback_query import CallbackQueryCute
+from mubble.bot.cute_types.chat_join_request import ChatJoinRequestCute
+from mubble.bot.cute_types.chat_member_updated import ChatMemberUpdatedCute
+from mubble.bot.cute_types.inline_query import InlineQueryCute
+from mubble.bot.cute_types.message import MessageCute
 from mubble.msgspec_utils import Option
-from mubble.types import Model, Update
+from mubble.types.objects import Model, Update
 
-from .base import BaseCute
-from .callback_query import CallbackQueryCute
-from .chat_join_request import ChatJoinRequestCute
-from .chat_member_updated import ChatMemberUpdatedCute
-from .inline_query import InlineQueryCute
-from .message import MessageCute
-
-ModelT = typing.TypeVar("ModelT", bound=Model)
+EventModel = typing.TypeVar("EventModel", bound=Model)
 
 
 class UpdateCute(BaseCute[Update], Update, kw_only=True):
-    api: ABCAPI
+    api: API
 
     message: Option[MessageCute] = Nothing()
     """Optional. New incoming message of any kind - text, photo, sticker, etc."""
@@ -62,11 +62,11 @@ class UpdateCute(BaseCute[Update], Update, kw_only=True):
     """Optional. A request to join the chat has been sent. The bot must have the can_invite_users
     administrator right in the chat to receive these updates."""
 
-    @property
+    @cached_property
     def incoming_update(self) -> Model:
         return getattr(self, self.update_type.value).unwrap()
 
-    def get_event(self, event_model: type[ModelT]) -> Option[ModelT]:
+    def get_event(self, event_model: type[EventModel]) -> Option[EventModel]:
         if isinstance(self.incoming_update, event_model):
             return Some(self.incoming_update)
         return Nothing()

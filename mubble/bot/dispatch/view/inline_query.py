@@ -1,7 +1,6 @@
 from mubble.bot.cute_types import InlineQueryCute
 from mubble.bot.dispatch.return_manager import InlineQueryReturnManager
-
-from .abc import BaseStateView
+from mubble.bot.dispatch.view.abc import BaseStateView
 
 
 class InlineQueryView(BaseStateView[InlineQueryCute]):

@@ -4,7 +4,14 @@ from contextlib import suppress
 import msgspec
 from fntypes.co import Nothing, Result, Some, Variative, unwrapping
 
-from mubble.api import ABCAPI, APIError
+from mubble.api import API, APIError
+from mubble.bot.cute_types.base import BaseCute, compose_method_params, shortcut
+from mubble.bot.cute_types.message import (
+    MediaType,
+    MessageCute,
+    ReplyMarkup,
+    execute_method_edit,
+)
 from mubble.model import get_params
 from mubble.msgspec_utils import Option, decoder
 from mubble.types.objects import (
@@ -21,14 +28,9 @@ from mubble.types.objects import (
     User,
 )
 
-from .base import BaseCute, compose_method_params, shortcut
-from .message import MediaType, MessageCute, ReplyMarkup, execute_method_edit
 
-
-class CallbackQueryCute(
-    BaseCute[CallbackQuery], CallbackQuery, kw_only=True, dict=True
-):
-    api: ABCAPI
+class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
+    api: API
 
     message: Option[Variative[MessageCute, InaccessibleMessage]] = Nothing()
     """Optional. Message sent by the bot with the callback button that originated
@@ -201,7 +203,7 @@ class CallbackQueryCute(
         or to force a reply from the user.
         """
 
-        return await MessageCute.copy(self, **get_params(locals()))
+        return await MessageCute.copy(self, **get_params(locals()))  # type: ignore
 
     @shortcut(
         "delete_message", custom_params={"message_thread_id", "chat_id", "message_id"}
@@ -235,7 +237,7 @@ class CallbackQueryCute(
         :param message_thread_id: Unique identifier for the target message thread (topic) of the forum; for \
         forum supergroups only."""
 
-        return await MessageCute.delete(self, **get_params(locals()))
+        return await MessageCute.delete(self, **get_params(locals()))  # type: ignore
 
     @shortcut(
         "edit_message_text",
@@ -450,7 +452,7 @@ class CallbackQueryCute(
 
         :param reply_markup: A JSON-serialized object for a new inline keyboard."""
 
-        return await MessageCute.edit_media(self, **get_params(locals()))
+        return await MessageCute.edit_media(self, **get_params(locals()))  # type: ignore
 
     @shortcut(
         "edit_message_reply_markup",

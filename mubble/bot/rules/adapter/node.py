@@ -1,17 +1,18 @@
-import typing
-
+import typing_extensions as typing
 from fntypes.result import Error, Ok, Result
 
-from mubble.api.abc import ABCAPI
-from mubble.bot.cute_types.update import UpdateCute
+from mubble.api import API
 from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.adapter.abc import ABCAdapter, Event
 from mubble.bot.rules.adapter.errors import AdapterError
-from mubble.node.base import ComposeError
-from mubble.node.composer import NodeSession, compose_node
+from mubble.msgspec_utils import repr_type
+from mubble.node.composer import NodeSession, compose_nodes
 from mubble.types.objects import Update
 
-Ts = typing.TypeVarTuple("Ts")
+if typing.TYPE_CHECKING:
+    from mubble.node.base import Node
+
+Ts = typing.TypeVarTuple("Ts", default=typing.Unpack[tuple[type["Node"], ...]])
 
 
 class NodeAdapter(typing.Generic[*Ts], ABCAdapter[Update, Event[tuple[*Ts]]]):
@@ -19,28 +20,32 @@ class NodeAdapter(typing.Generic[*Ts], ABCAdapter[Update, Event[tuple[*Ts]]]):
         self.nodes = nodes
 
     def __repr__(self) -> str:
-        return "<{}: adapt Update -> {}>".format(
+        return "<{}: adapt Update -> ({})>".format(
             self.__class__.__name__,
-            Update.__name__,
-            ", ".join(node.__name__ for node in self.nodes),
+            ", ".join(repr_type(node) for node in self.nodes),
         )
 
     async def adapt(
-        self, api: ABCAPI, update: Update
+        self,
+        api: API,
+        update: Update,
+        context: Context,
     ) -> Result[Event[tuple[*Ts]], AdapterError]:
-        update_cute = UpdateCute.from_update(update, api)
-        node_sessions: list[NodeSession] = []
-        for node_t in self.nodes:
-            try:
-                # FIXME: adapters should have context
-                node_sessions.append(
-                    await compose_node(node_t, update_cute, Context(raw_update=update))
-                )
-            except ComposeError:
-                for session in node_sessions:
-                    await session.close(with_value=None)
-                return Error(AdapterError(f"Couldn't compose nodes, error on {node_t}"))
-        return Ok(Event(tuple(node_sessions)))
+        result = await compose_nodes(
+            nodes={
+                str(i): typing.cast(type["Node"], node)
+                for i, node in enumerate(self.nodes)
+            },
+            ctx=context,
+            data={Update: update, API: api},
+        )
+
+        match result:
+            case Ok(collection):
+                sessions: list[NodeSession] = list(collection.sessions.values())
+                return Ok(Event(tuple(sessions)))  # type: ignore
+            case Error(err):
+                return Error(AdapterError(f"Couldn't compose nodes, error: {err}."))
 
 
 __all__ = ("NodeAdapter",)

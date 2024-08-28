@@ -1,14 +1,14 @@
 import typing
 
-from mubble.api.abc import ABCAPI
+from mubble.api import API
 from mubble.bot.cute_types import UpdateCute
 from mubble.bot.dispatch.handler.func import FuncHandler
 from mubble.bot.dispatch.process import process_inner
+from mubble.bot.dispatch.view.abc import ABCEventRawView, BaseView, ErrorHandlerT
 from mubble.bot.rules.abc import ABCRule
 from mubble.tools.error_handler.error_handler import ABCErrorHandler, ErrorHandler
-from mubble.types import Update, UpdateType
-
-from .abc import BaseView, ErrorHandlerT
+from mubble.types.enums import UpdateType
+from mubble.types.objects import Update
 
 T = typing.TypeVar("T")
 
@@ -18,7 +18,7 @@ FuncType: typing.TypeAlias = typing.Callable[
 ]
 
 
-class RawEventView(BaseView[UpdateCute]):
+class RawEventView(ABCEventRawView[UpdateCute], BaseView[UpdateCute]):
     def __init__(self) -> None:
         self.auto_rules = []
         self.handlers = []
@@ -81,7 +81,7 @@ class RawEventView(BaseView[UpdateCute]):
         FuncHandler[UpdateCute, FuncType[UpdateCute], ErrorHandler[UpdateCute]],
     ]: ...
 
-    def __call__(
+    def __call__(  # type: ignore
         self,
         update_type: UpdateType,
         *rules: ABCRule,
@@ -92,7 +92,7 @@ class RawEventView(BaseView[UpdateCute]):
         def wrapper(func: FuncType[typing.Any]):
             func_handler = FuncHandler(
                 func,
-                [*self.auto_rules, *rules],
+                rules=[*self.auto_rules, *rules],
                 is_blocking=is_blocking,
                 dataclass=dataclass,
                 error_handler=error_handler or ErrorHandler(),
@@ -104,9 +104,9 @@ class RawEventView(BaseView[UpdateCute]):
         return wrapper
 
     async def check(self, event: Update) -> bool:
-        return False
+        return bool(self.handlers) or bool(self.middlewares)
 
-    async def process(self, event: Update, api: ABCAPI) -> bool:
+    async def process(self, event: Update, api: API) -> bool:
         return await process_inner(
             api,
             UpdateCute.from_update(event, bound_api=api),

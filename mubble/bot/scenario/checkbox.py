@@ -4,18 +4,17 @@ import typing
 
 from mubble.bot.cute_types import CallbackQueryCute
 from mubble.bot.dispatch.waiter_machine import WaiterMachine
+from mubble.bot.scenario.abc import ABCScenario
 from mubble.tools import InlineButton, InlineKeyboard
 from mubble.tools.parse_mode import ParseMode
 from mubble.types.objects import InlineKeyboardMarkup
-
-from .abc import ABCScenario
 
 if typing.TYPE_CHECKING:
     from mubble.api import API
     from mubble.bot.dispatch.view.abc import BaseStateView
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Choice:
     name: str
     is_picked: bool
@@ -69,7 +68,11 @@ class Checkbox(ABCScenario[CallbackQueryCute]):
                 choice = choices.pop(0)
                 kb.add(
                     InlineButton(
-                        text=(choice.default_text if not choice.is_picked else choice.picked_text),
+                        text=(
+                            choice.default_text
+                            if not choice.is_picked
+                            else choice.picked_text
+                        ),
                         callback_data=self.random_code + "/" + choice.code,
                     )
                 )

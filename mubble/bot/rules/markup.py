@@ -9,7 +9,7 @@ from mubble.tools.global_context.mubble_ctx import MubbleContext
 from .abc import ABCRule
 
 PatternLike: typing.TypeAlias = str | vbml.Pattern
-global_ctx = MubbleContext()
+global_ctx: typing.Final[MubbleContext] = MubbleContext()
 
 
 def check_string(patterns: list[vbml.Pattern], s: str, ctx: Context) -> bool:
@@ -24,7 +24,9 @@ def check_string(patterns: list[vbml.Pattern], s: str, ctx: Context) -> bool:
 
 
 class Markup(ABCRule):
-    def __init__(self, patterns: PatternLike | list[PatternLike], /):
+    """Markup Language. See [VBML docs](https://github.com/tesseradecade/vbml/blob/master/docs/index.md)"""
+
+    def __init__(self, patterns: PatternLike | list[PatternLike], /) -> None:
         if not isinstance(patterns, list):
             patterns = [patterns]
         self.patterns = [

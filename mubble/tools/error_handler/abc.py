@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 from fntypes.result import Result
 
-from mubble.api import ABCAPI
+from mubble.api import API
 from mubble.bot.dispatch.context import Context
 
 EventT = typing.TypeVar("EventT")
@@ -16,7 +16,9 @@ class ABCErrorHandler(ABC, typing.Generic[EventT]):
         self,
         *args: typing.Any,
         **kwargs: typing.Any,
-    ) -> typing.Callable[[typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]]:
+    ) -> typing.Callable[
+        [typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]
+    ]:
         """Decorator for registering callback as an error handler."""
 
     @abstractmethod
@@ -24,7 +26,7 @@ class ABCErrorHandler(ABC, typing.Generic[EventT]):
         self,
         handler: Handler[EventT],
         event: EventT,
-        api: ABCAPI,
+        api: API,
         ctx: Context,
     ) -> Result[typing.Any, typing.Any]:
         """Run error handler."""

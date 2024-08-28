@@ -5,18 +5,18 @@ import aiohttp
 import msgspec
 from fntypes.result import Error, Ok
 
-from mubble.api.abc import ABCAPI
+from mubble.api import API
 from mubble.api.error import InvalidTokenError
 from mubble.bot.polling.abc import ABCPolling
 from mubble.modules import logger
 from mubble.msgspec_utils import decoder
-from mubble.types import Update, UpdateType
+from mubble.types.objects import Update, UpdateType
 
 
 class Polling(ABCPolling):
     def __init__(
         self,
-        api: ABCAPI,
+        api: API,
         *,
         offset: int = 0,
         reconnection_timeout: float = 5,
@@ -29,7 +29,9 @@ class Polling(ABCPolling):
             include_updates=include_updates,
             exclude_updates=exclude_updates,
         )
-        self.reconnection_timeout = 5 if reconnection_timeout < 0 else reconnection_timeout
+        self.reconnection_timeout = (
+            5 if reconnection_timeout < 0 else reconnection_timeout
+        )
         self.max_reconnetions = 10 if max_reconnetions < 0 else max_reconnetions
         self.offset = offset
         self._stop = False
@@ -60,7 +62,9 @@ class Polling(ABCPolling):
 
         if include_updates and exclude_updates:
             allowed_updates = [
-                x for x in allowed_updates if x in include_updates and x not in exclude_updates
+                x
+                for x in allowed_updates
+                if x in include_updates and x not in exclude_updates
             ]
         elif exclude_updates:
             allowed_updates = [x for x in allowed_updates if x not in exclude_updates]

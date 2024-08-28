@@ -1,14 +1,15 @@
 import typing
+from functools import cached_property
 
 import msgspec
 from fntypes.result import Error, Ok, Result
 
+from mubble.api.error import APIError
 from mubble.api.response import APIResponse
+from mubble.api.token import Token
 from mubble.client import ABCClient, AiohttpClient
 from mubble.model import DataConverter, decoder
 from mubble.types.methods import APIMethods
-
-from .abc import ABCAPI, APIError, Token
 
 
 def compose_data(
@@ -16,17 +17,18 @@ def compose_data(
     data: dict[str, typing.Any],
     files: dict[str, tuple[str, bytes]],
 ) -> typing.Any:
-    converter = DataConverter(files=files.copy())
+    converter = DataConverter(_files=files.copy())
     return client.get_form(
         data={k: converter(v) for k, v in data.items()},
         files=converter.files,
     )
 
 
-class API(ABCAPI, APIMethods):
-    """Bot API with available API methods."""
+class API(APIMethods):
+    """Bot API with available API methods and http client."""
 
     API_URL = "https://api.telegram.org/"
+    API_FILE_URL = "https://api.telegram.org/file/"
 
     def __init__(self, token: Token, *, http: ABCClient | None = None) -> None:
         self.token = token
@@ -40,13 +42,20 @@ class API(ABCAPI, APIMethods):
             self.http,
         )
 
-    @property
+    @cached_property
     def id(self) -> int:
         return self.token.bot_id
 
     @property
     def request_url(self) -> str:
         return self.API_URL + f"bot{self.token}/"
+
+    @property
+    def request_file_url(self) -> str:
+        return self.API_FILE_URL + f"bot{self.token}/"
+
+    async def download_file(self, file_path: str) -> bytes:
+        return await self.http.request_content(f"{self.request_file_url}/{file_path}")
 
     async def request(
         self,

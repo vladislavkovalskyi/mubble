@@ -4,7 +4,8 @@ import typing
 
 from fntypes.result import Result
 
-from mubble.api.abc import ABCAPI
+from mubble.api import API
+from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.adapter.errors import AdapterError
 from mubble.model import Model
 
@@ -13,12 +14,16 @@ To = typing.TypeVar("To")
 
 
 class ABCAdapter(abc.ABC, typing.Generic[From, To]):
+    ADAPTED_VALUE_KEY: str | None = None
+
     @abc.abstractmethod
-    async def adapt(self, api: ABCAPI, update: From) -> Result[To, AdapterError]:
+    async def adapt(
+        self, api: API, update: From, context: Context
+    ) -> Result[To, AdapterError]:
         pass
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class Event(typing.Generic[To]):
     obj: To
 

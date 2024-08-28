@@ -3,7 +3,7 @@ import dataclasses
 import datetime
 import typing
 
-from mubble.api import ABCAPI
+from mubble.api import API
 from mubble.bot.cute_types import BaseCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.handler.abc import ABCHandler
@@ -24,10 +24,10 @@ class ShortStateContext(typing.Generic[EventModel], typing.NamedTuple):
     context: Context
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(slots=True)
 class ShortState(typing.Generic[EventModel]):
     key: "Identificator"
-    ctx_api: ABCAPI
+    ctx_api: API
     event: asyncio.Event
     rules: tuple[ABCRule, ...]
     expiration: dataclasses.InitVar[datetime.timedelta | None] = dataclasses.field(
@@ -46,6 +46,7 @@ class ShortState(typing.Generic[EventModel]):
     expiration_date: datetime.datetime | None = dataclasses.field(
         init=False, kw_only=True
     )
+    creation_date: datetime.datetime = dataclasses.field(init=False)
     context: ShortStateContext[EventModel] | None = dataclasses.field(
         default=None, init=False, kw_only=True
     )
@@ -61,7 +62,7 @@ class ShortState(typing.Generic[EventModel]):
 
         waiters = typing.cast(
             typing.Iterable[asyncio.Future[typing.Any]],
-            self.event._waiters,
+            self.event._waiters,  # type: ignore
         )
         for future in waiters:
             future.cancel()

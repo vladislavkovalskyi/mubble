@@ -58,7 +58,7 @@ class KeyboardSetYAML(KeyboardSetBase):
                     continue
                 if "text" not in button:
                     raise KeyboardSetError("Text is required in button.")
-                new_keyboard.add(new_keyboard.BUTTON(**button))
+                new_keyboard.add(new_keyboard.BUTTON(**button))  # type: ignore
 
             setattr(cls, name, new_keyboard)
 

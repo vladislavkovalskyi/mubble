@@ -2,15 +2,19 @@ import asyncio
 import datetime
 import typing
 
-from mubble.api.abc import ABCAPI
+from mubble.api import API
 from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.view.abc import ABCStateView, BaseStateView
+from mubble.bot.dispatch.waiter_machine.middleware import WaiterMiddleware
+from mubble.bot.dispatch.waiter_machine.short_state import (
+    Behaviour,
+    EventModel,
+    ShortState,
+    ShortStateContext,
+)
 from mubble.bot.rules.abc import ABCRule
 from mubble.tools.limited_dict import LimitedDict
 from mubble.types import Update
-
-from .middleware import WaiterMiddleware
-from .short_state import Behaviour, EventModel, ShortState, ShortStateContext
 
 if typing.TYPE_CHECKING:
     from mubble.bot.dispatch import Dispatch
@@ -73,7 +77,7 @@ class WaiterMachine:
     async def wait(
         self,
         state_view: "BaseStateView[EventModel]",
-        linked: EventModel | tuple[ABCAPI, Identificator],
+        linked: EventModel | tuple[API, Identificator],
         *rules: ABCRule,
         default: Behaviour[EventModel] | None = None,
         on_drop: Behaviour[EventModel] | None = None,
@@ -83,13 +87,9 @@ class WaiterMachine:
         if isinstance(expiration, int | float):
             expiration = datetime.timedelta(seconds=expiration)
 
-        api: ABCAPI
+        api: API
         key: Identificator
-        api, key = (
-            linked
-            if isinstance(linked, tuple)
-            else (linked.ctx_api, state_view.get_state_key(linked))
-        )
+        api, key = linked if isinstance(linked, tuple) else (linked.ctx_api, state_view.get_state_key(linked))  # type: ignore
         if not key:
             raise RuntimeError("Unable to get state key.")
 

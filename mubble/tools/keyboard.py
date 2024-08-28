@@ -17,7 +17,7 @@ DictStrAny: typing.TypeAlias = dict[str, typing.Any]
 AnyMarkup: typing.TypeAlias = InlineKeyboardMarkup | ReplyKeyboardMarkup
 
 
-@dataclasses.dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True, slots=True)
 class KeyboardModel:
     resize_keyboard: bool
     one_time_keyboard: bool
@@ -77,7 +77,7 @@ class ABCMarkup(ABC, typing.Generic[ButtonT]):
         return self
 
 
-@dataclasses.dataclass(kw_only=True)
+@dataclasses.dataclass(kw_only=True, slots=True)
 class Keyboard(ABCMarkup[Button], KeyboardModel):
     BUTTON = Button
 
@@ -94,7 +94,7 @@ class Keyboard(ABCMarkup[Button], KeyboardModel):
         self.keyboard = [row for row in self.keyboard if row]
         return {
             k: v.unwrap() if v and isinstance(v, Some) else v
-            for k, v in self.__dict__.items()
+            for k, v in dataclasses.asdict(self).items()
             if type(v) not in (NoneType, Nothing)
         }
 
