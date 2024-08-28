@@ -12,19 +12,19 @@ Event = typing.TypeVar("Event", bound=Model, contravariant=True)
 
 
 def get_union_types(t: types.UnionType) -> tuple[type, ...] | None:
-    if type(t) in (types.UnionType, typing._UnionGenericAlias):
+    if type(t) in (types.UnionType, typing._UnionGenericAlias):  # type: ignore
         return tuple(typing.get_origin(x) or x for x in typing.get_args(t))
     return None
 
 
 def register_manager(return_type: type[typing.Any] | types.UnionType):
     def wrapper(func: typing.Callable[..., typing.Awaitable[typing.Any]]):
-        return Manager(get_union_types(return_type) or (return_type,), func)
+        return Manager(get_union_types(return_type) or (return_type,), func)  # type: ignore
 
     return wrapper
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass(frozen=True, slots=True)
 class Manager:
     types: tuple[type, ...]
     callback: typing.Callable[..., typing.Awaitable]
@@ -107,7 +107,7 @@ class BaseReturnManager(ABCReturnManager[Event]):
         def wrapper(
             func: typing.Callable[[T, Event, Context], typing.Awaitable]
         ) -> Manager:
-            manager = Manager(get_union_types(return_type) or (return_type,), func)
+            manager = Manager(get_union_types(return_type) or (return_type,), func)  # type: ignore
             setattr(self.__class__, func.__name__, manager)
             return manager
 

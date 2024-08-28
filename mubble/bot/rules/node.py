@@ -18,7 +18,7 @@ class NodeRule(ABCRule[tuple[Node, ...]]):
 
     @property
     def adapter(self) -> NodeAdapter:
-        return NodeAdapter(*self.nodes)
+        return NodeAdapter(*self.nodes)  # type: ignore
 
     async def check(
         self, resolved_nodes: tuple[Node, ...], ctx: Context

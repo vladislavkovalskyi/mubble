@@ -17,7 +17,9 @@ class ABCTranslatorMiddleware(ABCMiddleware[T]):
         pass
 
     async def pre(self, event: T, ctx: dict) -> bool:
-        ctx[I18nEnum.I18N] = self.i18n.get_translator_by_locale(await self.get_locale(event))
+        ctx[I18nEnum.I18N] = self.i18n.get_translator_by_locale(
+            await self.get_locale(event)
+        )
         return True
 
 

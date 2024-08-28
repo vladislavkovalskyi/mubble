@@ -1,24 +1,32 @@
 from fntypes.result import Ok, Result
 
-from mubble.api.abc import ABCAPI
+from mubble.api import API
 from mubble.bot.cute_types.update import UpdateCute
+from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.adapter.abc import ABCAdapter
 from mubble.bot.rules.adapter.errors import AdapterError
 from mubble.types.objects import Update
 
 
 class RawUpdateAdapter(ABCAdapter[Update, UpdateCute]):
+    ADAPTED_VALUE_KEY: str = "_adapted_update_cute"
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: adapt Update -> UpdateCute>"
 
     async def adapt(
         self,
-        api: ABCAPI,
+        api: API,
         update: Update,
+        context: Context,
     ) -> Result[UpdateCute, AdapterError]:
-        if not isinstance(update, UpdateCute):
-            return Ok(UpdateCute.from_update(update, api))
-        return Ok(update)
+        if self.ADAPTED_VALUE_KEY not in context:
+            context[self.ADAPTED_VALUE_KEY] = (
+                UpdateCute.from_update(update, api)
+                if not isinstance(update, UpdateCute)
+                else update
+            )
+        return Ok(context[self.ADAPTED_VALUE_KEY])
 
 
 __all__ = ("RawUpdateAdapter",)

@@ -15,13 +15,15 @@ class RuleChain(dict[str, typing.Any]):
     dataclass = dict
     rules: tuple["ABCRule", ...] = ()
 
-    def __init_subclass__(cls) -> None:
+    def __init_subclass__(cls, *args: typing.Any, **kwargs: typing.Any) -> None:
+        super().__init_subclass__(*args, **kwargs)
+
         if cls.__name__ == "_RuleNode":
             return
         cls.dataclass = cls.generate_node_dataclass(cls)
 
     def __new__(cls, *rules: "ABCRule") -> type[Node]:
-        return type("_RuleNode", (cls,), {"dataclass": dict, "rules": rules})
+        return type("_RuleNode", (cls,), {"dataclass": dict, "rules": rules})  # type: ignore
 
     def __class_getitem__(
         cls, items: "ABCRule | tuple[ABCRule, ...]", /
@@ -40,7 +42,7 @@ class RuleChain(dict[str, typing.Any]):
         )
 
     @classmethod
-    async def compose(cls, update: UpdateNode):
+    async def compose(cls, update: UpdateNode) -> typing.Any:
         globalns = globals()
         if "check_rule" not in globalns:
             globalns.update(
@@ -58,7 +60,7 @@ class RuleChain(dict[str, typing.Any]):
                 raise ComposeError(f"Rule {rule!r} failed!")
 
         try:
-            return cls.dataclass(**ctx)
+            return cls.dataclass(**ctx)  # type: ignore
         except Exception as exc:
             raise ComposeError(f"Dataclass validation error: {exc}")
 
@@ -67,7 +69,7 @@ class RuleChain(dict[str, typing.Any]):
         return cls
 
     @classmethod
-    def get_sub_nodes(cls) -> dict:
+    def get_subnodes(cls) -> dict:
         return {"update": UpdateNode}
 
     @classmethod

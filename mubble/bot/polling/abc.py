@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 import msgspec
 
-from mubble.types import Update
+from mubble.types.objects import Update
 
 
 class ABCPolling(ABC):

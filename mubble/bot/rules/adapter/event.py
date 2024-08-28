@@ -2,8 +2,9 @@ import typing
 
 from fntypes.result import Error, Ok, Result
 
-from mubble.api.abc import ABCAPI
+from mubble.api import API
 from mubble.bot.cute_types.base import BaseCute
+from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.adapter.abc import ABCAdapter
 from mubble.bot.rules.adapter.errors import AdapterError
 from mubble.msgspec_utils import Nothing
@@ -14,7 +15,11 @@ ToCute = typing.TypeVar("ToCute", bound=BaseCute)
 
 
 class EventAdapter(ABCAdapter[Update, ToCute]):
-    def __init__(self, event: UpdateType | type[Model], cute_model: type[ToCute]) -> None:
+    ADAPTED_VALUE_KEY: str = "_adapted_cute_event"
+
+    def __init__(
+        self, event: UpdateType | type[Model], cute_model: type[ToCute]
+    ) -> None:
         self.event = event
         self.cute_model = cute_model
 
@@ -29,33 +34,49 @@ class EventAdapter(ABCAdapter[Update, ToCute]):
         else:
             raw_update_type = self.event.__name__
 
-        return "<{}: adapt {} -> {}>".format(
+        return "<{}: adapt Update -> {} -> {}>".format(
             self.__class__.__name__,
             raw_update_type,
             self.cute_model.__name__,
         )
 
-    async def adapt(self, api: ABCAPI, update: Update) -> Result[ToCute, AdapterError]:
-        update_dct = update.to_dict()
+    async def adapt(
+        self, api: API, update: Update, context: Context
+    ) -> Result[ToCute, AdapterError]:
+        if self.ADAPTED_VALUE_KEY in context:
+            return Ok(context[self.ADAPTED_VALUE_KEY])
+
         if isinstance(self.event, UpdateType):
             if update.update_type != self.event:
                 return Error(
                     AdapterError(f"Update is not of event type {self.event!r}."),
                 )
 
-            if update_dct[self.event.value] is Nothing:
+            if isinstance(
+                event := getattr(update, self.event.value, Nothing), type(Nothing)
+            ):
                 return Error(
                     AdapterError(f"Update is not an {self.event!r}."),
                 )
 
-            return Ok(
-                self.cute_model.from_update(update_dct[self.event.value].unwrap(), bound_api=api),
-            )
+            event = event.unwrap()
 
-        event = update_dct[update.update_type.value].unwrap()
-        if not update.update_type or not issubclass(event.__class__, self.event):
-            return Error(AdapterError(f"Update is not an {self.event.__name__!r}."))
-        return Ok(self.cute_model.from_update(event, bound_api=api))
+            if type(event) is self.cute_model:
+                adapted = event
+            else:
+                adapted = self.cute_model.from_update(event, bound_api=api)
+        else:
+            event = getattr(update, update.update_type.value).unwrap()
+            if not update.update_type or not issubclass(type(event), self.event):
+                return Error(AdapterError(f"Update is not an {self.event.__name__!r}."))
+
+            if type(event) is self.cute_model:
+                adapted = event
+            else:
+                adapted = self.cute_model.from_update(event, bound_api=api)
+
+        context[self.ADAPTED_VALUE_KEY] = adapted
+        return Ok(adapted)  # type: ignore
 
 
 __all__ = ("EventAdapter",)

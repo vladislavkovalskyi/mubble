@@ -1,23 +1,14 @@
-import asyncio
 import dataclasses
 import typing
 
 from vbml.patcher import Patcher
 
-from mubble.api.abc import ABCAPI
+from mubble.api import API
 from mubble.bot.cute_types.base import BaseCute
 from mubble.bot.cute_types.update import UpdateCute
-from mubble.bot.dispatch.context import Context
-from mubble.bot.dispatch.handler.abc import ABCHandler
+from mubble.bot.dispatch.abc import ABCDispatch
 from mubble.bot.dispatch.handler.func import ErrorHandlerT, FuncHandler
-from mubble.modules import logger
-from mubble.tools.error_handler.error_handler import ErrorHandler
-from mubble.tools.global_context import MubbleContext
-from mubble.types.enums import UpdateType
-from mubble.types.objects import Update
-
-from .abc import ABCDispatch
-from .view.box import (
+from mubble.bot.dispatch.view.box import (
     CallbackQueryView,
     ChatJoinRequestView,
     ChatMemberView,
@@ -26,6 +17,11 @@ from .view.box import (
     RawEventView,
     ViewBox,
 )
+from mubble.modules import logger
+from mubble.tools.error_handler.error_handler import ErrorHandler
+from mubble.tools.global_context import MubbleContext
+from mubble.types.enums import UpdateType
+from mubble.types.objects import Update
 
 if typing.TYPE_CHECKING:
     from mubble.bot.rules.abc import ABCRule
@@ -51,10 +47,6 @@ class Dispatch(
         RawEventView,
     ],
 ):
-    default_handlers: list[ABCHandler] = dataclasses.field(
-        init=False,
-        default_factory=lambda: [],
-    )
     _global_context: MubbleContext = dataclasses.field(
         init=False,
         default_factory=lambda: MubbleContext(),
@@ -116,7 +108,7 @@ class Dispatch(
     ]: ...
 
     @typing.overload
-    def handle(
+    def handle(  # type: ignore
         self,
         *rules: "ABCRule",
         error_handler: ErrorHandlerT,
@@ -126,7 +118,7 @@ class Dispatch(
     ]: ...
 
     @typing.overload
-    def handle(
+    def handle(  # type: ignore
         self,
         *rules: "ABCRule",
         update_type: UpdateType,
@@ -171,7 +163,7 @@ class Dispatch(
         [Handler[T]], FuncHandler[UpdateCute, Handler[T], ErrorHandler]
     ]: ...
 
-    def handle(
+    def handle(  # type: ignore
         self,
         *rules: "ABCRule",
         update_type: UpdateType | None = None,
@@ -188,35 +180,28 @@ class Dispatch(
                 error_handler=error_handler or ErrorHandler(),
                 update_type=update_type,
             )
-            self.default_handlers.append(handler)
+            self.raw_event.handlers.append(handler)
             return handler
 
         return wrapper
 
-    async def feed(self, event: Update, api: ABCAPI) -> bool:
-        logger.debug("Processing update (update_id={})", event.update_id)
-        await self.raw_event.process(event, api)
-
+    async def feed(self, event: Update, api: API) -> bool:
+        logger.debug(
+            "Processing update (update_id={}, update_type={!r})",
+            event.update_id,
+            event.update_type.name,
+        )
         for view in self.get_views().values():
             if await view.check(event):
                 logger.debug(
-                    "Update (update_id={}) matched view {!r}.",
+                    "Update (update_id={}, update_type={!r}) matched view {!r}.",
                     event.update_id,
+                    event.update_type.name,
                     view,
                 )
                 if await view.process(event, api):
                     return True
-
-        ctx = Context(raw_update=event)
-        loop = asyncio.get_running_loop()
-        found = False
-        for handler in self.default_handlers:
-            if await handler.check(api, event, ctx):
-                found = True
-                loop.create_task(handler.run(api, event, ctx))
-                if handler.is_blocking:
-                    break
-        return found
+        return False
 
     def load(self, external: typing.Self) -> None:
         view_external = external.get_views()

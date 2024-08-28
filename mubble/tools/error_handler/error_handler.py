@@ -3,7 +3,7 @@ import typing
 
 from fntypes.result import Error, Ok, Result
 
-from mubble.api import ABCAPI
+from mubble.api import API
 from mubble.bot.dispatch.context import Context
 from mubble.modules import logger
 from mubble.tools.magic import magic_bundle
@@ -18,7 +18,7 @@ FuncCatcher = typing.Callable[
 ]
 
 
-@dataclasses.dataclass(frozen=True, repr=False)
+@dataclasses.dataclass(frozen=True, repr=False, slots=True)
 class Catcher(typing.Generic[EventT]):
     func: FuncCatcher[BaseException]
     exceptions: list[type[BaseException] | BaseException] = dataclasses.field(
@@ -41,17 +41,17 @@ class Catcher(typing.Generic[EventT]):
         self,
         handler: Handler[EventT],
         event: EventT,
-        api: ABCAPI,
+        api: API,
         ctx: Context,
     ) -> Result[typing.Any, BaseException]:
         try:
-            return Ok(await handler(event, **magic_bundle(handler, ctx)))
+            return Ok(await handler(event, **magic_bundle(handler, ctx)))  # type: ignore
         except BaseException as exc:
             return await self.process_exception(api, event, ctx, exc, handler.__name__)
 
     async def process_exception(
         self,
-        api: ABCAPI,
+        api: API,
         event: EventT,
         ctx: Context,
         exception: BaseException,
@@ -66,7 +66,7 @@ class Catcher(typing.Generic[EventT]):
             return Ok(
                 await self.func(
                     exception,
-                    **magic_bundle(self.func, {"event": event, "api": api} | ctx),
+                    **magic_bundle(self.func, {"event": event, "api": api} | ctx),  # type: ignore
                 )
             )
         logger.debug("Failed to match exception {!r}.", exception.__class__.__name__)
@@ -130,7 +130,7 @@ class ErrorHandler(ABCErrorHandler[EventT]):
         self,
         handler: Handler[EventT],
         event: EventT,
-        api: ABCAPI,
+        api: API,
         ctx: Context,
     ) -> Result[typing.Any, BaseException]:
         assert self.catcher is not None
@@ -166,11 +166,11 @@ class ErrorHandler(ABCErrorHandler[EventT]):
         self,
         handler: Handler[EventT],
         event: EventT,
-        api: ABCAPI,
+        api: API,
         ctx: Context,
     ) -> Result[typing.Any, BaseException]:
         if not self.catcher:
-            return Ok(await handler(event, **magic_bundle(handler, ctx)))
+            return Ok(await handler(event, **magic_bundle(handler, ctx)))  # type: ignore
 
         match await self.process(handler, event, api, ctx):
             case Ok(value) as ok:

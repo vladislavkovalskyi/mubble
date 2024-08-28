@@ -10,7 +10,7 @@ from mubble.bot.dispatch.view import (
     message,
     raw,
 )
-from mubble.bot.dispatch.view.abc import ABCView
+from mubble.bot.dispatch.view.abc import ABCEventRawView, ABCView
 from mubble.types.enums import UpdateType
 
 CallbackQueryView = typing.TypeVar(
@@ -19,10 +19,16 @@ CallbackQueryView = typing.TypeVar(
 ChatJoinRequestView = typing.TypeVar(
     "ChatJoinRequestView", bound=ABCView, default=chat_join_request.ChatJoinRequestView
 )
-ChatMemberView = typing.TypeVar("ChatMemberView", bound=ABCView, default=chat_member.ChatMemberView)
-InlineQueryView = typing.TypeVar("InlineQueryView", bound=ABCView, default=inline_query.InlineQueryView)
+ChatMemberView = typing.TypeVar(
+    "ChatMemberView", bound=ABCView, default=chat_member.ChatMemberView
+)
+InlineQueryView = typing.TypeVar(
+    "InlineQueryView", bound=ABCView, default=inline_query.InlineQueryView
+)
 MessageView = typing.TypeVar("MessageView", bound=ABCView, default=message.MessageView)
-RawEventView = typing.TypeVar("RawEventView", bound=ABCView, default=raw.RawEventView)
+RawEventView = typing.TypeVar(
+    "RawEventView", bound=ABCEventRawView, default=raw.RawEventView
+)
 
 
 @dataclasses.dataclass(kw_only=True)
@@ -78,11 +84,13 @@ class ViewBox(
         )
         self.chat_member = typing.cast(
             ChatMemberView,
-            chat_member_view or chat_member.ChatMemberView(update_type=UpdateType.CHAT_MEMBER),
+            chat_member_view
+            or chat_member.ChatMemberView(update_type=UpdateType.CHAT_MEMBER),
         )
         self.my_chat_member = typing.cast(
             ChatMemberView,
-            my_chat_member_view or chat_member.ChatMemberView(update_type=UpdateType.MY_CHAT_MEMBER),
+            my_chat_member_view
+            or chat_member.ChatMemberView(update_type=UpdateType.MY_CHAT_MEMBER),
         )
         self.inline_query = typing.cast(
             InlineQueryView,
@@ -94,15 +102,18 @@ class ViewBox(
         )
         self.business_message = typing.cast(
             MessageView,
-            business_message_view or message.MessageView(update_type=UpdateType.BUSINESS_MESSAGE),
+            business_message_view
+            or message.MessageView(update_type=UpdateType.BUSINESS_MESSAGE),
         )
         self.channel_post = typing.cast(
             MessageView,
-            channel_post_view or message.MessageView(update_type=UpdateType.CHANNEL_POST),
+            channel_post_view
+            or message.MessageView(update_type=UpdateType.CHANNEL_POST),
         )
         self.edited_message = typing.cast(
             MessageView,
-            edited_message_view or message.MessageView(update_type=UpdateType.EDITED_MESSAGE),
+            edited_message_view
+            or message.MessageView(update_type=UpdateType.EDITED_MESSAGE),
         )
         self.edited_business_message = typing.cast(
             MessageView,
@@ -111,9 +122,12 @@ class ViewBox(
         )
         self.edited_channel_post = typing.cast(
             MessageView,
-            edited_channel_post_view or message.MessageView(update_type=UpdateType.EDITED_CHANNEL_POST),
+            edited_channel_post_view
+            or message.MessageView(update_type=UpdateType.EDITED_CHANNEL_POST),
         )
-        self.any_message = typing.cast(MessageView, any_message_view or message.MessageView())
+        self.any_message = typing.cast(
+            MessageView, any_message_view or message.MessageView()
+        )
         self.chat_member_updated = typing.cast(
             ChatMemberView,
             chat_member_updated_view or chat_member.ChatMemberView(),
@@ -123,7 +137,11 @@ class ViewBox(
     def get_views(self) -> dict[str, ABCView]:
         """Get all views."""
 
-        return {name: view for name, view in self.__dict__.items() if isinstance(view, ABCView)}
+        return {
+            name: view
+            for name, view in self.__dict__.items()
+            if isinstance(view, ABCView)
+        }
 
 
 __all__ = ("ViewBox",)

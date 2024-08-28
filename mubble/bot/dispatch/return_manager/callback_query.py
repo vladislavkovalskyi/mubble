@@ -2,8 +2,7 @@ import typing
 
 from mubble.bot.cute_types import CallbackQueryCute
 from mubble.bot.dispatch.context import Context
-
-from .abc import BaseReturnManager, register_manager
+from mubble.bot.dispatch.return_manager.abc import BaseReturnManager, register_manager
 
 
 class CallbackQueryReturnManager(BaseReturnManager[CallbackQueryCute]):
@@ -14,7 +13,9 @@ class CallbackQueryReturnManager(BaseReturnManager[CallbackQueryCute]):
 
     @register_manager(dict)
     @staticmethod
-    async def dict_manager(value: dict[str, typing.Any], event: CallbackQueryCute, ctx: Context) -> None:
+    async def dict_manager(
+        value: dict[str, typing.Any], event: CallbackQueryCute, ctx: Context
+    ) -> None:
         await event.answer(**value)
 
 

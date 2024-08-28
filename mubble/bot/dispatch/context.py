@@ -38,7 +38,9 @@ class Context(dict[str, AnyValue]):
 
     @recursive_repr()
     def __repr__(self) -> str:
-        return "{}({})".format(self.__class__.__name__, ", ".join(f"{k}={v!r}" for k, v in self.items()))
+        return "{}({})".format(
+            self.__class__.__name__, ", ".join(f"{k}={v!r}" for k, v in self.items())
+        )
 
     def __setitem__(self, __key: Key, __value: AnyValue) -> None:
         dict.__setitem__(self, self.key_to_str(__key), __value)
@@ -68,13 +70,22 @@ class Context(dict[str, AnyValue]):
     def set(self, key: Key, value: AnyValue) -> None:
         self[key] = value
 
-    def get(self, key: Key, default: T | None = None) -> T | AnyValue:
+    @typing.overload
+    def get(self, key: Key) -> AnyValue | None: ...
+
+    @typing.overload
+    def get(self, key: Key, default: T) -> T | AnyValue: ...
+
+    @typing.overload
+    def get(self, key: Key, default: None = None) -> AnyValue | None: ...
+
+    def get(self, key: Key, default: T | None = None) -> T | AnyValue | None:
         return dict.get(self, key, default)
 
     def get_or_set(self, key: Key, default: T) -> T:
         if key not in self:
             self.set(key, default)
-        return self.get(key)
+        return self.get(key, default)
 
     def delete(self, key: Key) -> None:
         del self[key]

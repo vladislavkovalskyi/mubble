@@ -2,15 +2,19 @@ import typing
 
 from fntypes.result import Result
 
-from mubble.api.abc import ABCAPI, APIError
+from mubble.api import API, APIError
+from mubble.bot.cute_types.base import BaseCute, shortcut
+from mubble.bot.cute_types.chat_member_updated import (
+    ChatMemberShortcuts,
+    chat_member_interaction,
+)
 from mubble.types.objects import ChatJoinRequest, User
 
-from .base import BaseCute, shortcut
-from .chat_member_updated import ChatMemberShortcuts, chat_member_interaction
 
-
-class ChatJoinRequestCute(BaseCute[ChatJoinRequest], ChatJoinRequest, ChatMemberShortcuts, kw_only=True):
-    api: ABCAPI
+class ChatJoinRequestCute(
+    BaseCute[ChatJoinRequest], ChatJoinRequest, ChatMemberShortcuts, kw_only=True
+):
+    api: API
 
     @property
     def from_user(self) -> User:

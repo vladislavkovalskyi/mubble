@@ -1,8 +1,7 @@
 from mubble.api.api import API
-from mubble.types import User
-
-from .base import ComposeError, ScalarNode
-from .scope import GLOBAL
+from mubble.node.base import ComposeError, ScalarNode
+from mubble.node.scope import GLOBAL
+from mubble.types.objects import User
 
 
 class Me(ScalarNode, User):

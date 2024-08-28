@@ -1,13 +1,13 @@
-# Mubble 1.2.4 (stable)
+# Mubble 1.3.0 (stable)
 
 [![Downloads](https://img.shields.io/pypi/dm/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
 [![Downloads](https://img.shields.io/pypi/pyversions/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
 
-<a href="https://github.com/vladislavkovalskyi/mubble/blob/master/examples">
+<a href="https://github.com/vladislavkovalskyi/mubble">
   <img src="https://github.com/vladislavkovalskyi/mubble/blob/master/images/mubble_logo.png?raw=true" alt="Github" width="100%">
 </a>
 
-<a href="https://github.com/vladislavkovalskyi/mubble">
+<a href="https://github.com/vladislavkovalskyi/mubble/blob/master/examples">
   <img src="https://github.com/vladislavkovalskyi/mubble/blob/master/images/click_here.png?raw=true" alt="Examples" width="100%">
 </a>
 

@@ -2,7 +2,8 @@ import typing
 
 from fntypes.result import Result
 
-from mubble.api import ABCAPI, APIError
+from mubble.api import API, APIError
+from mubble.bot.cute_types.base import BaseCute, compose_method_params, shortcut
 from mubble.model import get_params
 from mubble.types import (
     InlineQuery,
@@ -11,11 +12,9 @@ from mubble.types import (
     User,
 )
 
-from .base import BaseCute, compose_method_params, shortcut
-
 
 class InlineQueryCute(BaseCute[InlineQuery], InlineQuery, kw_only=True):
-    api: ABCAPI
+    api: API
 
     @property
     def from_user(self) -> User:

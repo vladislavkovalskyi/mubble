@@ -1,7 +1,7 @@
 import typing
 
 from mubble.model import get_params
-from mubble.types import (
+from mubble.types.objects import (
     InputFile,
     InputMediaAnimation,
     InputMediaAudio,
@@ -51,7 +51,7 @@ def compose_reactions(
                 else emoji
             )
         )
-        for emoji in ([reactions] if isinstance(reactions, str) else reactions)
+        for emoji in ([reactions] if isinstance(reactions, str) else reactions)  # type: ignore
     ]
 
 

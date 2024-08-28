@@ -1,8 +1,8 @@
-from .abc import ABCAdapter, Event
-from .errors import AdapterError
-from .event import EventAdapter
-from .node import NodeAdapter
-from .raw_update import RawUpdateAdapter
+from mubble.bot.rules.adapter.abc import ABCAdapter, Event
+from mubble.bot.rules.adapter.errors import AdapterError
+from mubble.bot.rules.adapter.event import EventAdapter
+from mubble.bot.rules.adapter.node import NodeAdapter
+from mubble.bot.rules.adapter.raw_update import RawUpdateAdapter
 
 __all__ = (
     "ABCAdapter",

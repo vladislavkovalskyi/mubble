@@ -12,15 +12,15 @@ class FuncRule(ABCRule, typing.Generic[AdaptTo]):
         self,
         func: typing.Callable[[AdaptTo, Context], typing.Awaitable[bool] | bool],
         adapter: ABCAdapter[Update, AdaptTo] | None = None,
-    ):
+    ) -> None:
         self.func = func
-        self.adapter = adapter or RawUpdateAdapter()
+        self.adapter = adapter or RawUpdateAdapter()  # type: ignore
 
     async def check(self, event: AdaptTo, ctx: Context) -> bool:
         result = self.func(event, ctx)
         if inspect.isawaitable(result):
             return await result
-        return result
+        return result  # type: ignore
 
 
 __all__ = ("FuncRule",)

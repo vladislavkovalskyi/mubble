@@ -1,21 +1,19 @@
 """Mubble
 
-Modern visionary telegram bot framework.
+Mubble is a next-generation framework known for its great speed and simplicity. It is written using aiohttp, asyncio, and msgspec.
 
-* Type hinted
-* Customizable and extensible
-* Ready to use scenarios and rules
-* Fast models built on msgspec
-* Both low-level and high-level API
+* Written on Python
+* Asynchronous and very fast.
 
 Basic example:
 
 ```python
+
 from mubble import API, Message, Mubble, Token
 from mubble.modules import logger
 from mubble.rules import Text
 
-api = API(token=Token("123:token"))
+api = API(token=Token("123:ABC"))
 bot = Mubble(api)
 logger.set_level("INFO")
 
@@ -27,14 +25,13 @@ async def start(message: Message):
         f"Hello, {message.from_user.full_name}! I'm {me.full_name}."
     )
 
-
 bot.run_forever()
 ```
 """
 
 import typing
 
-from .api import ABCAPI, API, APIError, APIResponse, Token
+from .api import API, APIError, APIResponse, Token
 from .bot import (
     ABCDispatch,
     ABCHandler,
@@ -122,7 +119,7 @@ Bot: typing.TypeAlias = Mubble
 
 
 __all__ = (
-    "ABCAPI",
+    "API",
     "ABCClient",
     "ABCDispatch",
     "ABCErrorHandler",

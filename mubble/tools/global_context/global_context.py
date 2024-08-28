@@ -64,9 +64,9 @@ def root_protection(func: F) -> F:
             if func.__name__ == "__delattr__":
                 raise AttributeError(f"Unable to delete root attribute {name!r}.")
 
-        return func(self, name, *args)
+        return func(self, name, *args)  # type: ignore
 
-    return wrapper
+    return wrapper  # type: ignore
 
 
 def ctx_var(value: T, *, const: bool = False) -> T:
@@ -85,7 +85,7 @@ def ctx_var(value: T, *, const: bool = False) -> T:
     return typing.cast(T, CtxVar(value, const=const))
 
 
-@dataclasses.dataclass(frozen=True, eq=False)
+@dataclasses.dataclass(frozen=True, eq=False, slots=True)
 class RootAttr:
     name: str
     can_be_read: bool = dataclasses.field(default=True, kw_only=True)
@@ -95,7 +95,7 @@ class RootAttr:
         return self.name == __value
 
 
-@dataclasses.dataclass(repr=False, frozen=True)
+@dataclasses.dataclass(repr=False, frozen=True, slots=True)
 class Storage:
     _storage: dict[str, "GlobalContext"] = dataclasses.field(
         default_factory=lambda: {},
@@ -181,7 +181,7 @@ class GlobalContext(
             cls.__storage__.set(ctx_name, ctx)
 
         ctx.set_context_variables(variables)
-        return ctx
+        return ctx  # type: ignore
 
     def __init__(
         self,
@@ -327,10 +327,10 @@ class GlobalContext(
         var_value_type: type[T],
     ) -> Option[GlobalCtxVar[T]]: ...
 
-    def pop(self, var_name: str, var_value_type=object):
+    def pop(self, var_name: str, var_value_type=object):  # type: ignore
         """Pop context variable by name."""
 
-        val = self.get(var_name, var_value_type)
+        val = self.get(var_name, var_value_type)  # type: ignore
         if val:
             del self[var_name]
             return val
@@ -346,10 +346,10 @@ class GlobalContext(
         var_value_type: type[T],
     ) -> Option[GlobalCtxVar[T]]: ...
 
-    def get(self, var_name, var_value_type=object):
+    def get(self, var_name, var_value_type=object):  # type: ignore
         """Get context variable by name."""
 
-        var_value_type = typing.Any if var_value_type is object else type
+        var_value_type = typing.Any if var_value_type is object else var_value_type
         generic_types = typing.get_args(get_orig_class(self))
         if generic_types and var_value_type is object:
             var_value_type = generic_types[0]
@@ -378,7 +378,7 @@ class GlobalContext(
         var_value_type: type[T],
     ) -> Option[T]: ...
 
-    def get_value(self, var_name, var_value_type=object):
+    def get_value(self, var_name, var_value_type=object):  # type: ignore
         """Get context variable value by name."""
 
         return self.get(var_name, var_value_type).map(lambda var: var.value)
