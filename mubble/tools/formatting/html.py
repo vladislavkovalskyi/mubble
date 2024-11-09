@@ -1,5 +1,3 @@
-# NOTE: NEED REFACTORING
-
 import html
 import string
 import typing
@@ -25,9 +23,7 @@ QUOT_MARK = '"'
 class StringFormatterProto(typing.Protocol):
     def format_field(self, value: typing.Any, fmt: str) -> "HTMLFormatter": ...
 
-    def format(
-        self, __string: str, *args: object, **kwargs: object
-    ) -> "HTMLFormatter": ...
+    def format(self, __string: str, *args: object, **kwargs: object) -> "HTMLFormatter": ...
 
 
 class StringFormatter(string.Formatter):
@@ -58,9 +54,7 @@ class StringFormatter(string.Formatter):
             )
         return fmt
 
-    def get_spec_formatter(
-        self, value: SpecialFormat
-    ) -> typing.Callable[..., "TagFormat"]:
+    def get_spec_formatter(self, value: SpecialFormat) -> typing.Callable[..., "TagFormat"]:
         return globals()[value.__formatter_name__]
 
     def check_formats(self, value: typing.Any, fmts: list[str]) -> "TagFormat":
@@ -93,9 +87,7 @@ class StringFormatter(string.Formatter):
                         value.formatting()
                         if isinstance(value, TagFormat)
                         else (
-                            self.get_spec_formatter(value)(
-                                **value.__dict__
-                            ).formatting()
+                            self.get_spec_formatter(value)(**value.__dict__).formatting()
                             if is_spec_format(value)
                             else value
                         )
@@ -248,15 +240,11 @@ def spoiler(string: str) -> TagFormat:
     return TagFormat(string, tag="tg-spoiler")
 
 
-def start_bot_link(
-    bot_id: str | int, data: str, string: str | None = None
-) -> TagFormat:
+def start_bot_link(bot_id: str | int, data: str, string: str | None = None) -> TagFormat:
     return link(get_start_bot_link(bot_id, data), string)
 
 
-def start_group_link(
-    bot_id: str | int, data: str, string: str | None = None
-) -> TagFormat:
+def start_group_link(bot_id: str | int, data: str, string: str | None = None) -> TagFormat:
     return link(get_start_group_link(bot_id, data), string)
 
 

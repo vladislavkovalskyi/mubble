@@ -1,7 +1,7 @@
 import typing
 
-from mubble.bot.cute_types import ChatMemberUpdatedCute
-from mubble.bot.dispatch.view.abc import BaseStateView
+from mubble.bot.cute_types.chat_member_updated import ChatMemberUpdatedCute
+from mubble.bot.dispatch.view.base import BaseStateView
 from mubble.types.enums import UpdateType
 from mubble.types.objects import Update
 
@@ -22,11 +22,7 @@ class ChatMemberView(BaseStateView[ChatMemberUpdatedCute]):
     def __repr__(self) -> str:
         return "<{}: {!r}>".format(
             self.__class__.__name__,
-            (
-                "chat_member_updated"
-                if self.update_type is None
-                else self.update_type.value
-            ),
+            "chat_member_updated" if self.update_type is None else self.update_type.value,
         )
 
     def get_state_key(self, event: ChatMemberUpdatedCute) -> int | None:

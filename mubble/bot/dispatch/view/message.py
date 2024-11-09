@@ -1,9 +1,10 @@
 import typing
 
-from mubble.bot.cute_types import MessageCute
-from mubble.bot.dispatch.return_manager import MessageReturnManager
-from mubble.bot.dispatch.view.abc import BaseStateView
-from mubble.types import Update, UpdateType
+from mubble.bot.cute_types.message import MessageCute
+from mubble.bot.dispatch.return_manager.message import MessageReturnManager
+from mubble.bot.dispatch.view.base import BaseStateView
+from mubble.types.enums import UpdateType
+from mubble.types.objects import Update
 
 MessageUpdateType: typing.TypeAlias = typing.Literal[
     UpdateType.MESSAGE,
@@ -26,11 +27,7 @@ class MessageView(BaseStateView[MessageCute]):
     def __repr__(self) -> str:
         return "<{}: {!r}>".format(
             self.__class__.__name__,
-            (
-                "any message update"
-                if self.update_type is None
-                else self.update_type.value
-            ),
+            "any message update" if self.update_type is None else self.update_type.value,
         )
 
     def get_state_key(self, event: MessageCute) -> int | None:

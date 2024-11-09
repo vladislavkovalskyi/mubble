@@ -11,8 +11,8 @@ if typing.TYPE_CHECKING:
     from mubble.bot.rules.abc import ABCRule
 
 
-class RuleChain(dict[str, typing.Any]):
-    dataclass = dict
+class RuleChain(dict[str, typing.Any], Node):
+    dataclass: type[typing.Any] = dict
     rules: tuple["ABCRule", ...] = ()
 
     def __init_subclass__(cls, *args: typing.Any, **kwargs: typing.Any) -> None:
@@ -30,9 +30,6 @@ class RuleChain(dict[str, typing.Any]):
     ) -> typing.Self:
         if not isinstance(items, tuple):
             items = (items,)
-        assert all(
-            isinstance(rule, "ABCRule") for rule in items
-        ), "All items must be instances of 'ABCRule'."
         return cls(*items)
 
     @staticmethod
@@ -43,6 +40,7 @@ class RuleChain(dict[str, typing.Any]):
 
     @classmethod
     async def compose(cls, update: UpdateNode) -> typing.Any:
+        # Hack to avoid circular import
         globalns = globals()
         if "check_rule" not in globalns:
             globalns.update(
@@ -60,7 +58,9 @@ class RuleChain(dict[str, typing.Any]):
                 raise ComposeError(f"Rule {rule!r} failed!")
 
         try:
-            return cls.dataclass(**ctx)  # type: ignore
+            if dataclasses.is_dataclass(cls.dataclass):
+                return cls.dataclass(**{k: ctx[k] for k in cls.__annotations__})
+            return cls.dataclass(**ctx)
         except Exception as exc:
             raise ComposeError(f"Dataclass validation error: {exc}")
 
@@ -69,7 +69,7 @@ class RuleChain(dict[str, typing.Any]):
         return cls
 
     @classmethod
-    def get_subnodes(cls) -> dict:
+    def get_subnodes(cls) -> dict[typing.Literal["update"], type[UpdateNode]]:
         return {"update": UpdateNode}
 
     @classmethod

@@ -1,5 +1,5 @@
-from mubble import Token, API, Mubble
-from mubble.modules import logger
+from mubble_old import Token, API, Mubble
+from mubble_old.modules import logger
 
 api = API(Token.from_env())
 bot = Mubble(api)

@@ -1,21 +1,15 @@
 import typing
 
-from mubble.api import API
-from mubble.bot.cute_types import UpdateCute
-from mubble.bot.dispatch.handler.func import FuncHandler
+from mubble.api.api import API
+from mubble.bot.cute_types.update import UpdateCute
+from mubble.bot.dispatch.handler.func import Func, FuncHandler
 from mubble.bot.dispatch.process import process_inner
-from mubble.bot.dispatch.view.abc import ABCEventRawView, BaseView, ErrorHandlerT
+from mubble.bot.dispatch.view.abc import ABCEventRawView
+from mubble.bot.dispatch.view.base import BaseView
 from mubble.bot.rules.abc import ABCRule
 from mubble.tools.error_handler.error_handler import ABCErrorHandler, ErrorHandler
 from mubble.types.enums import UpdateType
 from mubble.types.objects import Update
-
-T = typing.TypeVar("T")
-
-FuncType: typing.TypeAlias = typing.Callable[
-    typing.Concatenate[T, ...],
-    typing.Coroutine[typing.Any, typing.Any, typing.Any],
-]
 
 
 class RawEventView(ABCEventRawView[UpdateCute], BaseView[UpdateCute]):
@@ -26,70 +20,66 @@ class RawEventView(ABCEventRawView[UpdateCute], BaseView[UpdateCute]):
         self.return_manager = None
 
     @typing.overload
-    def __call__(
+    def __call__[**P, R](
         self,
         update_type: UpdateType,
         *rules: ABCRule,
     ) -> typing.Callable[
-        [FuncType[UpdateCute]],
-        FuncHandler[UpdateCute, FuncType[UpdateCute], ErrorHandler[UpdateCute]],
+        [Func[P, R]],
+        FuncHandler[UpdateCute, Func[P, R], ErrorHandler[UpdateCute]],
     ]: ...
 
     @typing.overload
-    def __call__(
+    def __call__[**P, Dataclass, R](
         self,
         update_type: UpdateType,
         *rules: ABCRule,
-        dataclass: type[T],
-    ) -> typing.Callable[
-        [FuncType[T]], FuncHandler[UpdateCute, FuncType[T], ErrorHandler[T]]
-    ]: ...
+        dataclass: type[Dataclass],
+    ) -> typing.Callable[[Func[P, R]], FuncHandler[UpdateCute, Func[P, R], ErrorHandler[Dataclass]]]: ...
 
     @typing.overload
-    def __call__(
+    def __call__[**P, ErrorHandlerT: ABCErrorHandler, R](
         self,
         update_type: UpdateType,
         *rules: ABCRule,
         error_handler: ErrorHandlerT,
     ) -> typing.Callable[
-        [FuncType[UpdateCute]],
-        FuncHandler[UpdateCute, FuncType[UpdateCute], ErrorHandlerT],
+        [Func[P, R]],
+        FuncHandler[UpdateCute, Func[P, R], ErrorHandlerT],
     ]: ...
 
     @typing.overload
-    def __call__(
+    def __call__[**P, ErrorHandlerT: ABCErrorHandler, R](
         self,
         update_type: UpdateType,
         *rules: ABCRule,
-        dataclass: type[T],
+        dataclass: type[typing.Any],
         error_handler: ErrorHandlerT,
         is_blocking: bool = True,
-    ) -> typing.Callable[
-        [FuncType[T]], FuncHandler[UpdateCute, FuncType[T], ErrorHandlerT]
-    ]: ...
+    ) -> typing.Callable[[Func[P, R]], FuncHandler[UpdateCute, Func[P, R], ErrorHandlerT]]: ...
 
     @typing.overload
-    def __call__(
+    def __call__[**P, R](
         self,
         update_type: UpdateType,
         *rules: ABCRule,
-        dataclass: typing.Literal[None] = None,
-        error_handler: typing.Literal[None] = None,
+        dataclass: None = None,
+        error_handler: None = None,
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [FuncType[UpdateCute]],
-        FuncHandler[UpdateCute, FuncType[UpdateCute], ErrorHandler[UpdateCute]],
+        [Func[P, R]],
+        FuncHandler[UpdateCute, Func[P, R], ErrorHandler[UpdateCute]],
     ]: ...
 
-    def __call__(  # type: ignore
+    def __call__(
         self,
         update_type: UpdateType,
         *rules: ABCRule,
         dataclass: type[typing.Any] | None = None,
         error_handler: ABCErrorHandler | None = None,
         is_blocking: bool = True,
-    ):
-        def wrapper(func: FuncType[typing.Any]):
+    ) -> typing.Callable[..., typing.Any]:
+        def wrapper(func):
             func_handler = FuncHandler(
                 func,
                 rules=[*self.auto_rules, *rules],
@@ -115,3 +105,6 @@ class RawEventView(ABCEventRawView[UpdateCute], BaseView[UpdateCute]):
             self.handlers,
             self.return_manager,
         )
+
+
+__all__ = ("RawEventView",)

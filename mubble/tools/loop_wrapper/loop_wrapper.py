@@ -5,16 +5,11 @@ import datetime
 import typing
 
 from mubble.modules import logger
+from mubble.tools.loop_wrapper.abc import ABCLoopWrapper
 
-from .abc import ABCLoopWrapper
-
-T = typing.TypeVar("T")
-P = typing.ParamSpec("P")
-CoroFunc = typing.TypeVar("CoroFunc", bound="CoroutineFunc")
-
-CoroutineTask: typing.TypeAlias = typing.Coroutine[typing.Any, typing.Any, T]
-CoroutineFunc: typing.TypeAlias = typing.Callable[P, CoroutineTask[T]]
-Task: typing.TypeAlias = typing.Union[CoroutineFunc, CoroutineTask, "DelayedTask"]
+type CoroutineTask[T] = typing.Coroutine[typing.Any, typing.Any, T]
+type CoroutineFunc[**P, T] = typing.Callable[P, CoroutineTask[T]]
+type Task[**P, T] = CoroutineFunc[P, T] | CoroutineTask[T] | DelayedTask[typing.Callable[P, CoroutineTask[T]]]
 
 
 def run_tasks(
@@ -34,7 +29,7 @@ def to_coroutine_task(task: Task) -> CoroutineTask[typing.Any]:
 
 
 @dataclasses.dataclass(slots=True)
-class DelayedTask(typing.Generic[CoroFunc]):
+class DelayedTask[CoroFunc: CoroutineFunc[..., typing.Any]]:
     handler: CoroFunc
     seconds: float
     repeat: bool = dataclasses.field(default=False, kw_only=True)
@@ -44,17 +39,16 @@ class DelayedTask(typing.Generic[CoroFunc]):
     def is_cancelled(self) -> bool:
         return self._cancelled
 
-    async def __call__(self, *args, **kwargs) -> None:
+    async def __call__(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         while not self.is_cancelled:
             await asyncio.sleep(self.seconds)
             if self.is_cancelled:
                 break
             try:
                 await self.handler(*args, **kwargs)
-            except Exception as e:
-                logger.exception("Error in delayed task: {}", str(e))
-            if not self.repeat:
-                break
+            finally:
+                if not self.repeat:
+                    break
 
     def cancel(self) -> None:
         if not self._cancelled:
@@ -63,12 +57,8 @@ class DelayedTask(typing.Generic[CoroFunc]):
 
 @dataclasses.dataclass(kw_only=True, slots=True, frozen=True)
 class Lifespan:
-    startup_tasks: list[CoroutineTask[typing.Any]] = dataclasses.field(
-        default_factory=lambda: []
-    )
-    shutdown_tasks: list[CoroutineTask[typing.Any]] = dataclasses.field(
-        default_factory=lambda: []
-    )
+    startup_tasks: list[CoroutineTask[typing.Any]] = dataclasses.field(default_factory=lambda: [])
+    shutdown_tasks: list[CoroutineTask[typing.Any]] = dataclasses.field(default_factory=lambda: [])
 
     def on_startup(self, task: Task, /) -> Task:
         self.startup_tasks.append(to_coroutine_task(task))
@@ -95,7 +85,12 @@ class LoopWrapper(ABCLoopWrapper):
     ) -> None:
         self.tasks: list[CoroutineTask[typing.Any]] = tasks or []
         self.lifespan = lifespan or Lifespan()
-        self._loop = event_loop or asyncio.new_event_loop()
+        self._loop = event_loop
+
+    @property
+    def loop(self) -> asyncio.AbstractEventLoop:
+        assert self._loop is not None
+        return self._loop
 
     def __repr__(self) -> str:
         return "<{}: loop={!r} with tasks={!r}, lifespan={!r}>".format(
@@ -109,11 +104,13 @@ class LoopWrapper(ABCLoopWrapper):
         if not self.tasks:
             logger.warning("You run loop with 0 tasks!")
 
+        self._loop = asyncio.new_event_loop() if self._loop is None else self._loop
         self.lifespan.start(self._loop)
+
         while self.tasks:
             self._loop.create_task(self.tasks.pop(0))
-        tasks = asyncio.all_tasks(self._loop)
 
+        tasks = asyncio.all_tasks(self._loop)
         try:
             while tasks:
                 tasks_results, _ = self._loop.run_until_complete(
@@ -137,22 +134,20 @@ class LoopWrapper(ABCLoopWrapper):
     def add_task(self, task: Task) -> None:
         task = to_coroutine_task(task)
 
-        if self._loop and self._loop.is_running():
+        if self._loop is not None and self._loop.is_running():
             self._loop.create_task(task)
         else:
             self.tasks.append(task)
 
     def complete_tasks(self, tasks: set[asyncio.Task[typing.Any]]) -> None:
-        tasks = tasks | asyncio.all_tasks(self._loop)
+        tasks = tasks | asyncio.all_tasks(self.loop)
         task_to_cancel = asyncio.gather(*tasks, return_exceptions=True)
         task_to_cancel.cancel()
         with contextlib.suppress(asyncio.CancelledError):
-            self._loop.run_until_complete(task_to_cancel)
+            self.loop.run_until_complete(task_to_cancel)
 
     @typing.overload
-    def timer(
-        self, *, seconds: datetime.timedelta
-    ) -> typing.Callable[..., typing.Any]: ...
+    def timer(self, *, seconds: datetime.timedelta) -> typing.Callable[..., typing.Any]: ...
 
     @typing.overload
     def timer(
@@ -179,16 +174,14 @@ class LoopWrapper(ABCLoopWrapper):
         seconds += hours * 60 * 60
         seconds += days * 24 * 60 * 60
 
-        def decorator(func: CoroFunc) -> CoroFunc:
+        def decorator[CoroFunc: CoroutineFunc[..., typing.Any]](func: CoroFunc) -> CoroFunc:
             self.add_task(DelayedTask(func, seconds, repeat=False))
             return func
 
         return decorator
 
     @typing.overload
-    def interval(
-        self, *, seconds: datetime.timedelta
-    ) -> typing.Callable[..., typing.Any]: ...
+    def interval(self, *, seconds: datetime.timedelta) -> typing.Callable[..., typing.Any]: ...
 
     @typing.overload
     def interval(
@@ -215,7 +208,7 @@ class LoopWrapper(ABCLoopWrapper):
         seconds += hours * 60 * 60
         seconds += days * 24 * 60 * 60
 
-        def decorator(func: CoroFunc) -> CoroFunc:
+        def decorator[CoroFunc: CoroutineFunc[..., typing.Any]](func: CoroFunc) -> CoroFunc:
             self.add_task(DelayedTask(func, seconds, repeat=True))
             return func
 

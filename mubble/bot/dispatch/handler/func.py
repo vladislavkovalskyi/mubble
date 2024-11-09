@@ -3,14 +3,14 @@ from functools import cached_property
 
 import typing_extensions as typing
 
-from mubble.api import API
+from mubble.api.api import API
 from mubble.bot.cute_types import BaseCute, UpdateCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.process import check_rule
 from mubble.model import Model
 from mubble.modules import logger
 from mubble.node.base import Node, get_nodes
-from mubble.node.composer import compose_nodes
+from mubble.node.composer import NodeCollection, compose_nodes
 from mubble.node.event import EVENT_NODE_KEY
 from mubble.tools.error_handler import ABCErrorHandler, ErrorHandler
 from mubble.types.enums import UpdateType
@@ -19,23 +19,19 @@ from mubble.types.objects import Update
 from .abc import ABCHandler
 
 if typing.TYPE_CHECKING:
-    from mubble.bot.rules import ABCRule
+    from mubble.bot.rules.abc import ABCRule
+    from mubble.node.composer import NodeCollection
 
-F = typing.TypeVar(
-    "F",
-    bound=typing.Callable[
-        typing.Concatenate[typing.Any, ...], typing.Awaitable[typing.Any]
-    ],
-)
+Function = typing.TypeVar("Function", bound="Func[..., typing.Any]")
 Event = typing.TypeVar("Event", bound=Model)
-ErrorHandlerT = typing.TypeVar(
-    "ErrorHandlerT", bound=ABCErrorHandler, default=ErrorHandler
-)
+ErrorHandlerT = typing.TypeVar("ErrorHandlerT", bound=ABCErrorHandler, default=ErrorHandler)
+
+type Func[**Rest, Result] = typing.Callable[Rest, typing.Coroutine[typing.Any, typing.Any, Result]]
 
 
 @dataclasses.dataclass(repr=False, slots=True)
-class FuncHandler(ABCHandler[Event], typing.Generic[Event, F, ErrorHandlerT]):
-    func: F
+class FuncHandler(ABCHandler[Event], typing.Generic[Event, Function, ErrorHandlerT]):
+    function: Function
     rules: list["ABCRule"]
     is_blocking: bool = dataclasses.field(default=True, kw_only=True)
     dataclass: type[typing.Any] | None = dataclasses.field(default=dict, kw_only=True)
@@ -43,26 +39,29 @@ class FuncHandler(ABCHandler[Event], typing.Generic[Event, F, ErrorHandlerT]):
         default_factory=lambda: typing.cast(ErrorHandlerT, ErrorHandler()),
         kw_only=True,
     )
-    preset_context: Context = dataclasses.field(
-        default_factory=lambda: Context(), kw_only=True
-    )
+    preset_context: Context = dataclasses.field(default_factory=lambda: Context(), kw_only=True)
     update_type: UpdateType | None = dataclasses.field(default=None, kw_only=True)
 
+    def __post_init__(self) -> None:
+        self.dataclass = typing.get_origin(self.dataclass) or self.dataclass
+
+    @property
+    def __call__(self) -> Function:
+        return self.function
+
     def __repr__(self) -> str:
-        return (
-            "<{}: {}={!r} with rules={!r}, dataclass={!r}, error_handler={!r}>".format(
-                self.__class__.__name__,
-                "blocking function" if self.is_blocking else "function",
-                self.func.__name__,
-                self.rules,
-                self.dataclass,
-                self.error_handler,
-            )
+        return "<{}: {}={!r} with rules={!r}, dataclass={!r}, error_handler={!r}>".format(
+            self.__class__.__name__,
+            "blocking function" if self.is_blocking else "function",
+            self.function.__qualname__,
+            self.rules,
+            self.dataclass,
+            self.error_handler,
         )
 
     @cached_property
     def required_nodes(self) -> dict[str, type[Node]]:
-        return get_nodes(self.func)
+        return get_nodes(self.function)
 
     async def check(self, api: API, event: Update, ctx: Context | None = None) -> bool:
         if self.update_type is not None and self.update_type != event.update_type:
@@ -71,16 +70,20 @@ class FuncHandler(ABCHandler[Event], typing.Generic[Event, F, ErrorHandlerT]):
         logger.debug("Checking handler {!r}...", self)
         ctx = Context(raw_update=event) if ctx is None else ctx
         temp_ctx = ctx.copy()
-        temp_ctx |= self.preset_context
+        temp_ctx |= self.preset_context.copy()
+        update = event
+
+        for rule in self.rules:
+            if not await check_rule(api, rule, update, temp_ctx):
+                logger.debug("Rule {!r} failed!", rule)
+                return False
 
         nodes = self.required_nodes
         node_col = None
-        update = event
-
         if nodes:
             result = await compose_nodes(nodes, ctx, data={Update: event, API: api})
             if not result:
-                logger.debug(f"Cannot compose nodes for handler. {result.error}")
+                logger.debug(f"Cannot compose nodes for handler. Error: {result.error!r}")
                 return False
 
             node_col = result.value
@@ -89,12 +92,7 @@ class FuncHandler(ABCHandler[Event], typing.Generic[Event, F, ErrorHandlerT]):
             if EVENT_NODE_KEY in ctx:
                 for name, node in nodes.items():
                     if node is ctx[EVENT_NODE_KEY] and name in temp_ctx:
-                        ctx[EVENT_NODE_KEY] = temp_ctx.pop(name)
-
-        for rule in self.rules:
-            if not await check_rule(api, rule, update, temp_ctx):
-                logger.debug("Rule {!r} failed!", rule)
-                return False
+                        ctx[name] = temp_ctx.pop(name)
 
         logger.debug("All checks passed for handler.")
 
@@ -102,32 +100,31 @@ class FuncHandler(ABCHandler[Event], typing.Generic[Event, F, ErrorHandlerT]):
         ctx |= temp_ctx
         return True
 
-    async def run(self, api: API, event: Event, ctx: Context) -> typing.Any:
-        logger.debug(f"Running func handler {self.func}")
-        dataclass_type = typing.get_origin(self.dataclass) or self.dataclass
+    async def run(
+        self,
+        api: API,
+        event: Event,
+        ctx: Context,
+        node_col: "NodeCollection | None" = None,
+    ) -> typing.Any:
+        logger.debug(f"Running func handler {self.function.__qualname__!r}")
 
-        if (
-            dataclass_type is Update
-            and (event_node := ctx.pop(EVENT_NODE_KEY, None)) is not None
-        ):
-            event = event_node
-
-        elif dataclass_type is not None:
+        if self.dataclass is not None and EVENT_NODE_KEY not in ctx:
             if self.update_type is not None and isinstance(event, Update):
-                update = event.to_dict()[self.update_type.value].unwrap()
+                update = getattr(event, event.update_type.value).unwrap()
                 event = (
-                    self.dataclass.from_update(update, bound_api=api)  # type: ignore
-                    if issubclass(dataclass_type, BaseCute)
+                    self.dataclass.from_update(update, bound_api=api)
+                    if issubclass(self.dataclass, BaseCute)
                     else self.dataclass(**update.to_dict())  # type: ignore
                 )
 
-            elif issubclass(dataclass_type, UpdateCute) and isinstance(event, Update):
-                event = self.dataclass.from_update(event, bound_api=api)  # type: ignore
+            elif issubclass(self.dataclass, UpdateCute) and isinstance(event, Update):
+                event = self.dataclass.from_update(event, bound_api=api)
 
             else:
                 event = self.dataclass(**event.to_dict())  # type: ignore
 
-        result = (await self.error_handler.run(self.func, event, api, ctx)).unwrap()
+        result = (await self.error_handler.run(self.function, event, api, ctx)).unwrap()
         if node_col := ctx.node_col:
             await node_col.close_all()
         return result

@@ -1,9 +1,9 @@
 import pathlib
 
-from mubble import Token, API, Mubble, Message
-from mubble.modules import logger
-from mubble.rules import Command
-from mubble.types import InputFile
+from mubble_old import Token, API, Mubble, Message
+from mubble_old.modules import logger
+from mubble_old.rules import Command
+from mubble_old.types import InputFile
 
 api = API(token=Token.from_env())
 bot = Mubble(api)

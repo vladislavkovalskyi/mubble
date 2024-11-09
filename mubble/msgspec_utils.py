@@ -1,27 +1,24 @@
-import dataclasses
 import typing
+from contextlib import contextmanager
 
 import fntypes.option
 import fntypes.result
 import msgspec
-from fntypes.co import Error, Ok, Result, Variative
+from fntypes.co import Error, Ok, Variative
 
 if typing.TYPE_CHECKING:
     from datetime import datetime
 
     from fntypes.option import Option
 
-    def get_class_annotations(obj: typing.Any) -> dict[str, type[typing.Any]]: ...
+    def get_class_annotations(obj: typing.Any) -> dict[str, typing.Any]: ...
 
-    def get_type_hints(obj: typing.Any) -> dict[str, type[typing.Any]]: ...
+    def get_type_hints(obj: typing.Any) -> dict[str, typing.Any]: ...
 
 else:
     from datetime import datetime as dt
 
     from msgspec._utils import get_class_annotations, get_type_hints
-
-    Value = typing.TypeVar("Value")
-    Err = typing.TypeVar("Err")
 
     datetime = type("datetime", (dt,), {})
 
@@ -29,20 +26,17 @@ else:
         def __instancecheck__(cls, __instance: typing.Any) -> bool:
             return isinstance(__instance, fntypes.option.Some | fntypes.option.Nothing)
 
-
-    class Option(typing.Generic[Value], metaclass=OptionMeta):
+    class Option[Value](metaclass=OptionMeta):
         pass
 
 
-T = typing.TypeVar("T")
-
-DecHook: typing.TypeAlias = typing.Callable[[type[T], typing.Any], typing.Any]
-EncHook: typing.TypeAlias = typing.Callable[[T], typing.Any]
+type DecHook[T] = typing.Callable[[type[T], typing.Any], typing.Any]
+type EncHook[T] = typing.Callable[[T], typing.Any]
 
 Nothing: typing.Final[fntypes.option.Nothing] = fntypes.option.Nothing()
 
 
-def get_origin(t: type[T]) -> type[T]:
+def get_origin[T](t: type[T]) -> type[T]:
     return typing.cast(T, typing.get_origin(t)) or t
 
 
@@ -63,13 +57,14 @@ def is_common_type(type_: typing.Any) -> typing.TypeGuard[type[typing.Any]]:
 def type_check(obj: typing.Any, t: typing.Any) -> bool:
     return (
         isinstance(obj, t)
-        if isinstance(t, type)
-        and issubclass(t, msgspec.Struct)
-        else type(obj) in t if isinstance(t, tuple) else type(obj) is t
+        if isinstance(t, type) and issubclass(t, msgspec.Struct)
+        else type(obj) in t
+        if isinstance(t, tuple)
+        else type(obj) is t
     )
 
 
-def msgspec_convert(obj: typing.Any, t: type[T]) -> Result[T, str]:
+def msgspec_convert[T](obj: typing.Any, t: type[T]) -> fntypes.result.Result[T, str]:
     try:
         return Ok(decoder.convert(obj, type=t, strict=True))
     except msgspec.ValidationError:
@@ -94,8 +89,8 @@ def msgspec_to_builtins(
         return Error(exc)
 
 
-def option_dec_hook(tp: type[Option[typing.Any]], obj: typing.Any) -> Option[typing.Any]:
-    if obj is None:
+def option_dec_hook(tp: type[Option[typing.Any]], obj: typing.Any) -> fntypes.option.Option[typing.Any]:
+    if obj is None or isinstance(obj, fntypes.Nothing):
         return Nothing
 
     (value_type,) = typing.get_args(tp) or (typing.Any,)
@@ -155,11 +150,6 @@ def variative_dec_hook(tp: type[Variative], obj: typing.Any) -> Variative:
     )
 
 
-@typing.runtime_checkable
-class DataclassInstance(typing.Protocol):
-    __dataclass_fields__: typing.ClassVar[dict[str, dataclasses.Field[typing.Any]]]
-
-
 class Decoder:
     """Class `Decoder` for `msgspec` module with decode hook
     for objects with the specified type.
@@ -174,7 +164,7 @@ class Decoder:
         TWO = 2
         THREE = 3
 
-    decoder = Encoder()
+    decoder = Decoder()
     decoder.dec_hooks[dt] = lambda t, timestamp: t.fromtimestamp(timestamp)
 
     decoder.dec_hook(dt, 1713354732)  #> datetime.datetime(2024, 4, 17, 14, 52, 12)
@@ -201,9 +191,42 @@ class Decoder:
             self.dec_hooks,
         )
 
-    def add_dec_hook(self, t: T):  # type: ignore
+    @typing.overload
+    def __call__[T](self, type: type[T]) -> typing.ContextManager[msgspec.json.Decoder[T]]: ...
+
+    @typing.overload
+    def __call__(self, type: typing.Any) -> typing.ContextManager[msgspec.json.Decoder[typing.Any]]: ...
+
+    @typing.overload
+    def __call__[T](
+        self,
+        type: type[T],
+        *,
+        strict: bool = True,
+    ) -> typing.ContextManager[msgspec.json.Decoder[T]]: ...
+
+    @typing.overload
+    def __call__(
+        self,
+        type: typing.Any,
+        *,
+        strict: bool = True,
+    ) -> typing.ContextManager[msgspec.json.Decoder[typing.Any]]: ...
+
+    @contextmanager
+    def __call__(self, type=object, *, strict=True):
+        """Context manager returns an `msgspec.json.Decoder` object with the `dec_hook`."""
+
+        dec_obj = msgspec.json.Decoder(
+            type=typing.Any if type is object else type,
+            strict=strict,
+            dec_hook=self.dec_hook,
+        )
+        yield dec_obj
+
+    def add_dec_hook[T](self, t: type[T]):
         def decorator(func: DecHook[T]) -> DecHook[T]:
-            return self.dec_hooks.setdefault(get_origin(t), func)  # type: ignore
+            return self.dec_hooks.setdefault(get_origin(t), func)
 
         return decorator
 
@@ -215,7 +238,7 @@ class Decoder:
             )
         return self.dec_hooks[origin_type](tp, obj)
 
-    def convert(
+    def convert[T](
         self,
         obj: object,
         *,
@@ -239,16 +262,28 @@ class Decoder:
     def decode(self, buf: str | bytes) -> typing.Any: ...
 
     @typing.overload
-    def decode(self, buf: str | bytes, *, type: type[T]) -> T: ...
+    def decode[T](self, buf: str | bytes, *, type: type[T]) -> T: ...
 
     @typing.overload
-    def decode(
+    def decode(self, buf: str | bytes, *, type: typing.Any) -> typing.Any: ...
+
+    @typing.overload
+    def decode[T](
         self,
         buf: str | bytes,
         *,
         type: type[T],
         strict: bool = True,
     ) -> T: ...
+
+    @typing.overload
+    def decode(
+        self,
+        buf: str | bytes,
+        *,
+        type: typing.Any,
+        strict: bool = True,
+    ) -> typing.Any: ...
 
     def decode(self, buf, *, type=object, strict=True):
         return msgspec.json.decode(
@@ -287,7 +322,20 @@ class Encoder:
             self.enc_hooks,
         )
 
-    def add_dec_hook(self, t: type[T]):
+    @contextmanager
+    def __call__(
+        self,
+        *,
+        decimal_format: typing.Literal["string", "number"] = "string",
+        uuid_format: typing.Literal["canonical", "hex"] = "canonical",
+        order: typing.Literal[None, "deterministic", "sorted"] = None,
+    ) -> typing.Generator[msgspec.json.Encoder, typing.Any, None]:
+        """Context manager returns an `msgspec.json.Encoder` object with the `enc_hook`."""
+
+        enc_obj = msgspec.json.Encoder(enc_hook=self.enc_hook)
+        yield enc_obj
+
+    def add_enc_hook[T](self, t: type[T]):
         def decorator(func: EncHook[T]) -> EncHook[T]:
             encode_hook = self.enc_hooks.setdefault(get_origin(t), func)
             return func if encode_hook is not func else encode_hook
@@ -298,7 +346,7 @@ class Encoder:
         origin_type = get_origin(obj.__class__)
         if origin_type not in self.enc_hooks:
             raise NotImplementedError(
-                f"Not implemented encode hook for object of type `{repr_type(origin_type)}`."
+                f"Not implemented encode hook for object of type `{repr_type(origin_type)}`.",
             )
         return self.enc_hooks[origin_type](obj)
 
@@ -344,8 +392,8 @@ __all__ = (
     "datetime",
     "decoder",
     "encoder",
-    "msgspec_convert",
     "get_class_annotations",
     "get_type_hints",
+    "msgspec_convert",
     "msgspec_to_builtins",
 )

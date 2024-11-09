@@ -3,12 +3,20 @@
 import gettext
 import os
 
-from mubble.tools.i18n import ABCI18n
-from mubble.tools.i18n.base import ABCTranslator
+from mubble.tools.i18n.abc import ABCI18n, ABCTranslator
+
+
+class SimpleTranslator(ABCTranslator):
+    def __init__(self, locale: str, g: gettext.GNUTranslations) -> None:
+        self.g = g
+        super().__init__(locale)
+
+    def get(self, __key: str, *args: object, **kwargs: object) -> str:
+        return self.g.gettext(__key).format(*args, **kwargs)
 
 
 class SimpleI18n(ABCI18n):
-    def __init__(self, folder: str, domain: str, default_locale: str):
+    def __init__(self, folder: str, domain: str, default_locale: str) -> None:
         self.folder = folder
         self.domain = domain
         self.default_locale = default_locale
@@ -20,9 +28,7 @@ class SimpleI18n(ABCI18n):
             if not os.path.isdir(os.path.join(self.folder, name)):
                 continue
 
-            mo_path = os.path.join(
-                self.folder, name, "LC_MESSAGES", f"{self.domain}.mo"
-            )
+            mo_path = os.path.join(self.folder, name, "LC_MESSAGES", f"{self.domain}.mo")
             if os.path.exists(mo_path):
                 with open(mo_path, "rb") as f:
                     result[name] = gettext.GNUTranslations(f)
@@ -31,18 +37,7 @@ class SimpleI18n(ABCI18n):
         return result
 
     def get_translator_by_locale(self, locale: str) -> "SimpleTranslator":
-        return SimpleTranslator(
-            locale, self.translators.get(locale, self.translators[self.default_locale])
-        )
-
-
-class SimpleTranslator(ABCTranslator):
-    def __init__(self, locale: str, g: gettext.GNUTranslations):
-        self.g = g
-        super().__init__(locale)
-
-    def get(self, __key: str, *args, **kwargs) -> str:
-        return self.g.gettext(__key).format(*args, **kwargs)
+        return SimpleTranslator(locale, self.translators.get(locale, self.translators[self.default_locale]))
 
 
 __all__ = ("SimpleI18n", "SimpleTranslator")

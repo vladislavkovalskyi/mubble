@@ -1,5 +1,7 @@
+import typing
+
 from mubble import node
-from mubble.tools.i18n.base import ABCTranslator
+from mubble.tools.i18n.abc import ABCTranslator
 
 from .abc import ABCRule, with_caching_translations
 from .node import NodeRule
@@ -17,12 +19,12 @@ class Text(ABCRule):
         self.texts = texts if not ignore_case else list(map(str.lower, texts))
         self.ignore_case = ignore_case
 
-    async def check(self, text: node.text.Text) -> bool:
+    def check(self, text: node.text.Text) -> bool:
         return (text if not self.ignore_case else text.lower()) in self.texts
 
     @with_caching_translations
-    async def translate(self, translator: ABCTranslator) -> "Text":
-        return Text(
+    async def translate(self, translator: ABCTranslator) -> typing.Self:
+        return self.__class__(
             texts=[translator.get(text) for text in self.texts],
             ignore_case=self.ignore_case,
         )

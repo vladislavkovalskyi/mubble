@@ -1,6 +1,6 @@
 from fntypes.result import Ok, Result
 
-from mubble.api import API
+from mubble.api.api import API
 from mubble.bot.cute_types.update import UpdateCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.adapter.abc import ABCAdapter
@@ -14,7 +14,7 @@ class RawUpdateAdapter(ABCAdapter[Update, UpdateCute]):
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}: adapt Update -> UpdateCute>"
 
-    async def adapt(
+    def adapt(
         self,
         api: API,
         update: Update,
@@ -22,9 +22,7 @@ class RawUpdateAdapter(ABCAdapter[Update, UpdateCute]):
     ) -> Result[UpdateCute, AdapterError]:
         if self.ADAPTED_VALUE_KEY not in context:
             context[self.ADAPTED_VALUE_KEY] = (
-                UpdateCute.from_update(update, api)
-                if not isinstance(update, UpdateCute)
-                else update
+                UpdateCute.from_update(update, api) if not isinstance(update, UpdateCute) else update
             )
         return Ok(context[self.ADAPTED_VALUE_KEY])
 

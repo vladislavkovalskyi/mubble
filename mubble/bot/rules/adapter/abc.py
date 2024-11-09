@@ -4,28 +4,25 @@ import typing
 
 from fntypes.result import Result
 
-from mubble.api import API
+from mubble.api.api import API
 from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.adapter.errors import AdapterError
 from mubble.model import Model
 
-From = typing.TypeVar("From", bound=Model)
-To = typing.TypeVar("To")
+type AdaptResult[To] = Result[To, AdapterError] | typing.Awaitable[Result[To, AdapterError]]
 
 
-class ABCAdapter(abc.ABC, typing.Generic[From, To]):
+class ABCAdapter[From: Model, To](abc.ABC):
     ADAPTED_VALUE_KEY: str | None = None
 
     @abc.abstractmethod
-    async def adapt(
-        self, api: API, update: From, context: Context
-    ) -> Result[To, AdapterError]:
+    def adapt(self, api: API, update: From, context: Context) -> AdaptResult[To]:
         pass
 
 
 @dataclasses.dataclass(slots=True)
-class Event(typing.Generic[To]):
+class Event[To]:
     obj: To
 
 
-__all__ = ("ABCAdapter", "Event")
+__all__ = ("ABCAdapter", "AdaptResult", "Event")

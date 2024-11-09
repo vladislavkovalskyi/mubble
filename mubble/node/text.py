@@ -1,10 +1,12 @@
-from mubble.node.base import ComposeError, ScalarNode
+import typing
+
+from mubble.node.base import ComposeError, FactoryNode, ScalarNode
 from mubble.node.message import MessageNode
 
 
 class Text(ScalarNode, str):
     @classmethod
-    async def compose(cls, message: MessageNode) -> str:
+    def compose(cls, message: MessageNode) -> str:
         if not message.text:
             raise ComposeError("Message has no text.")
         return message.text.unwrap()
@@ -12,10 +14,28 @@ class Text(ScalarNode, str):
 
 class TextInteger(ScalarNode, int):
     @classmethod
-    async def compose(cls, text: Text) -> int:
+    def compose(cls, text: Text) -> int:
         if not text.isdigit():
             raise ComposeError("Text is not digit.")
         return int(text)
 
 
-__all__ = ("Text", "TextInteger")
+if typing.TYPE_CHECKING:
+    from typing import Literal as TextLiteral
+
+else:
+
+    class TextLiteral(FactoryNode):
+        texts: tuple[str, ...]
+
+        def __class_getitem__(cls, texts, /):
+            return cls(texts=(texts,) if not isinstance(texts, tuple) else texts)
+
+        @classmethod
+        def compose(cls, text: Text) -> str:
+            if text in cls.texts:
+                return text
+            raise ComposeError("Text mismatched literal.")
+
+
+__all__ = ("Text", "TextInteger", "TextLiteral")

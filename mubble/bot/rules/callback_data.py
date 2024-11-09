@@ -3,44 +3,41 @@ import inspect
 import typing
 from contextlib import suppress
 
-import msgspec
-
 from mubble.bot.cute_types import CallbackQueryCute
 from mubble.bot.dispatch.context import Context
+from mubble.bot.rules.abc import ABCRule, CheckResult
 from mubble.bot.rules.adapter import EventAdapter
-from mubble.model import decoder
-from mubble.tools.buttons import DataclassInstance
+from mubble.bot.rules.payload import (
+    PayloadEqRule,
+    PayloadJsonEqRule,
+    PayloadMarkupRule,
+    PayloadModelRule,
+)
 from mubble.types.enums import UpdateType
 
-from .abc import ABCRule
-from .markup import Markup, PatternLike, check_string
-
 CallbackQuery: typing.TypeAlias = CallbackQueryCute
-Validator: typing.TypeAlias = typing.Callable[
-    [typing.Any], bool | typing.Awaitable[bool]
-]
-MapDict: typing.TypeAlias = dict[
-    str, "typing.Any | type[typing.Any] | Validator | list[MapDict] | MapDict"
-]
-CallbackMap: typing.TypeAlias = list[
-    tuple[str, "typing.Any | type[typing.Any] | Validator | CallbackMap"]
-]
+Validator: typing.TypeAlias = typing.Callable[[typing.Any], bool | typing.Awaitable[bool]]
+MapDict: typing.TypeAlias = dict[str, "typing.Any | type[typing.Any] | Validator | list[MapDict] | MapDict"]
+CallbackMap: typing.TypeAlias = list[tuple[str, "typing.Any | type[typing.Any] | Validator | CallbackMap"]]
 CallbackMapStrict: typing.TypeAlias = list[tuple[str, "Validator | CallbackMapStrict"]]
+CallbackData: typing.TypeAlias = PayloadEqRule
+CallbackDataJson: typing.TypeAlias = PayloadJsonEqRule
+CallbackDataMarkup: typing.TypeAlias = PayloadMarkupRule
+CallbackDataJsonModel: typing.TypeAlias = PayloadModelRule
 
 
-class CallbackQueryRule(ABCRule[CallbackQuery], abc.ABC):
-    adapter: EventAdapter[CallbackQuery] = EventAdapter(
-        UpdateType.CALLBACK_QUERY, CallbackQuery
-    )
-
+class CallbackQueryRule(
+    ABCRule[CallbackQuery],
+    abc.ABC,
+    adapter=EventAdapter(UpdateType.CALLBACK_QUERY, CallbackQuery),
+):
     @abc.abstractmethod
-    async def check(self, event: CallbackQuery, context: Context) -> bool:
-        pass
+    def check(self, *args: typing.Any, **kwargs: typing.Any) -> CheckResult: ...
 
 
 class HasData(CallbackQueryRule):
-    async def check(self, event: CallbackQuery) -> bool:
-        return bool(event.data.unwrap_or_none())
+    def check(self, event: CallbackQuery) -> bool:
+        return bool(event.data)
 
 
 class CallbackQueryDataRule(CallbackQueryRule, abc.ABC, requires=[HasData()]):
@@ -98,9 +95,7 @@ class CallbackDataMap(CallbackQueryDataRule):
         return False
 
     @classmethod
-    async def match(
-        cls, callback_data: dict[str, typing.Any], callback_map: CallbackMapStrict
-    ) -> bool:
+    async def match(cls, callback_data: dict[str, typing.Any], callback_map: CallbackMapStrict) -> bool:
         """Matches callback_data with callback_map recursively."""
 
         for key, validator in callback_map:
@@ -109,8 +104,7 @@ class CallbackDataMap(CallbackQueryDataRule):
 
             if isinstance(validator, list):
                 if not (
-                    isinstance(callback_data[key], dict)
-                    and await cls.match(callback_data[key], validator)
+                    isinstance(callback_data[key], dict) and await cls.match(callback_data[key], validator)
                 ):
                     return False
 
@@ -120,52 +114,13 @@ class CallbackDataMap(CallbackQueryDataRule):
         return True
 
     async def check(self, event: CallbackQuery, ctx: Context) -> bool:
-        callback_data = event.decode_callback_data().unwrap_or_none()
+        callback_data = event.decode_data().unwrap_or_none()
         if callback_data is None:
             return False
         if await self.match(callback_data, self.mapping):
             ctx.update(callback_data)
             return True
         return False
-
-
-class CallbackData(CallbackQueryDataRule):
-    def __init__(self, value: str, /) -> None:
-        self.value = value
-
-    async def check(self, event: CallbackQuery) -> bool:
-        return event.data.unwrap() == self.value
-
-
-class CallbackDataJson(CallbackQueryDataRule):
-    def __init__(self, d: dict[str, typing.Any], /) -> None:
-        self.d = d
-
-    async def check(self, event: CallbackQuery) -> bool:
-        return event.decode_callback_data().unwrap_or_none() == self.d
-
-
-class CallbackDataJsonModel(CallbackQueryDataRule):
-    def __init__(
-        self, model: type[msgspec.Struct] | type[DataclassInstance], /
-    ) -> None:
-        self.model = model
-
-    async def check(self, event: CallbackQuery, ctx: Context) -> bool:
-        with suppress(BaseException):
-            data = decoder.decode(event.data.unwrap().encode(), type=self.model)
-            if data.type == self.model.__name__:
-                ctx.data = data
-                return True
-        return False
-
-
-class CallbackDataMarkup(CallbackQueryDataRule):
-    def __init__(self, patterns: PatternLike | list[PatternLike], /) -> None:
-        self.patterns = Markup(patterns).patterns
-
-    async def check(self, event: CallbackQuery, ctx: Context) -> bool:
-        return check_string(self.patterns, event.data.unwrap(), ctx)
 
 
 __all__ = (

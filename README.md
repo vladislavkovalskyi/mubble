@@ -1,4 +1,4 @@
-# Mubble 1.3.0 (stable)
+# Mubble 1.4.0 (stable)
 
 [![Downloads](https://img.shields.io/pypi/dm/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
 [![Downloads](https://img.shields.io/pypi/pyversions/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
@@ -16,6 +16,26 @@
 **Mubble** is a next-generation framework known for its great speed and simplicity. It is written using aiohttp, asyncio, and msgspec.<br>
 *([Author](https://github.com/vladislavkovalskyi)'s words)*
 **Make the fastest bot ever!**
+
+<br>
+
+# Speed measurement
+Each test contains **100 different API calls**
+
+| Test    | Mubble (sec/avg)  | Aiogram (sec/avg) | Telebot (sec/avg) | Winner     |
+|---------|-------------------|-------------------|-------------------|------------|
+| 1       | **0.12896**       | 0.30656           | 0.24000           | Mubble     |
+| 2       | **0.12620**       | 0.14554           | 0.17649           | Mubble     |
+| 3       | **0.13366**       | 0.14902           | 0.13141           | Mubble     |
+| 4       | **0.12437**       | 0.14864           | 0.13717           | Mubble     |
+| 5       | **0.12754**       | 0.15863           | 0.18894           | Mubble     |
+| 6       | **0.12261**       | 0.15175           | 0.17157           | Mubble     |
+| 7       | **0.14395**       | 0.16154           | 0.19383           | Mubble     |
+| 8       | **0.12508**       | 0.15084           | 0.24207           | Mubble     |
+| 9       | **0.12239**       | 0.14838           | 0.14282           | Mubble     |
+| 10      | **0.12610**       | 0.14478           | 0.13068           | Mubble     |
+|         |                   |                   |                   |            |
+| **AVG** | **0.12869**       | 0.16687           | 0.17550           | **Mubble** |
 
 <br>
 

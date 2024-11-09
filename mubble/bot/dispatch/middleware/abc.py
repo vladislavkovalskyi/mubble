@@ -3,16 +3,18 @@ from abc import ABC
 
 from mubble.bot.dispatch.context import Context
 from mubble.model import Model
+from mubble.types.objects import Update
 
-Event = typing.TypeVar("Event", bound=Model)
+if typing.TYPE_CHECKING:
+    from mubble.bot.rules.adapter.abc import ABCAdapter
 
 
-class ABCMiddleware(ABC, typing.Generic[Event]):
+class ABCMiddleware[Event: Model](ABC):
+    adapter: "ABCAdapter[Update, Event] | None" = None
+
     async def pre(self, event: Event, ctx: Context) -> bool: ...
 
-    async def post(
-        self, event: Event, responses: list[typing.Any], ctx: Context
-    ) -> None: ...
+    async def post(self, event: Event, responses: list[typing.Any], ctx: Context) -> None: ...
 
 
 __all__ = ("ABCMiddleware",)

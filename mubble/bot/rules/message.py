@@ -1,17 +1,15 @@
 import abc
+import typing
 
-from mubble.bot.dispatch.context import Context
 from mubble.types.objects import Message as MessageEvent
 
-from .abc import ABCRule, Message
+from .abc import ABCRule, CheckResult, Message
 from .adapter import EventAdapter
 
 
-class MessageRule(ABCRule[Message], abc.ABC):
-    adapter: EventAdapter[Message] = EventAdapter(MessageEvent, Message)
-
+class MessageRule(ABCRule[Message], abc.ABC, adapter=EventAdapter(MessageEvent, Message)):
     @abc.abstractmethod
-    async def check(self, message: Message, ctx: Context) -> bool: ...
+    def check(self, *args: typing.Any, **kwargs: typing.Any) -> CheckResult: ...
 
 
 __all__ = ("MessageRule",)

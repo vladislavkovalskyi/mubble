@@ -1,8 +1,8 @@
-from mubble import InlineButton, InlineKeyboard, Token, API, Mubble, Message
-from mubble.bot.dispatch.context import Context
-from mubble.bot.rules.callback_data import CallbackQuery
-from mubble.rules import MessageRule, CallbackQueryRule, Command, CallbackData
-from mubble.modules import logger
+from mubble_old import InlineButton, InlineKeyboard, Token, API, Mubble, Message
+from mubble_old.bot.dispatch.context import Context
+from mubble_old.bot.rules.callback_data import CallbackQuery
+from mubble_old.rules import MessageRule, CallbackQueryRule, Command, CallbackData
+from mubble_old.modules import logger
 
 api = API(Token.from_env())
 bot = Mubble(api)

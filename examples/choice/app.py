@@ -1,6 +1,6 @@
-from mubble import Token, API, Mubble, WaiterMachine, Message, Choice
-from mubble.rules import Command
-from mubble.modules import logger
+from mubble_old import Token, API, Mubble, WaiterMachine, Message, Choice
+from mubble_old.rules import Command
+from mubble_old.modules import logger
 
 api = API(token=Token.from_env())
 bot = Mubble(api)

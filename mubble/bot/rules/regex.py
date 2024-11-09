@@ -6,7 +6,7 @@ from mubble.node.text import Text
 
 from .abc import ABCRule
 
-PatternLike: typing.TypeAlias = str | typing.Pattern[str]
+type PatternLike = str | typing.Pattern[str]
 
 
 class Regex(ABCRule):
@@ -19,11 +19,10 @@ class Regex(ABCRule):
                 self.regexp.append(re.compile(regex))
             case _:
                 self.regexp.extend(
-                    re.compile(regexp) if isinstance(regexp, str) else regexp
-                    for regexp in regexp
+                    re.compile(regexp) if isinstance(regexp, str) else regexp for regexp in regexp
                 )
 
-    async def check(self, text: Text, ctx: Context) -> bool:
+    def check(self, text: Text, ctx: Context) -> bool:
         for regexp in self.regexp:
             response = re.match(regexp, text)
             if response is not None:

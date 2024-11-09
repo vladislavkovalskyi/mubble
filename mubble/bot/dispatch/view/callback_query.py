@@ -1,6 +1,6 @@
-from mubble.bot.cute_types import CallbackQueryCute
-from mubble.bot.dispatch.return_manager import CallbackQueryReturnManager
-from mubble.bot.dispatch.view.abc import BaseStateView
+from mubble.bot.cute_types.callback_query import CallbackQueryCute
+from mubble.bot.dispatch.return_manager.callback_query import CallbackQueryReturnManager
+from mubble.bot.dispatch.view.base import BaseStateView
 
 
 class CallbackQueryView(BaseStateView[CallbackQueryCute]):

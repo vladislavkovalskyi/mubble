@@ -1,8 +1,8 @@
 import typing
 
-from mubble import API, Message, Mubble, ParseMode, Token
-from mubble.modules import logger
-from mubble.rules import Markup
+from mubble_old import API, Message, Mubble, ParseMode, Token
+from mubble_old.modules import logger
+from mubble_old.rules import Markup
 
 api = API(token=Token.from_env())
 bot = Mubble(api)
