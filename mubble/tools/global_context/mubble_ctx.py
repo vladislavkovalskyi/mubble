@@ -1,4 +1,4 @@
-import typing
+import re
 
 import vbml
 
@@ -19,7 +19,8 @@ class MubbleContext(GlobalContext):
 
     __ctx_name__ = "mubble"
 
-    vbml_patcher: typing.ClassVar[vbml.Patcher] = ctx_var(vbml.Patcher(), const=True)
+    vbml_pattern_flags: re.RegexFlag | None = None
+    vbml_patcher: vbml.Patcher = ctx_var(default=vbml.Patcher(), frozen=True)
 
 
 __all__ = ("MubbleContext",)

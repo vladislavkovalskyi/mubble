@@ -2,81 +2,62 @@ import typing
 
 from fntypes.result import Error, Ok, Result
 
-from mubble.api import API
+from mubble.api.api import API
 from mubble.bot.cute_types.base import BaseCute
+from mubble.bot.cute_types.update import UpdateCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.adapter.abc import ABCAdapter
 from mubble.bot.rules.adapter.errors import AdapterError
-from mubble.msgspec_utils import Nothing
+from mubble.bot.rules.adapter.raw_update import RawUpdateAdapter
 from mubble.types.enums import UpdateType
 from mubble.types.objects import Model, Update
 
-ToCute = typing.TypeVar("ToCute", bound=BaseCute)
 
-
-class EventAdapter(ABCAdapter[Update, ToCute]):
+class EventAdapter[ToEvent: BaseCute](ABCAdapter[Update, ToEvent]):
     ADAPTED_VALUE_KEY: str = "_adapted_cute_event"
 
-    def __init__(
-        self, event: UpdateType | type[Model], cute_model: type[ToCute]
-    ) -> None:
+    def __init__(self, event: UpdateType | type[Model], cute_model: type[ToEvent]) -> None:
         self.event = event
         self.cute_model = cute_model
 
     def __repr__(self) -> str:
-        if isinstance(self.event, str):
-            raw_update_type = Update.__annotations__.get(self.event, "Unknown")
-            raw_update_type = (
-                typing.get_args(raw_update_type)[0].__forward_arg__
-                if typing.get_args(raw_update_type)
-                else raw_update_type
-            )
-        else:
-            raw_update_type = self.event.__name__
-
-        return "<{}: adapt Update -> {} -> {}>".format(
+        raw_update_type = (
+            f"Update -> {self.event.__name__}"
+            if isinstance(self.event, type)
+            else f"Update.{self.event.value}"
+        )
+        return "<{}: adapt {} -> {}>".format(
             self.__class__.__name__,
             raw_update_type,
             self.cute_model.__name__,
         )
 
-    async def adapt(
-        self, api: API, update: Update, context: Context
-    ) -> Result[ToCute, AdapterError]:
-        if self.ADAPTED_VALUE_KEY in context:
-            return Ok(context[self.ADAPTED_VALUE_KEY])
+    def get_event(self, update: UpdateCute) -> Model | None:
+        if isinstance(self.event, UpdateType) and self.event == update.update_type:
+            return update.incoming_update
 
-        if isinstance(self.event, UpdateType):
-            if update.update_type != self.event:
-                return Error(
-                    AdapterError(f"Update is not of event type {self.event!r}."),
+        if not isinstance(self.event, UpdateType) and (event := update.get_event(self.event)):
+            return event.unwrap()
+
+        return None
+
+    def adapt(self, api: API, update: Update, context: Context) -> Result[ToEvent, AdapterError]:
+        match RawUpdateAdapter().adapt(api, update, context):
+            case Ok(update_cute) if event := self.get_event(update_cute):
+                if self.ADAPTED_VALUE_KEY in context:
+                    return Ok(context[self.ADAPTED_VALUE_KEY])
+
+                adapted = (
+                    typing.cast(ToEvent, event)
+                    if isinstance(event, BaseCute)
+                    else self.cute_model.from_update(event, bound_api=api)
                 )
-
-            if isinstance(
-                event := getattr(update, self.event.value, Nothing), type(Nothing)
-            ):
-                return Error(
-                    AdapterError(f"Update is not an {self.event!r}."),
-                )
-
-            event = event.unwrap()
-
-            if type(event) is self.cute_model:
-                adapted = event
-            else:
-                adapted = self.cute_model.from_update(event, bound_api=api)
-        else:
-            event = getattr(update, update.update_type.value).unwrap()
-            if not update.update_type or not issubclass(type(event), self.event):
-                return Error(AdapterError(f"Update is not an {self.event.__name__!r}."))
-
-            if type(event) is self.cute_model:
-                adapted = event
-            else:
-                adapted = self.cute_model.from_update(event, bound_api=api)
-
-        context[self.ADAPTED_VALUE_KEY] = adapted
-        return Ok(adapted)  # type: ignore
+                context[self.ADAPTED_VALUE_KEY] = adapted
+                return Ok(adapted)
+            case Error(_) as err:
+                return err
+            case _:
+                return Error(AdapterError(f"Update is not an {self.event!r}."))
 
 
 __all__ = ("EventAdapter",)

@@ -1,13 +1,16 @@
+from __future__ import annotations
+
 import enum
 import typing
 from reprlib import recursive_repr
 
-from mubble.types import Update
+from mubble.types.objects import Update
 
-T = typing.TypeVar("T")
+if typing.TYPE_CHECKING:
+    from mubble.node.composer import NodeCollection
 
-Key: typing.TypeAlias = str | enum.Enum
-AnyValue: typing.TypeAlias = typing.Any
+type Key = str | enum.Enum
+type AnyValue = typing.Any
 
 
 class Context(dict[str, AnyValue]):
@@ -24,6 +27,7 @@ class Context(dict[str, AnyValue]):
     """
 
     raw_update: Update
+    node_col: NodeCollection | None = None
 
     def __init__(self, **kwargs: AnyValue) -> None:
         cls_vars = vars(self.__class__)
@@ -38,9 +42,7 @@ class Context(dict[str, AnyValue]):
 
     @recursive_repr()
     def __repr__(self) -> str:
-        return "{}({})".format(
-            self.__class__.__name__, ", ".join(f"{k}={v!r}" for k, v in self.items())
-        )
+        return "{}({})".format(self.__class__.__name__, ", ".join(f"{k}={v!r}" for k, v in self.items()))
 
     def __setitem__(self, __key: Key, __value: AnyValue) -> None:
         dict.__setitem__(self, self.key_to_str(__key), __value)
@@ -65,7 +67,7 @@ class Context(dict[str, AnyValue]):
         return key if isinstance(key, str) else str(key.value)
 
     def copy(self) -> typing.Self:
-        return self.__class__(**self)
+        return self.__class__(**dict.copy(self))
 
     def set(self, key: Key, value: AnyValue) -> None:
         self[key] = value
@@ -74,15 +76,15 @@ class Context(dict[str, AnyValue]):
     def get(self, key: Key) -> AnyValue | None: ...
 
     @typing.overload
-    def get(self, key: Key, default: T) -> T | AnyValue: ...
+    def get[T](self, key: Key, default: T) -> T | AnyValue: ...
 
     @typing.overload
     def get(self, key: Key, default: None = None) -> AnyValue | None: ...
 
-    def get(self, key: Key, default: T | None = None) -> T | AnyValue | None:
+    def get[T](self, key: Key, default: T | None = None) -> T | AnyValue | None:
         return dict.get(self, key, default)
 
-    def get_or_set(self, key: Key, default: T) -> T:
+    def get_or_set[T](self, key: Key, default: T) -> T:
         if key not in self:
             self.set(key, default)
         return self.get(key, default)

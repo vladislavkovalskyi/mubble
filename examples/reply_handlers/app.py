@@ -1,7 +1,7 @@
-from mubble import Token, API, Mubble
-from mubble.bot.dispatch.handler import MessageReplyHandler
-from mubble.modules import logger
-from mubble.rules import Text
+from mubble_old import Token, API, Mubble
+from mubble_old.bot.dispatch.handler import MessageReplyHandler
+from mubble_old.modules import logger
+from mubble_old.rules import Text
 
 api = API(token=Token.from_env())
 bot = Mubble(api)

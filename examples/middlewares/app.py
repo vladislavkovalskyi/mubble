@@ -1,4 +1,4 @@
-from mubble import (
+from mubble_old import (
     API,
     ABCMiddleware,
     CallbackQuery,
@@ -9,11 +9,11 @@ from mubble import (
     ParseMode,
     Token,
 )
-from mubble.bot import Context
-from mubble.bot.rules.callback_data import CallbackData
-from mubble.modules import logger
-from mubble.rules import Command
-from mubble.tools import GlobalContext
+from mubble_old.bot import Context
+from mubble_old.bot.rules.callback_data import CallbackData
+from mubble_old.modules import logger
+from mubble_old.rules import Command
+from mubble_old.tools import GlobalContext
 
 api = API(token=Token.from_env())
 bot = Mubble(api)

@@ -1,10 +1,26 @@
 [tool.poetry]
 name = "mubble"
-version = "1.3.0"
+version = "1.4.0"
 description = "Async Telegram framework for bot building"
 readme = "README.md"
 authors = ["vladislavkovalskyi <vladislavkovalskyi@icloud.com>"]
 license = "MIT"
+repository = "https://github.com/vladislavkovalskyi/mubble"
+homepage = "https://github.com/vladislavkovalskyi/mubble"
+keywords = [
+    "asyncio",
+    "async",
+    "bot api",
+    "telegram",
+    "telegram bot api",
+    "telegram framework",
+    "mubble",
+    "best framework",
+    "mubble framework",
+    "bot building",
+    "bot building framework"
+]
+
 
 [tool.poetry.dependencies]
 python = "^3.11"

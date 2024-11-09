@@ -1,5 +1,5 @@
-from mubble.bot.cute_types import ChatJoinRequestCute
-from mubble.bot.dispatch.view.abc import BaseStateView
+from mubble.bot.cute_types.chat_join_request import ChatJoinRequestCute
+from mubble.bot.dispatch.view.base import BaseStateView
 
 
 class ChatJoinRequestView(BaseStateView[ChatJoinRequestCute]):

@@ -5,7 +5,7 @@ import aiohttp
 import msgspec
 from fntypes.result import Error, Ok
 
-from mubble.api import API
+from mubble.api.api import API
 from mubble.api.error import InvalidTokenError
 from mubble.bot.polling.abc import ABCPolling
 from mubble.modules import logger
@@ -29,12 +29,10 @@ class Polling(ABCPolling):
             include_updates=include_updates,
             exclude_updates=exclude_updates,
         )
-        self.reconnection_timeout = (
-            5 if reconnection_timeout < 0 else reconnection_timeout
-        )
+        self.reconnection_timeout = 5.0 if reconnection_timeout < 0 else reconnection_timeout
         self.max_reconnetions = 10 if max_reconnetions < 0 else max_reconnetions
         self.offset = offset
-        self._stop = False
+        self._stop = True
 
     def __repr__(self) -> str:
         return (
@@ -62,9 +60,7 @@ class Polling(ABCPolling):
 
         if include_updates and exclude_updates:
             allowed_updates = [
-                x
-                for x in allowed_updates
-                if x in include_updates and x not in exclude_updates
+                x for x in allowed_updates if x in include_updates and x not in exclude_updates
             ]
         elif exclude_updates:
             allowed_updates = [x for x in allowed_updates if x not in exclude_updates]
@@ -76,7 +72,10 @@ class Polling(ABCPolling):
     async def get_updates(self) -> msgspec.Raw | None:
         raw_updates = await self.api.request_raw(
             "getUpdates",
-            {"offset": self.offset, "allowed_updates": self.allowed_updates},
+            {
+                "offset": self.offset,
+                "allowed_updates": self.allowed_updates,
+            },
         )
         match raw_updates:
             case Ok(value):
@@ -87,6 +86,7 @@ class Polling(ABCPolling):
     async def listen(self) -> typing.AsyncGenerator[list[Update], None]:
         logger.debug("Listening polling")
         reconn_counter = 0
+        self._stop = False
 
         while not self._stop:
             try:

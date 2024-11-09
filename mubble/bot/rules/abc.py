@@ -7,10 +7,11 @@ import typing_extensions as typing
 from mubble.bot.cute_types import MessageCute, UpdateCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.process import check_rule
-from mubble.bot.rules.adapter import ABCAdapter, RawUpdateAdapter
+from mubble.bot.rules.adapter import ABCAdapter
 from mubble.bot.rules.adapter.node import Event
+from mubble.bot.rules.adapter.raw_update import RawUpdateAdapter
 from mubble.node.base import Node, get_nodes, is_node
-from mubble.tools.i18n.base import ABCTranslator
+from mubble.tools.i18n.abc import ABCTranslator
 from mubble.tools.magic import (
     cache_translation,
     get_annotations,
@@ -22,7 +23,9 @@ from mubble.types.objects import Update as UpdateObject
 if typing.TYPE_CHECKING:
     from mubble.node.composer import NodeCollection
 
-AdaptTo = typing.TypeVar("AdaptTo", default=typing.Any)
+AdaptTo = typing.TypeVar("AdaptTo", default=typing.Any, contravariant=True)
+
+type CheckResult = bool | typing.Awaitable[bool]
 
 Message: typing.TypeAlias = MessageCute
 Update: typing.TypeAlias = UpdateCute
@@ -45,15 +48,28 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
     adapter: ABCAdapter[UpdateObject, AdaptTo]
     requires: list["ABCRule"] = []
 
-    if not typing.TYPE_CHECKING:
+    if typing.TYPE_CHECKING:
+
+        @abstractmethod
+        def check(self, *args: typing.Any, **kwargs: typing.Any) -> CheckResult:
+            pass
+    else:
         adapter = RawUpdateAdapter()
 
-    @abstractmethod
-    async def check(self, event: AdaptTo, *, ctx: Context) -> bool:
-        pass
+        @abstractmethod
+        def check(self, *args, **kwargs):
+            pass
 
-    def __init_subclass__(cls, requires: list["ABCRule"] | None = None) -> None:
+    def __init_subclass__(
+        cls,
+        *,
+        requires: list["ABCRule"] | None = None,
+        adapter: ABCAdapter[UpdateObject, AdaptTo] | None = None,
+    ) -> None:
         """Merges requirements from inherited classes and rule-specific requirements."""
+
+        if adapter is not None:
+            cls.adapter = adapter
 
         requirements = []
         for base in inspect.getmro(cls):
@@ -114,23 +130,21 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
 
     async def bounding_check(
         self,
-        adapted_value: AdaptTo,
         ctx: Context,
-        node_col: "NodeCollection | None" = None,
+        *,
+        node_col: "NodeCollection | None",
+        adapted_value: AdaptTo,
     ) -> bool:
+        bound_check_rule = self.check
         kw = {}
         node_col_values = node_col.values if node_col is not None else {}
-        temp_ctx = get_default_args(self.check) | ctx
+        temp_ctx = get_default_args(bound_check_rule) | ctx
 
-        for i, (k, v) in enumerate(get_annotations(self.check).items()):
-            if (isinstance(adapted_value, Event) and not i) or (
+        for i, (k, v) in enumerate(get_annotations(bound_check_rule).items()):
+            if (isinstance(adapted_value, Event) and i == 0) or (  # First arg is Event
                 isinstance(v, type) and isinstance(adapted_value, v)
             ):
-                kw[k] = (
-                    adapted_value
-                    if not isinstance(adapted_value, Event)
-                    else adapted_value.obj
-                )
+                kw[k] = adapted_value if not isinstance(adapted_value, Event) else adapted_value.obj
             elif is_node(v):
                 assert k in node_col_values, "Node is undefined, error while bounding."
                 kw[k] = node_col_values[k]
@@ -144,14 +158,17 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
                     "because it cannot be resolved."
                 )
 
-        return await self.check(**kw)
+        result = bound_check_rule(**kw)  # type: ignore
+        if inspect.isawaitable(result):
+            result = await result
+        return result
 
     async def translate(self, translator: ABCTranslator) -> typing.Self:
         return self
 
 
 class AndRule(ABCRule):
-    def __init__(self, *rules: ABCRule[AdaptTo]) -> None:
+    def __init__(self, *rules: ABCRule) -> None:
         self.rules = rules
 
     async def check(self, event: Update, ctx: Context) -> bool:
@@ -199,6 +216,7 @@ __all__ = (
     "ABCRule",
     "Always",
     "AndRule",
+    "CheckResult",
     "Never",
     "NotRule",
     "OrRule",

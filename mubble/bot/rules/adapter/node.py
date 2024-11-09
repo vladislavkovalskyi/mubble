@@ -1,7 +1,7 @@
 import typing_extensions as typing
 from fntypes.result import Error, Ok, Result
 
-from mubble.api import API
+from mubble.api.api import API
 from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.adapter.abc import ABCAdapter, Event
 from mubble.bot.rules.adapter.errors import AdapterError
@@ -12,11 +12,9 @@ from mubble.types.objects import Update
 if typing.TYPE_CHECKING:
     from mubble.node.base import Node
 
-Ts = typing.TypeVarTuple("Ts", default=typing.Unpack[tuple[type["Node"], ...]])
 
-
-class NodeAdapter(typing.Generic[*Ts], ABCAdapter[Update, Event[tuple[*Ts]]]):
-    def __init__(self, *nodes: *Ts) -> None:
+class NodeAdapter[*Nodes](ABCAdapter[Update, Event[tuple[*Nodes]]]):
+    def __init__(self, *nodes: *Nodes) -> None:
         self.nodes = nodes
 
     def __repr__(self) -> str:
@@ -30,12 +28,9 @@ class NodeAdapter(typing.Generic[*Ts], ABCAdapter[Update, Event[tuple[*Ts]]]):
         api: API,
         update: Update,
         context: Context,
-    ) -> Result[Event[tuple[*Ts]], AdapterError]:
+    ) -> Result[Event[tuple[*Nodes]], AdapterError]:
         result = await compose_nodes(
-            nodes={
-                str(i): typing.cast(type["Node"], node)
-                for i, node in enumerate(self.nodes)
-            },
+            nodes={str(i): typing.cast(type["Node"], node) for i, node in enumerate(self.nodes)},
             ctx=context,
             data={Update: update, API: api},
         )
