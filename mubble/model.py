@@ -16,10 +16,9 @@ MODEL_CONFIG: typing.Final[dict[str, typing.Any]] = {
 }
 
 
-def full_result[T](
-    result: Result[msgspec.Raw, "APIError"],
-    full_t: type[T],
-) -> Result[T, "APIError"]:
+def full_result[
+    T
+](result: Result[msgspec.Raw, "APIError"], full_t: type[T],) -> Result[T, "APIError"]:
     return result.map(lambda v: decoder.decode(v, type=full_t))
 
 
@@ -89,6 +88,7 @@ if typing.TYPE_CHECKING:
 
     class From[T]:
         def __new__(cls, _: T, /) -> typing.Any: ...
+
 else:
     from msgspec import field as _field
 
@@ -102,7 +102,9 @@ else:
 @typing.dataclass_transform(field_specifiers=(field,))
 class Model(msgspec.Struct, **MODEL_CONFIG):
     @classmethod
-    def from_data[**P, T](cls: typing.Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
+    def from_data[
+        **P, T
+    ](cls: typing.Callable[P, T], *args: P.args, **kwargs: P.kwargs) -> T:
         return decoder.convert(msgspec.structs.asdict(cls(*args, **kwargs)), type=cls)  # type: ignore
 
     @classmethod
@@ -123,13 +125,19 @@ class Model(msgspec.Struct, **MODEL_CONFIG):
             self.__dict__[dct_name] = (
                 msgspec.structs.asdict(self)
                 if not full
-                else encoder.to_builtins(self.to_dict(exclude_fields=exclude_fields), order="deterministic")
+                else encoder.to_builtins(
+                    self.to_dict(exclude_fields=exclude_fields), order="deterministic"
+                )
             )
 
         if not exclude_fields:
             return self.__dict__[dct_name]
 
-        return {key: value for key, value in self.__dict__[dct_name].items() if key not in exclude_fields}
+        return {
+            key: value
+            for key, value in self.__dict__[dct_name].items()
+            if key not in exclude_fields
+        }
 
     def to_raw(self) -> str:
         return encoder.encode(self)
