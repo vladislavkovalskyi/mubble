@@ -17,7 +17,6 @@ if typing.TYPE_CHECKING:
         ) -> tuple[Key, int]: ...
 
 else:
-
     class Choice(Checkbox):
         async def handle(self, cb):
             code = cb.data.unwrap().replace(self.random_code + "/", "", 1)

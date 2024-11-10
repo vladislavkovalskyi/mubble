@@ -1,10 +1,11 @@
-from mubble_old import Token, API, Mubble, WaiterMachine, Message, Choice
-from mubble_old.rules import Command
-from mubble_old.modules import logger
+from mubble import Token, API, Mubble, WaiterMachine, Message, Choice
+from mubble.bot.dispatch.waiter_machine.hasher.callback import CALLBACK_QUERY_FOR_MESSAGE
+from mubble.rules import Command
+from mubble.modules import logger
 
 api = API(token=Token.from_env())
 bot = Mubble(api)
-wm = WaiterMachine()
+wm = WaiterMachine(bot.dispatch)
 
 logger.set_level("INFO")
 
@@ -25,13 +26,14 @@ async def action(message: Message):
             message.chat.id,
             "Pick one of these devices.",
             ready_text="Pick!",
+            cancel_text="Cancel",
             max_in_row=2,
         )
         .add_option("iphone", "iPhone", "iPhone 🟢", is_picked=True)
         .add_option("ipad", "iPad", "iPad 🟢")
         .add_option("apple_watch", "Apple watch", "Apple watch 🟢")
         .add_option("macbook", "Macbook", "Macbook 🟢")
-        .wait(message.ctx_api, bot.dispatch.callback_query)
+        .wait(CALLBACK_QUERY_FOR_MESSAGE, message.ctx_api, bot.dispatch.callback_query)
     )
 
     name, price = devices[chosen]
