@@ -7,7 +7,12 @@ from fntypes.co import Nothing, Result, Some, Variative, unwrapping
 
 from mubble.api import API, APIError
 from mubble.bot.cute_types.base import BaseCute, compose_method_params, shortcut
-from mubble.bot.cute_types.message import MediaType, MessageCute, ReplyMarkup, execute_method_edit
+from mubble.bot.cute_types.message import (
+    MediaType,
+    MessageCute,
+    ReplyMarkup,
+    execute_method_edit,
+)
 from mubble.model import From, field, get_params
 from mubble.msgspec_utils import Option, decoder
 from mubble.types.objects import *
@@ -41,7 +46,9 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         by the bot with the callback button that originated the query."""
 
         return self.message.map(
-            lambda m: m.only().map(lambda m: m.is_topic_message.unwrap_or(False)).unwrap_or(False),
+            lambda m: m.only()
+            .map(lambda m: m.is_topic_message.unwrap_or(False))
+            .unwrap_or(False),
         )
 
     @property
@@ -51,7 +58,12 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         This will be present if the message is sent
         by the bot with the callback button that originated the query."""
 
-        return self.message.unwrap().only().map(lambda m: m.message_thread_id.unwrap()).cast(Some, Nothing)
+        return (
+            self.message.unwrap()
+            .only()
+            .map(lambda m: m.message_thread_id.unwrap())
+            .cast(Some, Nothing)
+        )
 
     @property
     def message_id(self) -> Option[int]:
@@ -87,9 +99,11 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
             data = (
                 Some(decoder.decode(self.data.unwrap(), type=to))
                 if not issubclass(to, str | bytes)
-                else self.data
-                if issubclass(to, str)
-                else Some(base64.urlsafe_b64decode(self.data.unwrap()))
+                else (
+                    self.data
+                    if issubclass(to, str)
+                    else Some(base64.urlsafe_b64decode(self.data.unwrap()))
+                )
             )
 
         self.__dict__["cached_callback_data"] = data
@@ -100,10 +114,10 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         self,
         text: str | None = None,
         *,
+        cache_time: int | None = None,
         callback_query_id: str | None = None,
         show_alert: bool | None = None,
         url: str | None = None,
-        cache_time: int | None = None,
         **other: typing.Any,
     ) -> Result[bool, APIError]:
         """Shortcut `API.answer_callback_query()`, see the [documentation](https://core.telegram.org/bots/api#answercallbackquery)
@@ -131,18 +145,18 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         self,
         chat_id: int | str | None = None,
         *,
+        allow_paid_broadcast: bool | None = None,
+        caption: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
+        disable_notification: bool | None = None,
         from_chat_id: int | str | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
-        caption: str | None = None,
         parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        disable_notification: bool | None = None,
         protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
         reply_markup: ReplyMarkup | None = None,
+        reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
-        allow_paid_broadcast: bool | None = None,
         **other: typing.Any,
     ) -> Result[MessageId, APIError]:
         """Shortcut `API.copy_message()`, see the [documentation](https://core.telegram.org/bots/api#copymessage)
@@ -156,7 +170,9 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
 
         return await MessageCute.copy(self, **get_params(locals()))  # type: ignore
 
-    @shortcut("delete_message", custom_params={"message_thread_id", "chat_id", "message_id"})
+    @shortcut(
+        "delete_message", custom_params={"message_thread_id", "chat_id", "message_id"}
+    )
     async def delete(
         self,
         *,
@@ -190,15 +206,15 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         self,
         text: str,
         *,
-        inline_message_id: str | None = None,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
+        entities: list[MessageEntity] | None = None,
+        inline_message_id: str | None = None,
+        link_preview_options: LinkPreviewOptions | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
-        entities: list[MessageEntity] | None = None,
-        link_preview_options: LinkPreviewOptions | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        business_connection_id: str | None = None,
         **other: typing.Any,
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_text()`, see the [documentation](https://core.telegram.org/bots/api#editmessagetext)
@@ -236,16 +252,16 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         self,
         *,
         longitude: float,
-        inline_message_id: str | None = None,
-        message_thread_id: int | None = None,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
-        message_id: int | None = None,
-        horizontal_accuracy: float | None = None,
         heading: int | None = None,
+        horizontal_accuracy: float | None = None,
+        inline_message_id: str | None = None,
+        live_period: int | None = None,
+        message_id: int | None = None,
+        message_thread_id: int | None = None,
         proximity_alert_radius: int | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        business_connection_id: str | None = None,
-        live_period: int | None = None,
         **other: typing.Any,
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_live_location()`, see the [documentation](https://core.telegram.org/bots/api#editmessagelivelocation)
@@ -285,14 +301,14 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         self,
         caption: str | None = None,
         *,
+        business_connection_id: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
         chat_id: int | str | None = None,
+        inline_message_id: str | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
-        inline_message_id: str | None = None,
         parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        business_connection_id: str | None = None,
         show_caption_above_media: bool | None = None,
         **other: typing.Any,
     ) -> Result[Variative[MessageCute, bool], APIError]:
@@ -336,16 +352,16 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         self,
         media: str | InputFile | InputMedia,
         *,
-        type: MediaType | None = None,
+        business_connection_id: str | None = None,
         caption: str | None = None,
-        parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
-        inline_message_id: str | None = None,
         chat_id: int | str | None = None,
+        inline_message_id: str | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
+        parse_mode: str | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        business_connection_id: str | None = None,
+        type: MediaType | None = None,
         **other: typing.Any,
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_media()`, see the [documentation](https://core.telegram.org/bots/api#editmessagemedia)
@@ -380,12 +396,12 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
     async def edit_reply_markup(
         self,
         *,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
         inline_message_id: str | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
-        chat_id: int | str | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        business_connection_id: str | None = None,
         **other: typing.Any,
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_reply_markup()`, see the [documentation](https://core.telegram.org/bots/api#editmessagereplymarkup)

@@ -4,7 +4,7 @@ import typing
 from mubble.bot.cute_types import InlineQueryCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.abc import ABCRule, CheckResult
-from mubble.bot.rules.adapter import EventAdapter
+from mubble.tools.adapter import EventAdapter
 from mubble.types.enums import ChatType, UpdateType
 
 from .markup import Markup, PatternLike, check_string
@@ -37,7 +37,8 @@ class InlineQueryChatType(InlineQueryRule):
 class InlineQueryText(InlineQueryRule):
     def __init__(self, texts: str | list[str], *, lower_case: bool = False) -> None:
         self.texts = [
-            text.lower() if lower_case else text for text in ([texts] if isinstance(texts, str) else texts)
+            text.lower() if lower_case else text
+            for text in ([texts] if isinstance(texts, str) else texts)
         ]
         self.lower_case = lower_case
 

@@ -8,8 +8,10 @@ from abc import ABC, abstractmethod
 from fntypes.option import Option
 
 from mubble.api.api import API
-from mubble.tools.global_context.abc import ABCGlobalContext
 from mubble.types.objects import Update
+
+if typing.TYPE_CHECKING:
+    from mubble.bot.dispatch.view.abc import ABCView
 
 
 class PathExistsError(BaseException):
@@ -17,11 +19,6 @@ class PathExistsError(BaseException):
 
 
 class ABCDispatch(ABC):
-    @property
-    @abstractmethod
-    def global_context(self) -> ABCGlobalContext:
-        pass
-
     @abstractmethod
     async def feed(self, event: Update, api: API) -> bool:
         pass
@@ -32,6 +29,10 @@ class ABCDispatch(ABC):
 
     @abstractmethod
     def get_view[T](self, of_type: type[T]) -> Option[T]:
+        pass
+
+    @abstractmethod
+    def get_views(self) -> dict[str, "ABCView"]:
         pass
 
     def load_many(self, *externals: typing.Self) -> None:
@@ -53,10 +54,14 @@ class ABCDispatch(ABC):
             for f in files:
                 if f.endswith(".py") and f != "__init__.py":
                     module_path = os.path.join(root, f)
-                    module_name = os.path.splitext(os.path.relpath(module_path, directory))[0]
+                    module_name = os.path.splitext(
+                        os.path.relpath(module_path, directory)
+                    )[0]
                     module_name = module_name.replace(os.sep, ".")
 
-                    spec = importlib_util.spec_from_file_location(module_name, module_path)
+                    spec = importlib_util.spec_from_file_location(
+                        module_name, module_path
+                    )
                     if spec is None or spec.loader is None:
                         continue
 

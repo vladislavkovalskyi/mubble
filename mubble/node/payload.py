@@ -46,14 +46,21 @@ class _PayloadData(FactoryNode):
 
     def __class_getitem__(
         cls,
-        data_type: type[typing.Any] | tuple[type[typing.Any], type[ABCDataSerializer[typing.Any]]],
+        data_type: (
+            type[typing.Any]
+            | tuple[type[typing.Any], type[ABCDataSerializer[typing.Any]]]
+        ),
         /,
     ):
-        data_type, serializer = (data_type, None) if not isinstance(data_type, tuple) else data_type
+        data_type, serializer = (
+            (data_type, None) if not isinstance(data_type, tuple) else data_type
+        )
         return cls(data_type=data_type, serializer=serializer)
 
     @classmethod
-    def compose(cls, payload: Payload, payload_serializer: PayloadSerializer) -> typing.Any:
+    def compose(
+        cls, payload: Payload, payload_serializer: PayloadSerializer
+    ) -> typing.Any:
         serializer = cls.serializer or payload_serializer.serializer
         match serializer(cls.data_type).deserialize(payload):
             case Ok(value):

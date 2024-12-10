@@ -45,7 +45,10 @@ class Polymorphic(Node):
                 await node_collection.close_all()
                 return res.value
 
-            result = impl_(cls, **node_collection.values | magic_bundle(impl_, data, typebundle=True))
+            result = impl_(
+                cls,
+                **node_collection.values | magic_bundle(impl_, data, typebundle=True),
+            )
             if inspect.isawaitable(result):
                 result = await result
 

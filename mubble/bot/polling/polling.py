@@ -29,7 +29,9 @@ class Polling(ABCPolling):
             include_updates=include_updates,
             exclude_updates=exclude_updates,
         )
-        self.reconnection_timeout = 5.0 if reconnection_timeout < 0 else reconnection_timeout
+        self.reconnection_timeout = (
+            5.0 if reconnection_timeout < 0 else reconnection_timeout
+        )
         self.max_reconnetions = 10 if max_reconnetions < 0 else max_reconnetions
         self.offset = offset
         self._stop = True
@@ -60,7 +62,9 @@ class Polling(ABCPolling):
 
         if include_updates and exclude_updates:
             allowed_updates = [
-                x for x in allowed_updates if x in include_updates and x not in exclude_updates
+                x
+                for x in allowed_updates
+                if x in include_updates and x not in exclude_updates
             ]
         elif exclude_updates:
             allowed_updates = [x for x in allowed_updates if x not in exclude_updates]

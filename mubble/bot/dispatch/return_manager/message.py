@@ -24,12 +24,16 @@ class MessageReturnManager(BaseReturnManager[MessageCute]):
 
     @register_manager(dict[str, typing.Any])
     @staticmethod
-    async def dict_manager(value: dict[str, typing.Any], event: MessageCute, ctx: Context) -> None:
+    async def dict_manager(
+        value: dict[str, typing.Any], event: MessageCute, ctx: Context
+    ) -> None:
         await event.answer(**value)
 
     @register_manager(HTMLFormatter)
     @staticmethod
-    async def htmlformatter_manager(value: HTMLFormatter, event: MessageCute, ctx: Context) -> None:
+    async def htmlformatter_manager(
+        value: HTMLFormatter, event: MessageCute, ctx: Context
+    ) -> None:
         await event.answer(value, parse_mode=HTMLFormatter.PARSE_MODE)
 
 

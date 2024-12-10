@@ -1,5 +1,14 @@
 from .attachment import Attachment, Audio, Document, Photo, SuccessfulPayment, Video
-from .base import ComposeError, DataNode, FactoryNode, GlobalNode, Name, Node, ScalarNode, is_node
+from .base import (
+    ComposeError,
+    DataNode,
+    FactoryNode,
+    GlobalNode,
+    Name,
+    Node,
+    ScalarNode,
+    is_node,
+)
 from .callback_query import (
     CallbackQueryData,
     CallbackQueryDataJson,
@@ -16,7 +25,15 @@ from .payload import Payload, PayloadData, PayloadSerializer
 from .polymorphic import Polymorphic, impl
 from .pre_checkout_query import PreCheckoutQueryNode
 from .rule import RuleChain
-from .scope import GLOBAL, PER_CALL, PER_EVENT, NodeScope, global_node, per_call, per_event
+from .scope import (
+    GLOBAL,
+    PER_CALL,
+    PER_EVENT,
+    NodeScope,
+    global_node,
+    per_call,
+    per_event,
+)
 from .source import ChatSource, Source, UserSource
 from .text import Text, TextInteger, TextLiteral
 from .tools import generate_node

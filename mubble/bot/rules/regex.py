@@ -19,7 +19,8 @@ class Regex(ABCRule):
                 self.regexp.append(re.compile(regex))
             case _:
                 self.regexp.extend(
-                    re.compile(regexp) if isinstance(regexp, str) else regexp for regexp in regexp
+                    re.compile(regexp) if isinstance(regexp, str) else regexp
+                    for regexp in regexp
                 )
 
     def check(self, text: Text, ctx: Context) -> bool:

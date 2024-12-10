@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 
 from mubble.api.api import API
 from mubble.bot.cute_types.base import BaseCute
+from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.handler.abc import ABCHandler
 from mubble.types.objects import Update
 
@@ -16,7 +17,7 @@ class ABCView(ABC):
         pass
 
     @abstractmethod
-    async def process(self, event: Update, api: API) -> bool:
+    async def process(self, event: Update, api: API, context: Context) -> bool:
         pass
 
     @abstractmethod

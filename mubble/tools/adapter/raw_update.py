@@ -3,8 +3,8 @@ from fntypes.result import Ok, Result
 from mubble.api.api import API
 from mubble.bot.cute_types.update import UpdateCute
 from mubble.bot.dispatch.context import Context
-from mubble.bot.rules.adapter.abc import ABCAdapter
-from mubble.bot.rules.adapter.errors import AdapterError
+from mubble.tools.adapter.abc import ABCAdapter
+from mubble.tools.adapter.errors import AdapterError
 from mubble.types.objects import Update
 
 
@@ -22,7 +22,9 @@ class RawUpdateAdapter(ABCAdapter[Update, UpdateCute]):
     ) -> Result[UpdateCute, AdapterError]:
         if self.ADAPTED_VALUE_KEY not in context:
             context[self.ADAPTED_VALUE_KEY] = (
-                UpdateCute.from_update(update, api) if not isinstance(update, UpdateCute) else update
+                UpdateCute.from_update(update, api)
+                if not isinstance(update, UpdateCute)
+                else update
             )
         return Ok(context[self.ADAPTED_VALUE_KEY])
 

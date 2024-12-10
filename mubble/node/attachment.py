@@ -10,7 +10,9 @@ from mubble.node.message import MessageNode
 
 @dataclasses.dataclass(slots=True)
 class Attachment(DataNode):
-    attachment_type: typing.Literal["audio", "document", "photo", "poll", "video", "successful_payment"]
+    attachment_type: typing.Literal[
+        "audio", "document", "photo", "poll", "video", "successful_payment"
+    ]
 
     audio: Option[mubble.types.Audio] = dataclasses.field(
         default_factory=Nothing,
@@ -24,7 +26,9 @@ class Attachment(DataNode):
         default_factory=Nothing,
         kw_only=True,
     )
-    poll: Option[mubble.types.Poll] = dataclasses.field(default_factory=lambda: Nothing(), kw_only=True)
+    poll: Option[mubble.types.Poll] = dataclasses.field(
+        default_factory=lambda: Nothing(), kw_only=True
+    )
     video: Option[mubble.types.Video] = dataclasses.field(
         default_factory=Nothing,
         kw_only=True,

@@ -21,7 +21,9 @@ class RuleEnum(ABCRule):
     __enum__: list[RuleEnumState]
 
     def __init_subclass__(cls, *args: typing.Any, **kwargs: typing.Any) -> None:
-        new_attributes = set(cls.__dict__) - set(RuleEnum.__dict__) - {"__enum__", "__init__"}
+        new_attributes = (
+            set(cls.__dict__) - set(RuleEnum.__dict__) - {"__enum__", "__init__"}
+        )
         enum_lst: list[RuleEnumState] = []
 
         self = cls.__new__(cls)

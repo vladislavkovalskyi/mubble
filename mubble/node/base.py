@@ -9,11 +9,17 @@ from mubble.tools.magic import cache_magic_value, get_annotations
 
 T = typing.TypeVar("T", default=typing.Any)
 
-ComposeResult: typing.TypeAlias = T | typing.Awaitable[T] | typing.AsyncGenerator[T, None]
+ComposeResult: typing.TypeAlias = (
+    T | typing.Awaitable[T] | typing.AsyncGenerator[T, None]
+)
 
 
 def is_node(maybe_node: typing.Any) -> typing.TypeGuard[type["Node"]]:
-    maybe_node = maybe_node if isinstance(maybe_node, type) else typing.get_origin(maybe_node)
+    if isinstance(maybe_node, typing.TypeAliasType):
+        maybe_node = maybe_node.__value__
+    if not isinstance(maybe_node, type):
+        maybe_node = typing.get_origin(maybe_node) or maybe_node
+
     return (
         isinstance(maybe_node, type)
         and issubclass(maybe_node, Node)
@@ -121,7 +127,11 @@ if typing.TYPE_CHECKING:
 else:
 
     def __init_subclass__(cls, *args, **kwargs):  # noqa: N807
-        if any(issubclass(base, ScalarNodeProto) for base in cls.__bases__ if base is not ScalarNode):
+        if any(
+            issubclass(base, ScalarNodeProto)
+            for base in cls.__bases__
+            if base is not ScalarNode
+        ):
             raise RuntimeError("Scalar nodes do not support inheritance.")
 
     def _as_node(cls, bases, dct):

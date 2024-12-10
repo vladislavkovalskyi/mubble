@@ -32,7 +32,9 @@ INPUT_MEDIA_TYPES: typing.Final[dict[str, type[InputMedia]]] = {
 
 
 def compose_reactions(
-    reactions: str | ReactionEmoji | ReactionType | list[str | ReactionEmoji | ReactionType],
+    reactions: (
+        str | ReactionEmoji | ReactionType | list[str | ReactionEmoji | ReactionType]
+    ),
     /,
 ) -> list[ReactionType]:
     if not isinstance(reactions, list):
@@ -41,7 +43,11 @@ def compose_reactions(
         (
             ReactionTypeEmoji(emoji)
             if isinstance(emoji, ReactionEmoji)
-            else (ReactionTypeEmoji(ReactionEmoji(emoji)) if isinstance(emoji, str) else emoji)
+            else (
+                ReactionTypeEmoji(ReactionEmoji(emoji))
+                if isinstance(emoji, str)
+                else emoji
+            )
         )
         for emoji in reactions
     ]

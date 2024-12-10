@@ -1,3 +1,11 @@
+from .adapter import (
+    ABCAdapter,
+    DataclassAdapter,
+    EventAdapter,
+    NodeAdapter,
+    RawEventAdapter,
+    RawUpdateAdapter,
+)
 from .buttons import BaseButton
 from .callback_data_serilization import (
     ABCDataSerializer,
@@ -90,6 +98,12 @@ from .parse_mode import ParseMode
 from .state_storage import ABCStateStorage, MemoryStateStorage, StateData
 
 __all__ = (
+    "ABCAdapter",
+    "DataclassAdapter",
+    "EventAdapter",
+    "NodeAdapter",
+    "RawEventAdapter",
+    "RawUpdateAdapter",
     "ABCDataSerializer",
     "ABCErrorHandler",
     "ABCGlobalContext",

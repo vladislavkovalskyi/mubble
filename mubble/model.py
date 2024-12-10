@@ -26,6 +26,12 @@ def is_none(value: typing.Any, /) -> typing.TypeGuard[None | Nothing]:
     return value is None or isinstance(value, Nothing)
 
 
+def get_event_key(event_model: "Model", /) -> str:
+    if not isinstance(event_model, HasEventKey):
+        raise TypeError(f"Event model of type {type(event_model)!r} has no event key.")
+    return event_model.event_key
+
+
 def get_params(params: dict[str, typing.Any]) -> dict[str, typing.Any]:
     validated_params = {}
     for k, v in (
@@ -167,6 +173,12 @@ class Model(msgspec.Struct, **MODEL_CONFIG):
         return self._to_dict("model_as_full_dict", exclude_fields or set(), full=True)
 
 
+@typing.runtime_checkable
+class HasEventKey(typing.Protocol):
+    @property
+    def event_key(self) -> str: ...
+
+
 class Proxy[T]:
     def __init__(self, cfg: "_ProxiedDict[T]", key: str) -> None:
         self.key = key
@@ -205,6 +217,7 @@ __all__ = (
     "Model",
     "ProxiedDict",
     "Proxy",
+    "get_event_key",
     "full_result",
     "get_params",
 )

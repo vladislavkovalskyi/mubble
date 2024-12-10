@@ -2,10 +2,11 @@ import inspect
 import typing
 
 from mubble.bot.dispatch.context import Context
-from mubble.bot.rules.adapter.raw_update import RawUpdateAdapter
+from mubble.tools.adapter.abc import ABCAdapter
+from mubble.tools.adapter.raw_update import RawUpdateAdapter
 from mubble.types.objects import Update
 
-from .abc import ABCAdapter, ABCRule, AdaptTo
+from .abc import ABCRule, AdaptTo
 
 
 class FuncRule(ABCRule, typing.Generic[AdaptTo]):

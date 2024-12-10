@@ -8,12 +8,16 @@ from mubble.bot.dispatch.return_manager.abc import BaseReturnManager, register_m
 class PreCheckoutQueryManager(BaseReturnManager[PreCheckoutQueryCute]):
     @register_manager(bool)
     @staticmethod
-    async def bool_manager(value: bool, event: PreCheckoutQueryCute, ctx: Context) -> None:
+    async def bool_manager(
+        value: bool, event: PreCheckoutQueryCute, ctx: Context
+    ) -> None:
         await event.answer(value)
 
     @register_manager(dict[str, typing.Any])
     @staticmethod
-    async def dict_manager(value: dict[str, typing.Any], event: PreCheckoutQueryCute, ctx: Context) -> None:
+    async def dict_manager(
+        value: dict[str, typing.Any], event: PreCheckoutQueryCute, ctx: Context
+    ) -> None:
         await event.answer(**value)
 
 

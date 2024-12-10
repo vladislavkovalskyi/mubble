@@ -1,5 +1,7 @@
 from mubble.bot.cute_types.pre_checkout_query import PreCheckoutQueryCute
-from mubble.bot.dispatch.return_manager.pre_checkout_query import PreCheckoutQueryManager
+from mubble.bot.dispatch.return_manager.pre_checkout_query import (
+    PreCheckoutQueryManager,
+)
 from mubble.bot.dispatch.view.base import BaseStateView
 
 
@@ -10,7 +12,8 @@ class PreCheckoutQueryView(BaseStateView[PreCheckoutQueryCute]):
         self.middlewares = []
         self.return_manager = PreCheckoutQueryManager()
 
-    def get_state_key(self, event: PreCheckoutQueryCute) -> int | None:
+    @classmethod
+    def get_state_key(cls, event: PreCheckoutQueryCute) -> int | None:
         return event.from_user.id
 
 

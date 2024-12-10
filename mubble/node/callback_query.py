@@ -19,7 +19,9 @@ class CallbackQueryNode(ScalarNode, CallbackQueryCute):
 class CallbackQueryData(ScalarNode, str):
     @classmethod
     def compose(cls, callback_query: CallbackQueryNode) -> str:
-        return callback_query.data.expect(ComposeError("Cannot complete decode callback query data."))
+        return callback_query.data.expect(
+            ComposeError("Cannot complete decode callback query data.")
+        )
 
 
 class CallbackQueryDataJson(ScalarNode, dict[str, typing.Any]):
@@ -37,7 +39,9 @@ class _Field(FactoryNode):
         return cls(field_type=field_type)
 
     @classmethod
-    def compose(cls, callback_query_data: CallbackQueryDataJson, data_name: Name) -> typing.Any:
+    def compose(
+        cls, callback_query_data: CallbackQueryDataJson, data_name: Name
+    ) -> typing.Any:
         if data := callback_query_data.get(data_name):
             match msgspec_convert(data, cls.field_type):
                 case Ok(value):

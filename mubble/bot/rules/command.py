@@ -77,7 +77,9 @@ class Command(ABCRule):
 
         return self.parse_arguments(arguments[1:], s)
 
-    def parse_arguments(self, arguments: list[Argument], s: str) -> dict[str, typing.Any] | None:
+    def parse_arguments(
+        self, arguments: list[Argument], s: str
+    ) -> dict[str, typing.Any] | None:
         if not arguments:
             return {} if not s else None
 
@@ -97,7 +99,9 @@ class Command(ABCRule):
 
         return None
 
-    def check(self, command: CommandInfo, me: Me, chat: ChatSource, ctx: Context) -> bool:
+    def check(
+        self, command: CommandInfo, me: Me, chat: ChatSource, ctx: Context
+    ) -> bool:
         name = self.remove_prefix(command.name)
         if name is None:
             return False
@@ -105,7 +109,11 @@ class Command(ABCRule):
         if name not in self.names:
             return False
 
-        if not command.mention and self.mention_needed_in_chat and chat.type is not ChatType.PRIVATE:
+        if (
+            not command.mention
+            and self.mention_needed_in_chat
+            and chat.type is not ChatType.PRIVATE
+        ):
             return False
 
         if command.mention and self.validate_mention:  # noqa

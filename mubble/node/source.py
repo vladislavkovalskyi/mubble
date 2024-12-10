@@ -40,7 +40,9 @@ class Source(Polymorphic, DataNode):
         )
 
     @impl
-    def compose_chat_join_request(cls, chat_join_request: EventNode[ChatJoinRequestCute]) -> typing.Self:
+    def compose_chat_join_request(
+        cls, chat_join_request: EventNode[ChatJoinRequestCute]
+    ) -> typing.Self:
         return cls(
             api=chat_join_request.ctx_api,
             from_user=chat_join_request.from_user,
@@ -49,7 +51,9 @@ class Source(Polymorphic, DataNode):
         )
 
     @impl
-    def compose_pre_checkout_query(cls, pre_checkout_query: PreCheckoutQueryNode) -> typing.Self:
+    def compose_pre_checkout_query(
+        cls, pre_checkout_query: PreCheckoutQueryNode
+    ) -> typing.Self:
         return cls(
             api=pre_checkout_query.ctx_api,
             from_user=pre_checkout_query.from_user,

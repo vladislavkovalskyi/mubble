@@ -7,10 +7,10 @@ import typing_extensions as typing
 from mubble.bot.cute_types import MessageCute, UpdateCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.process import check_rule
-from mubble.bot.rules.adapter import ABCAdapter
-from mubble.bot.rules.adapter.node import Event
-from mubble.bot.rules.adapter.raw_update import RawUpdateAdapter
 from mubble.node.base import Node, get_nodes, is_node
+from mubble.tools.adapter import ABCAdapter
+from mubble.tools.adapter.node import Event
+from mubble.tools.adapter.raw_update import RawUpdateAdapter
 from mubble.tools.i18n.abc import ABCTranslator
 from mubble.tools.magic import (
     cache_translation,
@@ -53,6 +53,7 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
         @abstractmethod
         def check(self, *args: typing.Any, **kwargs: typing.Any) -> CheckResult:
             pass
+
     else:
         adapter = RawUpdateAdapter()
 
@@ -132,8 +133,8 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
         self,
         ctx: Context,
         *,
-        node_col: "NodeCollection | None",
         adapted_value: AdaptTo,
+        node_col: "NodeCollection | None" = None,
     ) -> bool:
         bound_check_rule = self.check
         kw = {}
@@ -144,7 +145,11 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
             if (isinstance(adapted_value, Event) and i == 0) or (  # First arg is Event
                 isinstance(v, type) and isinstance(adapted_value, v)
             ):
-                kw[k] = adapted_value if not isinstance(adapted_value, Event) else adapted_value.obj
+                kw[k] = (
+                    adapted_value
+                    if not isinstance(adapted_value, Event)
+                    else adapted_value.obj
+                )
             elif is_node(v):
                 assert k in node_col_values, "Node is undefined, error while bounding."
                 kw[k] = node_col_values[k]

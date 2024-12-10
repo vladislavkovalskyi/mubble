@@ -27,10 +27,15 @@ class MessageView(BaseStateView[MessageCute]):
     def __repr__(self) -> str:
         return "<{}: {!r}>".format(
             self.__class__.__name__,
-            "any message update" if self.update_type is None else self.update_type.value,
+            (
+                "any message update"
+                if self.update_type is None
+                else self.update_type.value
+            ),
         )
 
-    def get_state_key(self, event: MessageCute) -> int | None:
+    @classmethod
+    def get_state_key(cls, event: MessageCute) -> int | None:
         return event.chat_id
 
     async def check(self, event: Update) -> bool:

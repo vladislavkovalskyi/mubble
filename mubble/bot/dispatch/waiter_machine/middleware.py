@@ -30,11 +30,13 @@ class WaiterMiddleware[Event: BaseCute](ABCMiddleware[Event]):
             return True
 
         key = self.hasher.get_hash_from_data_from_event(event)
-        if key is None:
-            logger.info(f"Unable to get hash from event with hasher {self.hasher}")
+        if not key:
+            logger.info(f"Unable to get hash from event with hasher {self.hasher!r}")
             return True
 
-        short_state: "ShortState[Event] | None" = self.machine.storage[self.hasher].get(key.unwrap())
+        short_state: "ShortState[Event] | None" = self.machine.storage[self.hasher].get(
+            key.unwrap()
+        )
         if not short_state:
             return True
 
@@ -44,12 +46,18 @@ class WaiterMiddleware[Event: BaseCute](ABCMiddleware[Event]):
 
         # Run filter rule
         if short_state.filter and not await check_rule(
-            event.ctx_api, short_state.filter, ctx.raw_update, preset_context
+            event.ctx_api,
+            short_state.filter,
+            ctx.raw_update,
+            preset_context,
         ):
             logger.debug("Filter rule {!r} failed", short_state.filter)
             return True
 
-        if short_state.expiration_date is not None and datetime.datetime.now() >= short_state.expiration_date:
+        if (
+            short_state.expiration_date is not None
+            and datetime.datetime.now() >= short_state.expiration_date
+        ):
             await self.machine.drop(
                 self.hasher,
                 self.hasher.get_data_from_event(event).unwrap(),
@@ -60,7 +68,7 @@ class WaiterMiddleware[Event: BaseCute](ABCMiddleware[Event]):
         handler = FuncHandler(
             self.pass_runtime,
             [short_state.release] if short_state.release else [],
-            dataclass=None,
+            dataclass=BaseCute,
             preset_context=preset_context,
         )
         result = await handler.check(event.ctx_api, ctx.raw_update, ctx)
@@ -76,11 +84,11 @@ class WaiterMiddleware[Event: BaseCute](ABCMiddleware[Event]):
 
     async def pass_runtime(
         self,
-        event: Event,
+        event: BaseCute[Event],
         short_state: "ShortState[Event]",
         ctx: Context,
     ) -> None:
-        short_state.context = ShortStateContext(event, ctx)
+        short_state.context = ShortStateContext(typing.cast(Event, event), ctx)
         short_state.event.set()
 
 

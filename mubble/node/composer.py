@@ -28,11 +28,15 @@ async def compose_node(
     kwargs = magic_bundle(node.compose, linked, typebundle=True)
 
     if node.is_generator():
-        generator = typing.cast(typing.AsyncGenerator[typing.Any, None], node.compose(**kwargs))
+        generator = typing.cast(
+            typing.AsyncGenerator[typing.Any, None], node.compose(**kwargs)
+        )
         value = await generator.asend(None)
     else:
         generator = None
-        value = typing.cast(typing.Awaitable[typing.Any] | typing.Any, node.compose(**kwargs))
+        value = typing.cast(
+            typing.Awaitable[typing.Any] | typing.Any, node.compose(**kwargs)
+        )
         if inspect.isawaitable(value):
             value = await value
 
@@ -49,10 +53,13 @@ async def compose_nodes(
     local_nodes: dict[type[Node], NodeSession]
     data = {Context: ctx} | (data or {})
     parent_nodes: dict[type[Node], NodeSession] = {}
-    event_nodes: dict[type[Node], NodeSession] = ctx.get_or_set(CONTEXT_STORE_NODES_KEY, {})
+    event_nodes: dict[type[Node], NodeSession] = ctx.get_or_set(
+        CONTEXT_STORE_NODES_KEY, {}
+    )
     # TODO: optimize flattened list calculation via caching key = tuple of node types
     calculation_nodes: dict[tuple[str, type[Node]], tuple[type[Node], ...]] = {
-        (node_name, node_t): tuple(get_node_calc_lst(node_t)) for node_name, node_t in nodes.items()
+        (node_name, node_t): tuple(get_node_calc_lst(node_t))
+        for node_name, node_t in nodes.items()
     }
 
     for (parent_node_name, parent_node_t), linked_nodes in calculation_nodes.items():
@@ -67,11 +74,15 @@ async def compose_nodes(
                 local_nodes[node_t] = event_nodes[node_t]
                 continue
             elif scope is NodeScope.GLOBAL and hasattr(node_t, GLOBAL_VALUE_KEY):
-                local_nodes[node_t] = getattr(node_t, GLOBAL_VALUE_KEY)
+                local_nodes[node_t] = NodeSession(
+                    node_t, getattr(node_t, GLOBAL_VALUE_KEY), {}
+                )
                 continue
 
             subnodes |= {
-                k: session.value for k, session in (local_nodes | event_nodes).items() if k not in subnodes
+                k: session.value
+                for k, session in (local_nodes | event_nodes).items()
+                if k not in subnodes
             }
 
             try:
@@ -85,7 +96,7 @@ async def compose_nodes(
             if scope is NodeScope.PER_EVENT:
                 event_nodes[node_t] = local_nodes[node_t]
             elif scope is NodeScope.GLOBAL:
-                setattr(node_t, GLOBAL_VALUE_KEY, local_nodes[node_t])
+                setattr(node_t, GLOBAL_VALUE_KEY, local_nodes[node_t].value)
 
         parent_nodes[parent_node_t] = local_nodes[parent_node_t]
 
@@ -101,7 +112,9 @@ class NodeSession:
     generator: typing.AsyncGenerator[typing.Any, typing.Any | None] | None = None
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}: {self.value!r}" + (" (ACTIVE)>" if self.generator else ">")
+        return f"<{self.__class__.__name__}: {self.value!r}" + (
+            " (ACTIVE)>" if self.generator else ">"
+        )
 
     async def close(
         self,

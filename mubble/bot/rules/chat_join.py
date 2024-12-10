@@ -2,7 +2,7 @@ import abc
 import typing
 
 from mubble.bot.cute_types import ChatJoinRequestCute
-from mubble.bot.rules.adapter import EventAdapter
+from mubble.tools.adapter import EventAdapter
 from mubble.types.enums import UpdateType
 
 from .abc import ABCRule, CheckResult

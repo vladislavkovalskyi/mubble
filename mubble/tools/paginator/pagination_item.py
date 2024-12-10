@@ -12,7 +12,9 @@ class _PaginatorItem[T: PaginatedData, F](Polymorphic, FactoryNode):
     model_t: type[T]
     paginator: type[Paginator[T]]
 
-    def __class_getitem__(cls, data: tuple[type[T], type[Paginator[T]]]) -> type["_PaginatorItem[T, F]"]:
+    def __class_getitem__(
+        cls, data: tuple[type[T], type[Paginator[T]]]
+    ) -> type["_PaginatorItem[T, F]"]:
         model_t, paginator = data
         return cls(model_t=model_t, paginator=paginator)  # type: ignore
 
@@ -47,7 +49,9 @@ class _PaginatorItem[T: PaginatedData, F](Polymorphic, FactoryNode):
 
 
 if typing.TYPE_CHECKING:
-    type PaginatorItem[Data: PaginatedData, P: Paginator[typing.Any]] = typing.Annotated[Data, P]
+    type PaginatorItem[
+        Data: PaginatedData, P: Paginator[typing.Any]
+    ] = typing.Annotated[Data, P]
 else:
     PaginatorItem = _PaginatorItem
 

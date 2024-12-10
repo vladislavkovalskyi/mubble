@@ -36,17 +36,23 @@ class ModelParser[Model: ModelType]:
         inspected_type: msgspec.inspect.Type,
         /,
     ) -> typing.TypeGuard[msgspec.inspect.DataclassType | msgspec.inspect.StructType]:
-        return isinstance(inspected_type, msgspec.inspect.DataclassType | msgspec.inspect.StructType)
+        return isinstance(
+            inspected_type, msgspec.inspect.DataclassType | msgspec.inspect.StructType
+        )
 
     def _is_iter_of_model(
         self, inspected_type: msgspec.inspect.Type, /
     ) -> typing.TypeGuard[msgspec.inspect.ListType]:
         return isinstance(
             inspected_type,
-            msgspec.inspect.ListType | msgspec.inspect.SetType | msgspec.inspect.FrozenSetType,
+            msgspec.inspect.ListType
+            | msgspec.inspect.SetType
+            | msgspec.inspect.FrozenSetType,
         ) and self._is_model_type(inspected_type.item_type)
 
-    def _validate_annotation(self, annotation: typing.Any, /) -> tuple[type[ModelType], bool] | None:
+    def _validate_annotation(
+        self, annotation: typing.Any, /
+    ) -> tuple[type[ModelType], bool] | None:
         is_iter_of_model = False
         type_args: tuple[msgspec.inspect.Type, ...] | None = None
         inspected_type = msgspec.inspect.type_info(annotation)
@@ -99,15 +105,21 @@ class ModelParser[Model: ModelType]:
         """Compose linked list to dictionary based on the model class annotations `(without validation)`."""
 
         root_converted_data: dict[str, typing.Any] = {}
-        stack: deque[typing.Any] = deque([(linked, self.model_type, root_converted_data)])
+        stack: deque[typing.Any] = deque(
+            [(linked, self.model_type, root_converted_data)]
+        )
 
         while stack:
             current_data, current_model, converted_data = stack.pop()
 
-            for index, (field, annotation) in enumerate(get_class_annotations(current_model).items()):
+            for index, (field, annotation) in enumerate(
+                get_class_annotations(current_model).items()
+            ):
                 obj, model_type, is_iter_of_model = current_data[index], None, False
 
-                if isinstance(obj, list) and (validated := self._validate_annotation(annotation)):
+                if isinstance(obj, list) and (
+                    validated := self._validate_annotation(annotation)
+                ):
                     model_type, is_iter_of_model = validated
 
                 if model_type is not None:
@@ -132,9 +144,13 @@ class MsgPackSerializer[Model: ModelType](ABCDataSerializer[Model]):
     def __init__(self, model_t: type[Model], /) -> None: ...
 
     @typing.overload
-    def __init__(self, model_t: type[Model], /, *, ident_key: str | None = ...) -> None: ...
+    def __init__(
+        self, model_t: type[Model], /, *, ident_key: str | None = ...
+    ) -> None: ...
 
-    def __init__(self, model_t: type[Model], /, *, ident_key: str | None = None) -> None:
+    def __init__(
+        self, model_t: type[Model], /, *, ident_key: str | None = None
+    ) -> None:
         self.model_t = model_t
         self.ident_key: str | None = ident_key or getattr(model_t, "__key__", None)
         self._model_parser = ModelParser(model_t)
@@ -144,7 +160,9 @@ class MsgPackSerializer[Model: ModelType](ABCDataSerializer[Model]):
         return cls(model.__class__, ident_key=ident_key).serialize(model)
 
     @classmethod
-    def deserialize_to_json(cls, serialized_data: str, model_t: type[Model]) -> Result[Model, str]:
+    def deserialize_to_json(
+        cls, serialized_data: str, model_t: type[Model]
+    ) -> Result[Model, str]:
         return cls(model_t).deserialize(serialized_data)
 
     @cached_property
@@ -155,7 +173,10 @@ class MsgPackSerializer[Model: ModelType](ABCDataSerializer[Model]):
 
     def serialize(self, data: Model) -> str:
         return base64.urlsafe_b64encode(
-            self.key + msgspec.msgpack.encode(self._model_parser.parse(data), enc_hook=encoder.enc_hook),
+            self.key
+            + msgspec.msgpack.encode(
+                self._model_parser.parse(data), enc_hook=encoder.enc_hook
+            ),
         ).decode()
 
     def deserialize(self, serialized_data: str) -> Result[Model, str]:
@@ -168,7 +189,9 @@ class MsgPackSerializer[Model: ModelType](ABCDataSerializer[Model]):
                 ser_data.removeprefix(self.key),
                 dec_hook=decoder.dec_hook,
             )
-            return Ok(decoder.convert(self._model_parser.compose(data), type=self.model_t))
+            return Ok(
+                decoder.convert(self._model_parser.compose(data), type=self.model_t)
+            )
 
         return Error("Incorrect data.")
 

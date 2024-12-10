@@ -4,11 +4,16 @@ from fntypes.result import Result
 
 from mubble.api.api import API, APIError
 from mubble.bot.cute_types.base import BaseCute, shortcut
-from mubble.bot.cute_types.chat_member_updated import ChatMemberShortcuts, chat_member_interaction
+from mubble.bot.cute_types.chat_member_updated import (
+    ChatMemberShortcuts,
+    chat_member_interaction,
+)
 from mubble.types.objects import *
 
 
-class ChatJoinRequestCute(BaseCute[ChatJoinRequest], ChatJoinRequest, ChatMemberShortcuts, kw_only=True):
+class ChatJoinRequestCute(
+    BaseCute[ChatJoinRequest], ChatJoinRequest, ChatMemberShortcuts, kw_only=True
+):
     api: API
 
     @property

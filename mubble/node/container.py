@@ -14,7 +14,9 @@ class ContainerNode(Node):
     def get_subnodes(cls) -> dict[str, type[Node]]:
         subnodes = getattr(cls, "subnodes", None)
         if subnodes is None:
-            subnodes_dct = {f"node_{i}": node_t for i, node_t in enumerate(cls.linked_nodes)}
+            subnodes_dct = {
+                f"node_{i}": node_t for i, node_t in enumerate(cls.linked_nodes)
+            }
             setattr(cls, "subnodes", subnodes_dct)
             return subnodes_dct
         return subnodes

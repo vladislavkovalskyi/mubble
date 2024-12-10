@@ -8,7 +8,9 @@ from mubble.bot.dispatch.return_manager.abc import BaseReturnManager, register_m
 class InlineQueryReturnManager(BaseReturnManager[InlineQueryCute]):
     @register_manager(dict[str, typing.Any])
     @staticmethod
-    async def dict_manager(value: dict[str, typing.Any], event: InlineQueryCute, ctx: Context) -> None:
+    async def dict_manager(
+        value: dict[str, typing.Any], event: InlineQueryCute, ctx: Context
+    ) -> None:
         await event.answer(**value)
 
 

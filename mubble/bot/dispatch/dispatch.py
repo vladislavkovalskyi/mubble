@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import dataclasses
 
 import typing_extensions as typing
@@ -5,10 +7,11 @@ from fntypes import Nothing, Option, Some
 from vbml.patcher import Patcher
 
 from mubble.api.api import API
-from mubble.bot.cute_types.base import BaseCute
-from mubble.bot.cute_types.update import UpdateCute
 from mubble.bot.dispatch.abc import ABCDispatch
+from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.handler.func import ErrorHandlerT, Func, FuncHandler
+from mubble.bot.dispatch.middleware.abc import run_middleware
+from mubble.bot.dispatch.middleware.global_middleware import GlobalMiddleware
 from mubble.bot.dispatch.view.box import (
     CallbackQueryView,
     ChatJoinRequestView,
@@ -26,11 +29,14 @@ from mubble.types.enums import UpdateType
 from mubble.types.objects import Update
 
 if typing.TYPE_CHECKING:
+    from mubble.bot.cute_types.base import BaseCute
+    from mubble.bot.cute_types.update import UpdateCute
+    from mubble.bot.dispatch.middleware.abc import ABCMiddleware
     from mubble.bot.rules.abc import ABCRule
 
 T = typing.TypeVar("T", default=typing.Any)
 R = typing.TypeVar("R", covariant=True, default=typing.Any)
-Event = typing.TypeVar("Event", bound=BaseCute)
+Event = typing.TypeVar("Event", bound="BaseCute")
 P = typing.ParamSpec("P", default=...)
 
 DEFAULT_DATACLASS: typing.Final[type[Update]] = Update
@@ -38,7 +44,6 @@ DEFAULT_DATACLASS: typing.Final[type[Update]] = Update
 
 @dataclasses.dataclass(repr=False, kw_only=True)
 class Dispatch(
-    ABCDispatch,
     ViewBox[
         CallbackQueryView,
         ChatJoinRequestView,
@@ -48,10 +53,14 @@ class Dispatch(
         PreCheckoutQueryView,
         RawEventView,
     ],
+    ABCDispatch,
 ):
     _global_context: MubbleContext = dataclasses.field(
         init=False,
-        default_factory=lambda: MubbleContext(),
+        default_factory=MubbleContext,
+    )
+    global_middleware: "ABCMiddleware" = dataclasses.field(
+        default_factory=lambda: GlobalMiddleware(),
     )
 
     def __repr__(self) -> str:
@@ -134,24 +143,20 @@ class Dispatch(
     def handle(
         self,
         *rules: "ABCRule",
-        dataclass: type[typing.Any],
+        dataclass: type[T],
         error_handler: ErrorHandlerT,
         is_blocking: bool = True,
-    ) -> typing.Callable[
-        [Func[P, R]], FuncHandler[UpdateCute, Func[P, R], ErrorHandlerT]
-    ]: ...
+    ) -> typing.Callable[[Func[P, R]], FuncHandler[T, Func[P, R], ErrorHandlerT]]: ...
 
     @typing.overload
     def handle(
         self,
         *rules: "ABCRule",
-        dataclass: type[typing.Any],
+        dataclass: type[T],
         update_type: UpdateType,
         error_handler: ErrorHandlerT,
         is_blocking: bool = True,
-    ) -> typing.Callable[
-        [Func[P, R]], FuncHandler[UpdateCute, Func[P, R], ErrorHandlerT]
-    ]: ...
+    ) -> typing.Callable[[Func[P, R]], FuncHandler[T, Func[P, R], ErrorHandlerT]]: ...
 
     @typing.overload
     def handle(
@@ -161,9 +166,7 @@ class Dispatch(
         dataclass: type[T] = DEFAULT_DATACLASS,
         error_handler: typing.Literal[None] = None,
         is_blocking: bool = True,
-    ) -> typing.Callable[
-        [Func[P, R]], FuncHandler[UpdateCute, Func[P, R], ErrorHandler[T]]
-    ]: ...
+    ) -> typing.Callable[[Func[P, R]], FuncHandler[T, Func[P, R], ErrorHandler[T]]]: ...
 
     def handle(
         self,
@@ -193,6 +196,21 @@ class Dispatch(
             event.update_id,
             event.update_type.name,
         )
+        context = Context(raw_update=event)
+
+        if (
+            await run_middleware(
+                self.global_middleware.pre,
+                api,
+                event,
+                raw_event=event,
+                ctx=context,
+                adapter=self.global_middleware.adapter,
+            )
+            is False
+        ):
+            return False
+
         for view in self.get_views().values():
             if await view.check(event):
                 logger.debug(
@@ -201,8 +219,19 @@ class Dispatch(
                     event.update_type.name,
                     view,
                 )
-                if await view.process(event, api):
+                if await view.process(event, api, context):
                     return True
+
+        await run_middleware(
+            self.global_middleware.post,
+            api,
+            event,
+            raw_event=event,
+            ctx=context,
+            adapter=self.global_middleware.adapter,
+            responses=[],
+        )
+
         return False
 
     def load(self, external: typing.Self) -> None:

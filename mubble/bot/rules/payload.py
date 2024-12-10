@@ -30,7 +30,9 @@ class PayloadRule[Data](ABCRule):
     def required_nodes(self) -> dict[str, type[Node]]:
         return {"payload": PayloadData[self.data_type, self.serializer]}  # type: ignore
 
-    def check(self, payload: PayloadData[Data], context: Context) -> typing.Literal[True]:
+    def check(
+        self, payload: PayloadData[Data], context: Context
+    ) -> typing.Literal[True]:
         context.set(self.alias, payload)
         return True
 

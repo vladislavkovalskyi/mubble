@@ -87,7 +87,8 @@ async def execute_method_edit(
             "message_thread_id": lambda x: (
                 x.is_topic_message.unwrap_or(False)
                 if isinstance(x, MessageCute)
-                else bool(x.message) and getattr(x.message.unwrap().v, "is_topic_message", False)
+                else bool(x.message)
+                and getattr(x.message.unwrap().v, "is_topic_message", False)
             ),
         },
     )
@@ -176,22 +177,24 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         text: str | None = None,
         *,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
-        parse_mode: str | None = None,
-        entities: list[MessageEntity] | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        link_preview_options: LinkPreviewOptions | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        entities: list[MessageEntity] | None = None,
+        link_preview_options: LinkPreviewOptions | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        parse_mode: str | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_message()`, see the [documentation](https://core.telegram.org/bots/api#sendmessage)
@@ -219,7 +222,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -232,23 +236,25 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         text: str,
         *,
+        allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        entities: list[MessageEntity] | None = None,
+        link_preview_options: LinkPreviewOptions | None = None,
+        message_effect_id: str | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
         parse_mode: str | None = None,
-        entities: list[MessageEntity] | None = None,
-        disable_notification: bool | None = None,
         protect_content: bool | None = None,
-        link_preview_options: LinkPreviewOptions | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
-        allow_paid_broadcast: bool | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_message()`, see the [documentation](https://core.telegram.org/bots/api#sendmessage)
@@ -276,11 +282,14 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
-    @shortcut("delete_message", custom_params={"message_thread_id", "chat_id", "message_id"})
+    @shortcut(
+        "delete_message", custom_params={"message_thread_id", "chat_id", "message_id"}
+    )
     async def delete(
         self,
         *,
@@ -307,7 +316,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         return await self.ctx_api.delete_message(**params)
 
@@ -320,15 +331,15 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         text: str,
         *,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
+        entities: list[MessageEntity] | None = None,
+        inline_message_id: str | None = None,
+        link_preview_options: LinkPreviewOptions | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
-        entities: list[MessageEntity] | None = None,
-        link_preview_options: LinkPreviewOptions | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        business_connection_id: str | None = None,
-        inline_message_id: str | None = None,
         **other: typing.Any,
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_text()`, see the [documentation](https://core.telegram.org/bots/api#editmessagetext)
@@ -365,22 +376,24 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         chat_id: int | str | None = None,
         *,
+        allow_paid_broadcast: bool | None = None,
+        caption: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
+        disable_notification: bool | None = None,
         from_chat_id: int | str | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
-        caption: str | None = None,
         parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         show_caption_above_media: bool | None = None,
-        allow_paid_broadcast: bool | None = None,
         **other: typing.Any,
     ) -> Result[MessageId, APIError]:
         """Shortcut `API.copy_message()`, see the [documentation](https://core.telegram.org/bots/api#copymessage)
@@ -401,7 +414,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
                 ("from_chat_id", "chat_id"),
                 "message_thread_id",
             },
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         if isinstance(reply_parameters, dict):
             reply_parameters.setdefault("message_id", params.get("message_id"))
@@ -416,13 +431,17 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     async def react(
         self,
         reaction: (
-            str | ReactionEmoji | ReactionType | list[str | ReactionEmoji | ReactionType] | None
+            str
+            | ReactionEmoji
+            | ReactionType
+            | list[str | ReactionEmoji | ReactionType]
+            | None
         ) = None,
         *,
         chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        message_id: int | None = None,
         is_big: bool | None = None,
+        message_id: int | None = None,
+        message_thread_id: int | None = None,
         **other: typing.Any,
     ) -> Result[bool, APIError]:
         """Shortcut `API.set_message_reaction()`, see the [documentation](https://core.telegram.org/bots/api#setmessagereaction)
@@ -436,7 +455,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         if reaction:
             params["reaction"] = compose_reactions(
@@ -444,15 +465,18 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             )
         return await self.ctx_api.set_message_reaction(**params)
 
-    @shortcut("forward_message", custom_params={"message_thread_id", "from_chat_id", "message_id"})
+    @shortcut(
+        "forward_message",
+        custom_params={"message_thread_id", "from_chat_id", "message_id"},
+    )
     async def forward(
         self,
         chat_id: int | str,
         *,
-        message_id: int | None = None,
-        from_chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
         disable_notification: bool | None = None,
+        from_chat_id: int | str | None = None,
+        message_id: int | None = None,
+        message_thread_id: int | None = None,
         protect_content: bool | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -479,21 +503,25 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
                 "message_id",
                 "message_thread_id",
             },
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         return (await self.ctx_api.forward_message(**params)).map(
             lambda message: MessageCute.from_update(message, bound_api=self.api),
         )
 
-    @shortcut("pin_chat_message", custom_params={"message_thread_id", "chat_id", "message_id"})
+    @shortcut(
+        "pin_chat_message", custom_params={"message_thread_id", "chat_id", "message_id"}
+    )
     async def pin(
         self,
         *,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
-        disable_notification: bool | None = None,
-        business_connection_id: str | None = None,
         **other: typing.Any,
     ) -> Result[bool, "APIError"]:
         """Shortcut `API.pin_chat_message()`, see the [documentation](https://core.telegram.org/bots/api#pinchatmessage)
@@ -509,24 +537,30 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_id: Identifier of a message to pin.
 
-        :param disable_notification: Pass True if it is not necessary to send a notification to all chat membersabout the new pinned message. Notifications are always disabled in channelsand private chats."""
+        :param disable_notification: Pass True if it is not necessary to send a notification to all chat membersabout the new pinned message. Notifications are always disabled in channelsand private chats.
+        """
 
         params = compose_method_params(
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         return await self.ctx_api.pin_chat_message(**params)
 
-    @shortcut("unpin_chat_message", custom_params={"message_thread_id", "chat_id", "message_id"})
+    @shortcut(
+        "unpin_chat_message",
+        custom_params={"message_thread_id", "chat_id", "message_id"},
+    )
     async def unpin(
         self,
         *,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
         **other: typing.Any,
     ) -> Result[bool, "APIError"]:
         """Shortcut `API.unpin_chat_message()`, see the [documentation](https://core.telegram.org/bots/api#unpinchatmessage)
@@ -540,13 +574,16 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param chat_id: Unique identifier for the target chat or username of the target channel(in the format @channelusername).
 
-        :param message_id: Identifier of the message to unpin. Required if business_connection_idis specified. If not specified, the most recent pinned message (by sendingdate) will be unpinned."""
+        :param message_id: Identifier of the message to unpin. Required if business_connection_idis specified. If not specified, the most recent pinned message (by sendingdate) will be unpinned.
+        """
 
         params = compose_method_params(
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
+            validators={
+                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
+            },
         )
         return await self.ctx_api.pin_chat_message(**params)
 
@@ -559,26 +596,28 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         audio: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
-        caption: str | None = None,
-        parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        duration: int | None = None,
-        performer: str | None = None,
-        title: str | None = None,
-        thumbnail: InputFile | str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        caption: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        duration: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        parse_mode: str | None = None,
+        performer: str | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        thumbnail: InputFile | str | None = None,
+        title: str | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_audio()`, see the [documentation](https://core.telegram.org/bots/api#sendaudio)
@@ -617,7 +656,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -630,28 +670,30 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         animation: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
-        caption: str | None = None,
-        parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        show_caption_above_media: bool | None = None,
-        duration: int | None = None,
-        width: int | None = None,
-        height: int | None = None,
-        thumbnail: InputFile | str | None = None,
-        has_spoiler: bool | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        caption: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        duration: int | None = None,
+        has_spoiler: bool | None = None,
+        height: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        parse_mode: str | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        show_caption_above_media: bool | None = None,
+        thumbnail: InputFile | str | None = None,
+        width: int | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_animation()`, see the [documentation](https://core.telegram.org/bots/api#sendanimation)
@@ -691,7 +733,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -704,25 +747,27 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         document: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
         caption: str | None = None,
-        parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        chat_id: int | str | None = None,
         disable_content_type_detection: bool | None = None,
+        disable_notification: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        parse_mode: str | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
         thumbnail: InputFile | str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
-        allow_paid_broadcast: bool | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_document()`, see the [documentation](https://core.telegram.org/bots/api#senddocument)
@@ -755,7 +800,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -768,24 +814,26 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         photo: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
-        caption: str | None = None,
-        parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        show_caption_above_media: bool | None = None,
-        has_spoiler: bool | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        caption: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        has_spoiler: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        parse_mode: str | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        show_caption_above_media: bool | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_photo()`, see the [documentation](https://core.telegram.org/bots/api#sendphoto)
@@ -817,7 +865,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -830,20 +879,22 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         sticker: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        emoji: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
-        business_connection_id: str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        emoji: str | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_sticker()`, see the [documentation](https://core.telegram.org/bots/api#sendsticker)
@@ -869,7 +920,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -882,29 +934,31 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         video: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        emoji: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
-        duration: int | None = None,
-        width: int | None = None,
-        height: int | None = None,
-        thumbnail: InputFile | str | None = None,
         caption: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
-        show_caption_above_media: bool | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        duration: int | None = None,
+        emoji: str | None = None,
         has_spoiler: bool | None = None,
+        height: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        show_caption_above_media: bool | None = None,
         supports_streaming: bool | None = None,
-        allow_paid_broadcast: bool | None = None,
+        thumbnail: InputFile | str | None = None,
+        width: int | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_video()`, see the [documentation](https://core.telegram.org/bots/api#sendvideo)
@@ -948,7 +1002,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -961,22 +1016,24 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         video_note: InputFile | str,
         *,
-        chat_id: int | str | None = None,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
         duration: int | None = None,
         length: int | None = None,
+        message_effect_id: str | None = None,
         message_thread_id: int | None = None,
-        thumbnail: InputFile | str | None = None,
-        disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
-        allow_paid_broadcast: bool | None = None,
+        thumbnail: InputFile | str | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_video_note()`, see the [documentation](https://core.telegram.org/bots/api#sendvideonote)
@@ -1006,7 +1063,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1019,23 +1077,25 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         voice: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
-        caption: str | None = None,
-        parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        duration: int | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        caption: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        duration: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        parse_mode: str | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_voice()`, see the [documentation](https://core.telegram.org/bots/api#sendvoice)
@@ -1070,7 +1130,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1084,32 +1145,34 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         question: str,
         *,
         options: list[InputPollOption],
-        chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
-        question_parse_mode: str | None = None,
-        question_entities: list[MessageEntity] | None = None,
-        is_anonymous: bool | None = None,
-        type: typing.Literal["quiz", "regular"] | None = None,
-        allows_multiple_answers: bool | None = None,
-        show_caption_above_media: bool | None = None,
-        correct_option_id: int | None = None,
-        explanation: str | None = None,
-        explanation_parse_mode: str | None = None,
-        explanation_entities: list[MessageEntity] | None = None,
-        open_period: int | None = None,
-        close_date: datetime | int | None = None,
-        is_closed: bool | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        allows_multiple_answers: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        close_date: datetime | int | None = None,
+        correct_option_id: int | None = None,
+        disable_notification: bool | None = None,
+        explanation: str | None = None,
+        explanation_entities: list[MessageEntity] | None = None,
+        explanation_parse_mode: str | None = None,
+        is_anonymous: bool | None = None,
+        is_closed: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        open_period: int | None = None,
+        protect_content: bool | None = None,
+        question_entities: list[MessageEntity] | None = None,
+        question_parse_mode: str | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        show_caption_above_media: bool | None = None,
+        type: typing.Literal["quiz", "regular"] | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_poll()`, see the [documentation](https://core.telegram.org/bots/api#sendpoll)
@@ -1158,7 +1221,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1170,27 +1234,29 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     async def answer_venue(
         self,
         *,
+        address: str,
         latitude: float,
         longitude: float,
         title: str,
-        address: str,
-        chat_id: int | str | None = None,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
         foursquare_id: str | None = None,
         foursquare_type: str | None = None,
         google_place_id: str | None = None,
         google_place_type: str | None = None,
-        disable_notification: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
         protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
-        allow_paid_broadcast: bool | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_venue()`, see the [documentation](https://core.telegram.org/bots/api#sendvenue)
@@ -1228,7 +1294,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1241,19 +1308,21 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         emoji: DiceEmoji | None = None,
         *,
-        chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_dice()`, see the [documentation](https://core.telegram.org/bots/api#senddice)
@@ -1276,7 +1345,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1289,15 +1359,15 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         game_short_name: str,
         *,
-        chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        reply_markup: InlineKeyboardMarkup | None = None,
+        reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_game()`, see the [documentation](https://core.telegram.org/bots/api#sendgame)
@@ -1320,7 +1390,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: A JSON-serialized object for an inline keyboard. If empty, one 'Play game_title'button will be shown. If not empty, the first button must launch the game."""
+        :param reply_markup: A JSON-serialized object for an inline keyboard. If empty, one 'Play game_title'button will be shown. If not empty, the first button must launch the game.
+        """
 
         ...
 
@@ -1332,36 +1403,36 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     async def answer_invoice(
         self,
         *,
-        prices: list[LabeledPrice],
-        title: str,
+        currency: Currency,
         description: str,
         payload: str,
-        currency: Currency,
-        chat_id: int | str | None = None,
+        prices: list[LabeledPrice],
+        title: str,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        provider_token: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        is_flexible: bool | None = None,
         max_tip_amount: int | None = None,
-        suggested_tip_amounts: list[int] | None = None,
-        start_parameter: str | None = None,
-        provider_data: str | None = None,
-        photo_url: str | None = None,
-        photo_size: int | None = None,
-        photo_width: int | None = None,
-        photo_height: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        need_email: bool | None = None,
         need_name: bool | None = None,
         need_phone_number: bool | None = None,
-        need_email: bool | None = None,
         need_shipping_address: bool | None = None,
-        send_phone_number_to_provider: bool | None = None,
-        send_email_to_provider: bool | None = None,
-        is_flexible: bool | None = None,
-        disable_notification: bool | None = None,
+        photo_height: int | None = None,
+        photo_size: int | None = None,
+        photo_url: str | None = None,
+        photo_width: int | None = None,
         protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
+        provider_data: str | None = None,
+        provider_token: str | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        allow_paid_broadcast: bool | None = None,
+        reply_parameters: ReplyParameters | None = None,
+        send_email_to_provider: bool | None = None,
+        send_phone_number_to_provider: bool | None = None,
+        start_parameter: str | None = None,
+        suggested_tip_amounts: list[int] | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_invoice()`, see the [documentation](https://core.telegram.org/bots/api#sendinvoice)
@@ -1379,8 +1450,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         action: ChatAction,
         *,
-        chat_id: int | str | None = None,
         business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
         message_thread_id: int | None = None,
         **other: typing.Any,
     ) -> Result[bool, APIError]:
@@ -1396,7 +1467,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param chat_id: Unique identifier for the target chat or username of the target channel(in the format @channelusername).
 
         :param message_thread_id: Unique identifier for the target message thread; for supergroups only.
-        :param action: Type of action to broadcast. Choose one, depending on what the user is aboutto receive: typing for text messages, upload_photo for photos, record_videoor upload_video for videos, record_voice or upload_voice for voice notes,upload_document for general files, choose_sticker for stickers, find_locationfor location data, record_video_note or upload_video_note for videonotes."""
+        :param action: Type of action to broadcast. Choose one, depending on what the user is aboutto receive: typing for text messages, upload_photo for photos, record_videoor upload_video for videos, record_voice or upload_voice for voice notes,upload_document for general files, choose_sticker for stickers, find_locationfor location data, record_video_note or upload_video_note for videonotes.
+        """
 
         ...
 
@@ -1408,15 +1480,15 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         media: InputMedia | list[InputMedia],
         *,
-        chat_id: int | str | None = None,
-        media_type: MediaType | None = None,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
+        chat_id: int | str | None = None,
         disable_notification: bool | None = None,
+        media_type: MediaType | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | None = None,
-        allow_paid_broadcast: bool | None = None,
         **other: typing.Any,
     ) -> Result[list[MessageCute], APIError]:
         """Shortcut `API.send_media_group()`, see the [documentation](https://core.telegram.org/bots/api#sendmediagroup)
@@ -1454,23 +1526,25 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         *,
         latitude: float,
         longitude: float,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
-        horizontal_accuracy: float | None = None,
-        heading: int | None = None,
-        live_period: int | None = None,
-        proximity_alert_radius: int | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        heading: int | None = None,
+        horizontal_accuracy: float | None = None,
+        live_period: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        proximity_alert_radius: int | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_location()`, see the [documentation](https://core.telegram.org/bots/api#sendlocation)
@@ -1501,7 +1575,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1513,23 +1588,25 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     async def answer_contact(
         self,
         *,
-        phone_number: str,
         first_name: str,
-        last_name: str | None = None,
-        vcard: str | None = None,
-        chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
+        phone_number: str,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        last_name: str | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        vcard: str | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_contact()`, see the [documentation](https://core.telegram.org/bots/api#sendcontact)
@@ -1558,7 +1635,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1571,26 +1649,28 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         audio: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
-        caption: str | None = None,
-        parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        duration: int | None = None,
-        performer: str | None = None,
-        title: str | None = None,
-        thumbnail: InputFile | str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        caption: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        duration: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        parse_mode: str | None = None,
+        performer: str | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        thumbnail: InputFile | str | None = None,
+        title: str | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_audio()`, see the [documentation](https://core.telegram.org/bots/api#sendaudio)
@@ -1629,7 +1709,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1642,28 +1723,30 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         animation: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
-        caption: str | None = None,
-        parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        show_caption_above_media: bool | None = None,
-        duration: int | None = None,
-        width: int | None = None,
-        height: int | None = None,
-        thumbnail: InputFile | str | None = None,
-        has_spoiler: bool | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        caption: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        duration: int | None = None,
+        has_spoiler: bool | None = None,
+        height: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        parse_mode: str | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        show_caption_above_media: bool | None = None,
+        thumbnail: InputFile | str | None = None,
+        width: int | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_animation()`, see the [documentation](https://core.telegram.org/bots/api#sendanimation)
@@ -1703,7 +1786,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1716,25 +1800,27 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         document: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
         caption: str | None = None,
-        parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
+        chat_id: int | str | None = None,
         disable_content_type_detection: bool | None = None,
+        disable_notification: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        parse_mode: str | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
         thumbnail: InputFile | str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
-        allow_paid_broadcast: bool | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_document()`, see the [documentation](https://core.telegram.org/bots/api#senddocument)
@@ -1767,7 +1853,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1780,24 +1867,26 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         photo: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
-        caption: str | None = None,
-        parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        show_caption_above_media: bool | None = None,
-        has_spoiler: bool | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        caption: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        has_spoiler: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        parse_mode: str | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        show_caption_above_media: bool | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_photo()`, see the [documentation](https://core.telegram.org/bots/api#sendphoto)
@@ -1829,7 +1918,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1842,20 +1932,22 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         sticker: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        emoji: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
-        business_connection_id: str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        emoji: str | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_sticker()`, see the [documentation](https://core.telegram.org/bots/api#sendsticker)
@@ -1881,7 +1973,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1894,29 +1987,31 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         video: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        emoji: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
-        duration: int | None = None,
-        width: int | None = None,
-        height: int | None = None,
-        thumbnail: InputFile | str | None = None,
         caption: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
-        show_caption_above_media: bool | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        duration: int | None = None,
+        emoji: str | None = None,
         has_spoiler: bool | None = None,
+        height: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        show_caption_above_media: bool | None = None,
         supports_streaming: bool | None = None,
-        allow_paid_broadcast: bool | None = None,
+        thumbnail: InputFile | str | None = None,
+        width: int | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_video()`, see the [documentation](https://core.telegram.org/bots/api#sendvideo)
@@ -1960,7 +2055,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -1973,22 +2069,24 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         video_note: InputFile | str,
         *,
-        chat_id: int | str | None = None,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
         duration: int | None = None,
         length: int | None = None,
+        message_effect_id: str | None = None,
         message_thread_id: int | None = None,
-        thumbnail: InputFile | str | None = None,
-        disable_notification: bool | None = None,
         protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
-        allow_paid_broadcast: bool | None = None,
+        thumbnail: InputFile | str | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_video_note()`, see the [documentation](https://core.telegram.org/bots/api#sendvideonote)
@@ -2018,7 +2116,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -2031,23 +2130,25 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         voice: InputFile | str,
         *,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
-        caption: str | None = None,
-        parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        duration: int | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        caption: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        duration: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        parse_mode: str | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_voice()`, see the [documentation](https://core.telegram.org/bots/api#sendvoice)
@@ -2082,7 +2183,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -2096,32 +2198,34 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         question: str,
         *,
         options: list[InputPollOption],
-        chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
-        question_parse_mode: str | None = None,
-        question_entities: list[MessageEntity] | None = None,
-        is_anonymous: bool | None = None,
-        type: typing.Literal["quiz", "regular"] | None = None,
-        allows_multiple_answers: bool | None = None,
-        show_caption_above_media: bool | None = None,
-        correct_option_id: int | None = None,
-        explanation: str | None = None,
-        explanation_parse_mode: str | None = None,
-        explanation_entities: list[MessageEntity] | None = None,
-        open_period: int | None = None,
-        close_date: datetime | int | None = None,
-        is_closed: bool | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        allows_multiple_answers: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        close_date: datetime | int | None = None,
+        correct_option_id: int | None = None,
+        disable_notification: bool | None = None,
+        explanation: str | None = None,
+        explanation_entities: list[MessageEntity] | None = None,
+        explanation_parse_mode: str | None = None,
+        is_anonymous: bool | None = None,
+        is_closed: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        open_period: int | None = None,
+        protect_content: bool | None = None,
+        question_entities: list[MessageEntity] | None = None,
+        question_parse_mode: str | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        show_caption_above_media: bool | None = None,
+        type: typing.Literal["quiz", "regular"] | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_poll()`, see the [documentation](https://core.telegram.org/bots/api#sendpoll)
@@ -2170,7 +2274,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -2182,27 +2287,29 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     async def reply_venue(
         self,
         *,
+        address: str,
         latitude: float,
         longitude: float,
         title: str,
-        address: str,
-        chat_id: int | str | None = None,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
         foursquare_id: str | None = None,
         foursquare_type: str | None = None,
         google_place_id: str | None = None,
         google_place_type: str | None = None,
-        disable_notification: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
         protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
-        allow_paid_broadcast: bool | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_venue()`, see the [documentation](https://core.telegram.org/bots/api#sendvenue)
@@ -2240,7 +2347,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -2253,19 +2361,21 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         emoji: DiceEmoji | None = None,
         *,
-        chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_dice()`, see the [documentation](https://core.telegram.org/bots/api#senddice)
@@ -2288,7 +2398,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -2301,15 +2412,15 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         game_short_name: str,
         *,
-        chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        reply_markup: InlineKeyboardMarkup | None = None,
+        reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_game()`, see the [documentation](https://core.telegram.org/bots/api#sendgame)
@@ -2332,7 +2443,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: A JSON-serialized object for an inline keyboard. If empty, one 'Play game_title'button will be shown. If not empty, the first button must launch the game."""
+        :param reply_markup: A JSON-serialized object for an inline keyboard. If empty, one 'Play game_title'button will be shown. If not empty, the first button must launch the game.
+        """
 
         ...
 
@@ -2344,36 +2456,36 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     async def reply_invoice(
         self,
         *,
-        prices: list[LabeledPrice],
-        title: str,
+        currency: Currency,
         description: str,
         payload: str,
-        currency: Currency,
-        chat_id: int | str | None = None,
+        prices: list[LabeledPrice],
+        title: str,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        provider_token: str | None = None,
-        message_effect_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        is_flexible: bool | None = None,
         max_tip_amount: int | None = None,
-        suggested_tip_amounts: list[int] | None = None,
-        start_parameter: str | None = None,
-        provider_data: str | None = None,
-        photo_url: str | None = None,
-        photo_size: int | None = None,
-        photo_width: int | None = None,
-        photo_height: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        need_email: bool | None = None,
         need_name: bool | None = None,
         need_phone_number: bool | None = None,
-        need_email: bool | None = None,
         need_shipping_address: bool | None = None,
-        send_phone_number_to_provider: bool | None = None,
-        send_email_to_provider: bool | None = None,
-        is_flexible: bool | None = None,
-        disable_notification: bool | None = None,
+        photo_height: int | None = None,
+        photo_size: int | None = None,
+        photo_url: str | None = None,
+        photo_width: int | None = None,
         protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
+        provider_data: str | None = None,
+        provider_token: str | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        allow_paid_broadcast: bool | None = None,
+        reply_parameters: ReplyParameters | None = None,
+        send_email_to_provider: bool | None = None,
+        send_phone_number_to_provider: bool | None = None,
+        start_parameter: str | None = None,
+        suggested_tip_amounts: list[int] | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_invoice()`, see the [documentation](https://core.telegram.org/bots/api#sendinvoice)
@@ -2394,14 +2506,14 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         media: InputMedia | list[InputMedia],
         *,
-        chat_id: int | str | None = None,
+        allow_paid_broadcast: bool | None = None,
         business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
+        chat_id: int | str | None = None,
         disable_notification: bool | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
         protect_content: bool | None = None,
         reply_parameters: ReplyParameters | None = None,
-        allow_paid_broadcast: bool | None = None,
         **other: typing.Any,
     ) -> Result[list[MessageCute], APIError]:
         """Shortcut `API.send_media_group()`, see the [documentation](https://core.telegram.org/bots/api#sendmediagroup)
@@ -2439,23 +2551,25 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         *,
         latitude: float,
         longitude: float,
-        chat_id: int | str | None = None,
-        message_thread_id: int | None = None,
-        business_connection_id: str | None = None,
-        message_effect_id: str | None = None,
-        horizontal_accuracy: float | None = None,
-        heading: int | None = None,
-        live_period: int | None = None,
-        proximity_alert_radius: int | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        heading: int | None = None,
+        horizontal_accuracy: float | None = None,
+        live_period: int | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        proximity_alert_radius: int | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_location()`, see the [documentation](https://core.telegram.org/bots/api#sendlocation)
@@ -2486,7 +2600,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -2498,23 +2613,25 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     async def reply_contact(
         self,
         *,
-        phone_number: str,
         first_name: str,
-        last_name: str | None = None,
-        vcard: str | None = None,
-        chat_id: int | str | None = None,
-        business_connection_id: str | None = None,
-        message_thread_id: int | None = None,
-        message_effect_id: str | None = None,
-        disable_notification: bool | None = None,
-        protect_content: bool | None = None,
-        reply_parameters: ReplyParameters | None = None,
-        reply_markup: InlineKeyboardMarkup
-        | ReplyKeyboardMarkup
-        | ReplyKeyboardRemove
-        | ForceReply
-        | None = None,
+        phone_number: str,
         allow_paid_broadcast: bool | None = None,
+        business_connection_id: str | None = None,
+        chat_id: int | str | None = None,
+        disable_notification: bool | None = None,
+        last_name: str | None = None,
+        message_effect_id: str | None = None,
+        message_thread_id: int | None = None,
+        protect_content: bool | None = None,
+        reply_markup: (
+            InlineKeyboardMarkup
+            | ReplyKeyboardMarkup
+            | ReplyKeyboardRemove
+            | ForceReply
+            | None
+        ) = None,
+        reply_parameters: ReplyParameters | None = None,
+        vcard: str | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.send_contact()`, see the [documentation](https://core.telegram.org/bots/api#sendcontact)
@@ -2543,7 +2660,8 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
+        """
 
         ...
 
@@ -2556,16 +2674,16 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         *,
         longitude: float,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
-        message_id: int | None = None,
-        message_thread_id: int | None = None,
+        heading: int | None = None,
+        horizontal_accuracy: float | None = None,
         inline_message_id: str | None = None,
         live_period: int | None = None,
-        horizontal_accuracy: float | None = None,
-        heading: int | None = None,
+        message_id: int | None = None,
+        message_thread_id: int | None = None,
         proximity_alert_radius: int | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        business_connection_id: str | None = None,
         **other: typing.Any,
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_live_location()`, see the [documentation](https://core.telegram.org/bots/api#editmessagelivelocation)
@@ -2605,15 +2723,15 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         caption: str | None = None,
         *,
+        business_connection_id: str | None = None,
+        caption_entities: list[MessageEntity] | None = None,
         chat_id: int | str | None = None,
+        inline_message_id: str | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
-        caption_entities: list[MessageEntity] | None = None,
-        show_caption_above_media: bool | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        business_connection_id: str | None = None,
-        inline_message_id: str | None = None,
+        show_caption_above_media: bool | None = None,
         **other: typing.Any,
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_caption()`, see the [documentation](https://core.telegram.org/bots/api#editmessagecaption)
@@ -2658,16 +2776,16 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         self,
         media: InputFile | InputMedia | str,
         *,
-        type: MediaType | None = None,
+        business_connection_id: str | None = None,
         caption: str | None = None,
-        parse_mode: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
         chat_id: int | str | None = None,
+        inline_message_id: str | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
+        parse_mode: str | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        business_connection_id: str | None = None,
-        inline_message_id: str | None = None,
+        type: MediaType | None = None,
         **other: typing.Any,
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_media()`, see the [documentation](https://core.telegram.org/bots/api#editmessagemedia)
@@ -2715,12 +2833,12 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     async def edit_reply_markup(
         self,
         *,
+        business_connection_id: str | None = None,
         chat_id: int | str | None = None,
+        inline_message_id: str | None = None,
         message_id: int | None = None,
         message_thread_id: int | None = None,
         reply_markup: InlineKeyboardMarkup | None = None,
-        business_connection_id: str | None = None,
-        inline_message_id: str | None = None,
         **other: typing.Any,
     ) -> Result[Variative[MessageCute, bool], APIError]:
         """Shortcut `API.edit_message_reply_markup()`, see the [documentation](https://core.telegram.org/bots/api#editmessagereplymarkup)

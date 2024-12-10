@@ -32,7 +32,9 @@ class MediaGroupReplyHandler(BaseReplyHandler):
         )
 
     async def run(self, _: API, event: MessageCute, __: Context) -> typing.Any:
-        method = event.answer_media_group if not self.as_reply else event.reply_media_group
+        method = (
+            event.answer_media_group if not self.as_reply else event.reply_media_group
+        )
         await method(
             media=self.media,
             parse_mode=self.parse_mode,

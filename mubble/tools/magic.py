@@ -44,7 +44,10 @@ def get_default_args(func: FuncType) -> dict[str, typing.Any]:
     if not defaults:
         return {}
 
-    return {k: defaults[i] for i, k in enumerate(resolve_arg_names(func, start_idx=0)[-len(defaults) :])}
+    return {
+        k: defaults[i]
+        for i, k in enumerate(resolve_arg_names(func, start_idx=0)[-len(defaults) :])
+    }
 
 
 @cache_magic_value("__func_parameters__")
@@ -68,7 +71,9 @@ def get_func_parameters(func: FuncType) -> FuncParams:
     return func_params
 
 
-def get_annotations(func: FuncType, *, return_type: bool = False) -> dict[str, typing.Any]:
+def get_annotations(
+    func: FuncType, *, return_type: bool = False
+) -> dict[str, typing.Any]:
     annotations = func.__annotations__
     if not return_type:
         annotations.pop("return", None)
@@ -82,11 +87,15 @@ def to_str(s: str | enum.Enum) -> str:
 
 
 @typing.overload
-def magic_bundle(handler: FuncType, kw: dict[str, typing.Any]) -> dict[str, typing.Any]: ...
+def magic_bundle(
+    handler: FuncType, kw: dict[str, typing.Any]
+) -> dict[str, typing.Any]: ...
 
 
 @typing.overload
-def magic_bundle(handler: FuncType, kw: dict[enum.Enum, typing.Any]) -> dict[str, typing.Any]: ...
+def magic_bundle(
+    handler: FuncType, kw: dict[enum.Enum, typing.Any]
+) -> dict[str, typing.Any]: ...
 
 
 @typing.overload
@@ -127,10 +136,16 @@ def magic_bundle(
     typebundle: bool = False,
 ) -> dict[str, typing.Any]:
     if typebundle:
-        return {name: kw[t] for name, t in get_annotations(handler, return_type=False).items() if t in kw}
+        return {
+            name: kw[t]
+            for name, t in get_annotations(handler, return_type=False).items()
+            if t in kw
+        }
 
     names = resolve_arg_names(handler, start_idx=start_idx)
-    args = get_default_args(handler) | {to_str(k): v for k, v in kw.items() if to_str(k) in names}
+    args = get_default_args(handler) | {
+        to_str(k): v for k, v in kw.items() if to_str(k) in names
+    }
     if "ctx" in names and bundle_ctx:
         args["ctx"] = kw
     return args
@@ -140,11 +155,9 @@ def get_cached_translation[Rule: ABCRule](rule: Rule, locale: str) -> Rule | Non
     return getattr(rule, TRANSLATIONS_KEY, {}).get(locale)
 
 
-def cache_translation[Rule: ABCRule](
-    base_rule: Rule,
-    locale: str,
-    translated_rule: Rule,
-) -> None:
+def cache_translation[
+    Rule: ABCRule
+](base_rule: Rule, locale: str, translated_rule: Rule,) -> None:
     translations = getattr(base_rule, TRANSLATIONS_KEY, {})
     translations[locale] = translated_rule
     setattr(base_rule, TRANSLATIONS_KEY, translations)
@@ -166,7 +179,8 @@ def get_impls(cls: type[Polymorphic]) -> list[typing.Callable[..., typing.Any]]:
         impls += [
             func.__func__
             for func in vars(cls_).values()
-            if isinstance(func, classmethod) and getattr(func.__func__, IMPL_MARK, False)
+            if isinstance(func, classmethod)
+            and getattr(func.__func__, IMPL_MARK, False)
         ]
 
     setattr(cls, "__morph_impls__", impls)

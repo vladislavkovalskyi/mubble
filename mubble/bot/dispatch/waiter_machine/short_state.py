@@ -36,13 +36,20 @@ class ShortState[Event: BaseCute]:
         kw_only=True,
     )
 
-    expiration_date: datetime.datetime | None = dataclasses.field(init=False, kw_only=True)
+    isolate: bool = dataclasses.field(default=False, kw_only=True)
+    expiration_date: datetime.datetime | None = dataclasses.field(
+        init=False, kw_only=True
+    )
     creation_date: datetime.datetime = dataclasses.field(init=False)
-    context: ShortStateContext[Event] | None = dataclasses.field(default=None, init=False, kw_only=True)
+    context: ShortStateContext[Event] | None = dataclasses.field(
+        default=None, init=False, kw_only=True
+    )
 
     def __post_init__(self, expiration: datetime.timedelta | None = None) -> None:
         self.creation_date = datetime.datetime.now()
-        self.expiration_date = (self.creation_date + expiration) if expiration is not None else None
+        self.expiration_date = (
+            (self.creation_date + expiration) if expiration is not None else None
+        )
 
     async def cancel(self) -> None:
         """Cancel schedule waiters."""

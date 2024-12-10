@@ -19,6 +19,7 @@ from mubble.bot.rules.command import Argument, Command
 from mubble.bot.rules.enum_text import EnumTextRule
 from mubble.bot.rules.func import FuncRule
 from mubble.bot.rules.fuzzy import FuzzyText
+from mubble.bot.rules.id import IdRule
 from mubble.bot.rules.inline import (
     HasLocation,
     InlineQueryChatType,
@@ -134,4 +135,5 @@ __all__ = (
     "State",
     "StateMeta",
     "Text",
+    "IdRule",
 )

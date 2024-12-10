@@ -1,8 +1,6 @@
 import typing
 from abc import ABC, abstractmethod
 
-from fntypes.result import Result
-
 from mubble.api import API
 from mubble.bot.dispatch.context import Context
 
@@ -15,17 +13,19 @@ class ABCErrorHandler[Event](ABC):
         self,
         *args: typing.Any,
         **kwargs: typing.Any,
-    ) -> typing.Callable[[typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]]:
+    ) -> typing.Callable[
+        [typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]
+    ]:
         """Decorator for registering callback as a catcher for the error handler."""
 
     @abstractmethod
     async def run(
         self,
-        handler: Handler,
+        exception: BaseException,
         event: Event,
         api: API,
         ctx: Context,
-    ) -> Result[typing.Any, typing.Any]:
+    ) -> typing.Any:
         """Run the error handler."""
 
 

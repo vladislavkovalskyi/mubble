@@ -16,7 +16,9 @@ class JSONSerializer[JsonT: Json](ABCDataSerializer[JsonT]):
     def __init__(self, model_t: type[JsonT]) -> None: ...
 
     @typing.overload
-    def __init__(self, model_t: type[JsonT], *, ident_key: str | None = ...) -> None: ...
+    def __init__(
+        self, model_t: type[JsonT], *, ident_key: str | None = ...
+    ) -> None: ...
 
     def __init__(
         self,
@@ -32,7 +34,9 @@ class JSONSerializer[JsonT: Json](ABCDataSerializer[JsonT]):
         return cls(data.__class__, ident_key=ident_key).serialize(data)
 
     @classmethod
-    def deserialize_to_json(cls, serialized_data: str, model_t: type[JsonT]) -> Result[JsonT, str]:
+    def deserialize_to_json(
+        cls, serialized_data: str, model_t: type[JsonT]
+    ) -> Result[JsonT, str]:
         return cls(model_t).deserialize(serialized_data)
 
     def serialize(self, data: JsonT) -> str:

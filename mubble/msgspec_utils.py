@@ -58,9 +58,7 @@ def type_check(obj: typing.Any, t: typing.Any) -> bool:
     return (
         isinstance(obj, t)
         if isinstance(t, type) and issubclass(t, msgspec.Struct)
-        else type(obj) in t
-        if isinstance(t, tuple)
-        else type(obj) is t
+        else type(obj) in t if isinstance(t, tuple) else type(obj) is t
     )
 
 
@@ -89,7 +87,9 @@ def msgspec_to_builtins(
         return Error(exc)
 
 
-def option_dec_hook(tp: type[Option[typing.Any]], obj: typing.Any) -> fntypes.option.Option[typing.Any]:
+def option_dec_hook(
+    tp: type[Option[typing.Any]], obj: typing.Any
+) -> fntypes.option.Option[typing.Any]:
     if obj is None or isinstance(obj, fntypes.Nothing):
         return Nothing
 
@@ -103,7 +103,9 @@ def option_dec_hook(tp: type[Option[typing.Any]], obj: typing.Any) -> fntypes.op
             orig_value_type = typing.get_args(value_type)
 
         if not type_check(orig_obj, orig_value_type):
-            raise TypeError(f"Expected `{repr_type(orig_value_type)}`, got `{repr_type(type(orig_obj))}`.")
+            raise TypeError(
+                f"Expected `{repr_type(orig_value_type)}`, got `{repr_type(type(orig_obj))}`."
+            )
 
         return fntypes.option.Some(obj)
 
@@ -122,8 +124,12 @@ def variative_dec_hook(tp: type[Variative], obj: typing.Any) -> Variative:
         union_types = tuple(t for t in union_types if t not in models_struct_fields)
         reverse = False
 
-        if len(set(models_struct_fields.values())) != len(models_struct_fields.values()):
-            models_struct_fields = {m: len(m.__struct_fields__) for m in models_struct_fields}
+        if len(set(models_struct_fields.values())) != len(
+            models_struct_fields.values()
+        ):
+            models_struct_fields = {
+                m: len(m.__struct_fields__) for m in models_struct_fields
+            }
             reverse = True
 
         union_types = (
@@ -136,7 +142,11 @@ def variative_dec_hook(tp: type[Variative], obj: typing.Any) -> Variative:
         )
 
     for t in union_types:
-        if not isinstance(obj, dict | list) and is_common_type(t) and type_check(obj, t):
+        if (
+            not isinstance(obj, dict | list)
+            and is_common_type(t)
+            and type_check(obj, t)
+        ):
             return tp(obj)
         match msgspec_convert(obj, t):
             case Ok(value):
@@ -192,18 +202,26 @@ class Decoder:
         )
 
     @typing.overload
-    def __call__[T](self, type: type[T]) -> typing.ContextManager[msgspec.json.Decoder[T]]: ...
+    def __call__[
+        T
+    ](self, type: type[T]) -> typing.ContextManager[msgspec.json.Decoder[T]]: ...
 
     @typing.overload
-    def __call__(self, type: typing.Any) -> typing.ContextManager[msgspec.json.Decoder[typing.Any]]: ...
+    def __call__(
+        self, type: typing.Any
+    ) -> typing.ContextManager[msgspec.json.Decoder[typing.Any]]: ...
 
     @typing.overload
-    def __call__[T](
+    def __call__[
+        T
+    ](
         self,
         type: type[T],
         *,
         strict: bool = True,
-    ) -> typing.ContextManager[msgspec.json.Decoder[T]]: ...
+    ) -> typing.ContextManager[
+        msgspec.json.Decoder[T]
+    ]: ...
 
     @typing.overload
     def __call__(
@@ -238,7 +256,9 @@ class Decoder:
             )
         return self.dec_hooks[origin_type](tp, obj)
 
-    def convert[T](
+    def convert[
+        T
+    ](
         self,
         obj: object,
         *,
@@ -268,13 +288,9 @@ class Decoder:
     def decode(self, buf: str | bytes, *, type: typing.Any) -> typing.Any: ...
 
     @typing.overload
-    def decode[T](
-        self,
-        buf: str | bytes,
-        *,
-        type: type[T],
-        strict: bool = True,
-    ) -> T: ...
+    def decode[
+        T
+    ](self, buf: str | bytes, *, type: type[T], strict: bool = True,) -> T: ...
 
     @typing.overload
     def decode(

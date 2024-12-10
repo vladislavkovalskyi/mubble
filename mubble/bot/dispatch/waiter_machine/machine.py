@@ -11,6 +11,7 @@ from mubble.bot.dispatch.waiter_machine.short_state import (
     ShortStateContext,
 )
 from mubble.bot.rules.abc import ABCRule
+from mubble.tools import Lifespan
 from mubble.tools.limited_dict import LimitedDict
 
 from .actions import WaiterActions
@@ -43,7 +44,9 @@ class WaiterMachine:
             self.base_state_lifetime,
         )
 
-    def create_middleware[Event: BaseCute](self, view: BaseStateView[Event]) -> WaiterMiddleware[Event]:
+    def create_middleware[
+        Event: BaseCute
+    ](self, view: BaseStateView[Event]) -> WaiterMiddleware[Event]:
         hasher = StateViewHasher(view)
         self.storage[hasher] = LimitedDict(maxlimit=self.max_storage_size)
         return WaiterMiddleware(self, hasher)
@@ -60,7 +63,9 @@ class WaiterMachine:
 
             del self.storage[hasher]
 
-    async def drop[Event: BaseCute, HasherData](
+    async def drop[
+        Event: BaseCute, HasherData
+    ](
         self,
         hasher: Hasher[Event, HasherData],
         id: HasherData,
@@ -75,7 +80,9 @@ class WaiterMachine:
         short_state = self.storage[hasher].pop(waiter_id, None)
         if short_state is None:
             raise LookupError(
-                "Waiter with identificator {} is not found for hasher {!r}.".format(waiter_id, hasher)
+                "Waiter with identificator {} is not found for hasher {!r}.".format(
+                    waiter_id, hasher
+                )
             )
 
         if on_drop := short_state.actions.get("on_drop"):
@@ -83,7 +90,9 @@ class WaiterMachine:
 
         await short_state.cancel()
 
-    async def wait_from_event[Event: BaseCute](
+    async def wait_from_event[
+        Event: BaseCute
+    ](
         self,
         view: BaseStateView[Event],
         event: Event,
@@ -91,6 +100,7 @@ class WaiterMachine:
         filter: ABCRule | None = None,
         release: ABCRule | None = None,
         lifetime: datetime.timedelta | float | None = None,
+        lifespan: Lifespan = Lifespan(),
         **actions: typing.Unpack[WaiterActions[Event]],
     ) -> ShortStateContext[Event]:
         hasher = StateViewHasher(view)
@@ -102,10 +112,13 @@ class WaiterMachine:
             filter=filter,
             release=release,
             lifetime=lifetime,
+            lifespan=lifespan,
             **actions,
         )
 
-    async def wait[Event: BaseCute, HasherData](
+    async def wait[
+        Event: BaseCute, HasherData
+    ](
         self,
         hasher: Hasher[Event, HasherData],
         data: HasherData,
@@ -113,6 +126,7 @@ class WaiterMachine:
         filter: ABCRule | None = None,
         release: ABCRule | None = None,
         lifetime: datetime.timedelta | float | None = None,
+        lifespan: Lifespan = Lifespan(),
         **actions: typing.Unpack[WaiterActions[Event]],
     ) -> ShortStateContext[Event]:
         if isinstance(lifetime, int | float):
@@ -126,21 +140,32 @@ class WaiterMachine:
             filter=filter,
             lifetime=lifetime or self.base_state_lifetime,
         )
-        waiter_hash = hasher.get_hash_from_data(data).expect(RuntimeError("Hasher couldn't create hash."))
+        waiter_hash = hasher.get_hash_from_data(data).expect(
+            RuntimeError("Hasher couldn't create hash.")
+        )
 
         if hasher not in self.storage:
             if self.dispatch:
-                view: BaseView[Event] = self.dispatch.get_view(hasher.view_class).expect(
-                    RuntimeError(f"View {hasher.view_class.__name__!r} is not defined in dispatch.")
+                view: BaseView[Event] = self.dispatch.get_view(
+                    hasher.view_class
+                ).expect(
+                    RuntimeError(
+                        f"View {hasher.view_class.__name__!r} is not defined in dispatch."
+                    ),
                 )
                 view.middlewares.insert(0, WaiterMiddleware(self, hasher))
             self.storage[hasher] = LimitedDict(maxlimit=self.max_storage_size)
 
-        if (deleted_short_state := self.storage[hasher].set(waiter_hash, short_state)) is not None:
+        if (
+            deleted_short_state := self.storage[hasher].set(waiter_hash, short_state)
+        ) is not None:
             await deleted_short_state.cancel()
 
-        await event.wait()
+        async with lifespan:
+            await event.wait()
+
         self.storage[hasher].pop(waiter_hash, None)
+
         assert short_state.context is not None
         return short_state.context
 
@@ -150,7 +175,10 @@ class WaiterMachine:
         for hasher in self.storage:
             now = datetime.datetime.now()
             for ident, short_state in self.storage.get(hasher, {}).copy().items():
-                if short_state.expiration_date is not None and now > short_state.expiration_date:
+                if (
+                    short_state.expiration_date is not None
+                    and now > short_state.expiration_date
+                ):
                     await self.drop(
                         hasher,
                         ident,

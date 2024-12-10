@@ -19,7 +19,9 @@ class Hasher[Event: BaseCute, Data]:
     def __init__(
         self,
         view_class: type[BaseView[Event]],
-        get_hash_from_data: typing.Callable[[Data], typing.Hashable | None] | None = None,
+        get_hash_from_data: (
+            typing.Callable[[Data], typing.Hashable | None] | None
+        ) = None,
         get_data_from_event: typing.Callable[[Event], Data | None] | None = None,
     ) -> None:
         self.view_class = view_class

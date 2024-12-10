@@ -3,10 +3,10 @@ from fntypes.result import Error, Ok, Result
 
 from mubble.api.api import API
 from mubble.bot.dispatch.context import Context
-from mubble.bot.rules.adapter.abc import ABCAdapter, Event
-from mubble.bot.rules.adapter.errors import AdapterError
 from mubble.msgspec_utils import repr_type
 from mubble.node.composer import NodeSession, compose_nodes
+from mubble.tools.adapter.abc import ABCAdapter, Event
+from mubble.tools.adapter.errors import AdapterError
 from mubble.types.objects import Update
 
 if typing.TYPE_CHECKING:
@@ -30,7 +30,10 @@ class NodeAdapter[*Nodes](ABCAdapter[Update, Event[tuple[*Nodes]]]):
         context: Context,
     ) -> Result[Event[tuple[*Nodes]], AdapterError]:
         result = await compose_nodes(
-            nodes={str(i): typing.cast(type["Node"], node) for i, node in enumerate(self.nodes)},
+            nodes={
+                str(i): typing.cast(type["Node"], node)
+                for i, node in enumerate(self.nodes)
+            },
             ctx=context,
             data={Update: update, API: api},
         )

@@ -6,19 +6,25 @@ from contextlib import suppress
 from mubble.bot.cute_types import CallbackQueryCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.abc import ABCRule, CheckResult
-from mubble.bot.rules.adapter import EventAdapter
 from mubble.bot.rules.payload import (
     PayloadEqRule,
     PayloadJsonEqRule,
     PayloadMarkupRule,
     PayloadModelRule,
 )
+from mubble.tools.adapter import EventAdapter
 from mubble.types.enums import UpdateType
 
 CallbackQuery: typing.TypeAlias = CallbackQueryCute
-Validator: typing.TypeAlias = typing.Callable[[typing.Any], bool | typing.Awaitable[bool]]
-MapDict: typing.TypeAlias = dict[str, "typing.Any | type[typing.Any] | Validator | list[MapDict] | MapDict"]
-CallbackMap: typing.TypeAlias = list[tuple[str, "typing.Any | type[typing.Any] | Validator | CallbackMap"]]
+Validator: typing.TypeAlias = typing.Callable[
+    [typing.Any], bool | typing.Awaitable[bool]
+]
+MapDict: typing.TypeAlias = dict[
+    str, "typing.Any | type[typing.Any] | Validator | list[MapDict] | MapDict"
+]
+CallbackMap: typing.TypeAlias = list[
+    tuple[str, "typing.Any | type[typing.Any] | Validator | CallbackMap"]
+]
 CallbackMapStrict: typing.TypeAlias = list[tuple[str, "Validator | CallbackMapStrict"]]
 CallbackData: typing.TypeAlias = PayloadEqRule
 CallbackDataJson: typing.TypeAlias = PayloadJsonEqRule
@@ -95,7 +101,9 @@ class CallbackDataMap(CallbackQueryDataRule):
         return False
 
     @classmethod
-    async def match(cls, callback_data: dict[str, typing.Any], callback_map: CallbackMapStrict) -> bool:
+    async def match(
+        cls, callback_data: dict[str, typing.Any], callback_map: CallbackMapStrict
+    ) -> bool:
         """Matches callback_data with callback_map recursively."""
 
         for key, validator in callback_map:
@@ -104,7 +112,8 @@ class CallbackDataMap(CallbackQueryDataRule):
 
             if isinstance(validator, list):
                 if not (
-                    isinstance(callback_data[key], dict) and await cls.match(callback_data[key], validator)
+                    isinstance(callback_data[key], dict)
+                    and await cls.match(callback_data[key], validator)
                 ):
                     return False
 

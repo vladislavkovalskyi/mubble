@@ -77,20 +77,35 @@ class _Checkbox(ABCScenario[CallbackQueryCute]):
                 choice = choices.pop(0)
                 kb.add(
                     InlineButton(
-                        text=(choice.default_text if not choice.is_picked else choice.picked_text),
+                        text=(
+                            choice.default_text
+                            if not choice.is_picked
+                            else choice.picked_text
+                        ),
                         callback_data=self.random_code + "/" + choice.code,
                     )
                 )
             kb.row()
 
-        kb.add(InlineButton(self.ready, callback_data=self.random_code + "/" + ChoiceCode.READY))
+        kb.add(
+            InlineButton(
+                self.ready, callback_data=self.random_code + "/" + ChoiceCode.READY
+            )
+        )
         if self.cancel_text is not None:
             kb.row()
-            kb.add(InlineButton(self.cancel_text, callback_data=self.random_code + "/" + ChoiceCode.CANCEL))
+            kb.add(
+                InlineButton(
+                    self.cancel_text,
+                    callback_data=self.random_code + "/" + ChoiceCode.CANCEL,
+                )
+            )
 
         return kb.get_markup()
 
-    def add_option[Key: typing.Hashable](
+    def add_option[
+        Key: typing.Hashable
+    ](
         self,
         key: Key,
         default_text: str,
@@ -143,7 +158,7 @@ class _Checkbox(ABCScenario[CallbackQueryCute]):
         ).unwrap()
 
         while True:
-            q, _ = await self.waiter_machine.wait(hasher, message.message_id)
+            q, _ = await self.waiter_machine.wait(hasher, data=message.message_id)
             should_continue = await self.handle(q)
             await q.answer(self.CALLBACK_ANSWER)
             if not should_continue:

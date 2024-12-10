@@ -42,11 +42,19 @@ class Paginator[T: PaginatedData](Model):
         filters = {}
 
         for item in first_page.items:
-            keyboard.add(InlineButton(str(item), callback_data=OpenId(self.get_pg_key(), item.id, filters)))
+            keyboard.add(
+                InlineButton(
+                    str(item), callback_data=OpenId(self.get_pg_key(), item.id, filters)
+                )
+            )
             keyboard.row()
 
         if first_page.page_number > 1:
-            keyboard.add(InlineButton("<", callback_data=SwitchPage(self.get_pg_key(), page - 1, filters)))
+            keyboard.add(
+                InlineButton(
+                    "<", callback_data=SwitchPage(self.get_pg_key(), page - 1, filters)
+                )
+            )
 
         keyboard.add(
             InlineButton(
@@ -56,7 +64,11 @@ class Paginator[T: PaginatedData](Model):
         )
 
         if first_page.page_number < first_page.max_page:
-            keyboard.add(InlineButton(">", callback_data=SwitchPage(self.get_pg_key(), page + 1, filters)))
+            keyboard.add(
+                InlineButton(
+                    ">", callback_data=SwitchPage(self.get_pg_key(), page + 1, filters)
+                )
+            )
 
         return keyboard.get_markup()
 
