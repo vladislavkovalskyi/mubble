@@ -1,4 +1,4 @@
-# Mubble 1.5.0 (stable)
+# Mubble 1.5.1 (stable)
 
 [![Downloads](https://img.shields.io/pypi/dm/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
 [![Downloads](https://img.shields.io/pypi/pyversions/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
@@ -58,7 +58,7 @@ poetry add git+https://github.com/vladislavkovalskyi/mubble.git#master
 ```python
 import random
 
-from mubble import Token, API, Mubble, Message, CallbackQuery
+from mubble import Token, API, Mubble, Message, CallbackQueryEq
 from mubble.rules import StartCommand, Text, Markup, CallbackData
 from mubble.tools.keyboard import InlineKeyboard, InlineButton
 
@@ -108,19 +108,19 @@ async def random_handler(message: Message, a: int = None, b: int = None):
     await message.answer(f"🎲 Your random number is {random.randint(a, b)}")
 
 
-@bot.on.callback_query(CallbackData("menu"))
+@bot.on.callback_query(CallbackQueryEq("menu"))
 async def menu_handler(cq: CallbackQuery):
     await cq.edit_text(
         "📃 Here's your menu! Use the keyboard.", reply_markup=Keyboard.menu
     )
 
 
-@bot.on.callback_query(CallbackData("hello"))
+@bot.on.callback_query(CallbackQueryEq("hello"))
 async def hello_handler(cq: CallbackQuery):
     await cq.edit_text("👋 Hello, I'm Mubble!", reply_markup=Keyboard.back)
 
 
-@bot.on.callback_query(CallbackData("banana"))
+@bot.on.callback_query(CallbackQueryEq("banana"))
 async def fruits_handler(cq: CallbackQuery):
     await cq.answer("You clicked on the 🍌!")
 
