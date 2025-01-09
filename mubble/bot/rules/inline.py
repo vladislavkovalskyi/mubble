@@ -4,7 +4,7 @@ import typing
 from mubble.bot.cute_types import InlineQueryCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.abc import ABCRule, CheckResult
-from mubble.tools.adapter import EventAdapter
+from mubble.tools.adapter.event import EventAdapter
 from mubble.types.enums import ChatType, UpdateType
 
 from .markup import Markup, PatternLike, check_string

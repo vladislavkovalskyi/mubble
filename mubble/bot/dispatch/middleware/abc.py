@@ -10,12 +10,9 @@ from mubble.bot.cute_types.base import BaseCute
 from mubble.bot.dispatch.context import Context
 from mubble.model import Model
 from mubble.modules import logger
-from mubble.tools.adapter.abc import run_adapter
+from mubble.tools.adapter.abc import ABCAdapter, run_adapter
 from mubble.tools.lifespan import Lifespan
 from mubble.types.objects import Update
-
-if typing.TYPE_CHECKING:
-    from mubble.tools.adapter.abc import ABCAdapter
 
 ToEvent = typing.TypeVar("ToEvent", bound=Model, default=typing.Any)
 
@@ -68,9 +65,7 @@ class ABCMiddleware[Event: Model | BaseCute](ABC):
 
     async def pre(self, event: Event, ctx: Context) -> bool: ...
 
-    async def post(
-        self, event: Event, ctx: Context, responses: list[typing.Any]
-    ) -> None: ...
+    async def post(self, event: Event, ctx: Context) -> None: ...
 
     @typing.overload
     def to_lifespan(
@@ -85,6 +80,7 @@ class ABCMiddleware[Event: Model | BaseCute](ABC):
         event: Event,
         ctx: Context | None = None,
         api: API | None = None,
+        **add_context: typing.Any,
     ) -> Lifespan:
         if api is None:
             if not isinstance(event, BaseCute):
@@ -94,6 +90,7 @@ class ABCMiddleware[Event: Model | BaseCute](ABC):
             api = event.api
 
         ctx = ctx or Context()
+        ctx |= add_context
         return Lifespan(
             startup_tasks=[
                 run_middleware(
@@ -108,8 +105,7 @@ class ABCMiddleware[Event: Model | BaseCute](ABC):
                     raw_event=None,
                     ctx=ctx,
                     adapter=None,
-                    responses=[],
-                ),
+                )
             ],
         )
 

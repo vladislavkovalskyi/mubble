@@ -3,11 +3,12 @@ import typing
 from fntypes.result import Result
 
 from mubble.api.api import API, APIError
-from mubble.bot.cute_types.base import BaseCute, shortcut
+from mubble.bot.cute_types.base import BaseCute
 from mubble.bot.cute_types.chat_member_updated import (
     ChatMemberShortcuts,
     chat_member_interaction,
 )
+from mubble.tools.magic import shortcut
 from mubble.types.objects import *
 
 

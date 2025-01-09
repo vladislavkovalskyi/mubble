@@ -79,6 +79,7 @@ from .keyboard import (
 from .limited_dict import LimitedDict
 from .loop_wrapper import ABCLoopWrapper, DelayedTask, Lifespan, LoopWrapper
 from .magic import (
+    cancel_future,
     get_annotations,
     get_cached_translation,
     get_default_args,
@@ -158,6 +159,7 @@ __all__ = (
     "TgEmoji",
     "block_quote",
     "bold",
+    "cancel_future",
     "channel_boost_link",
     "code_inline",
     "ctx_var",

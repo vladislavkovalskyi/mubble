@@ -17,6 +17,7 @@ class TransactionPartner(Model):
 
     This object describes the source of a transaction, or its recipient for outgoing transactions. Currently, it can be one of
     - TransactionPartnerUser
+    - TransactionPartnerAffiliateProgram
     - TransactionPartnerFragment
     - TransactionPartnerTelegramAds
     - TransactionPartnerTelegramApi
@@ -2286,7 +2287,7 @@ class BackgroundTypeWallpaper(BackgroundType):
 class BackgroundTypePattern(BackgroundType):
     """Object `BackgroundTypePattern`, see the [documentation](https://core.telegram.org/bots/api#backgroundtypepattern).
 
-    The background is a PNG or TGV (gzipped subset of SVG with MIME type "application/x-tgwallpattern") pattern to be combined with the background fill chosen by the user.
+    The background is a .PNG or .TGV (gzipped subset of SVG with MIME type "application/x-tgwallpattern") pattern to be combined with the background fill chosen by the user.
     """
 
     document: Document = field()
@@ -4833,7 +4834,7 @@ class InputSticker(Model):
 
     format: str = field()
     """Format of the added sticker, must be one of `static` for a .WEBP or .PNG image,
-    `animated` for a .TGS animation, `video` for a WEBM video."""
+    `animated` for a .TGS animation, `video` for a .WEBM video."""
 
     emoji_list: list[str] = field()
     """List of 1-20 emoji associated with the sticker."""
@@ -4849,6 +4850,44 @@ class InputSticker(Model):
     )
     """Optional. List of 0-20 search keywords for the sticker with total length
     of up to 64 characters. For `regular` and `custom_emoji` stickers only."""
+
+
+class Gift(Model):
+    """Object `Gift`, see the [documentation](https://core.telegram.org/bots/api#gift).
+
+    This object represents a gift that can be sent by the bot.
+    """
+
+    id: str = field()
+    """Unique identifier of the gift."""
+
+    sticker: Sticker = field()
+    """The sticker that represents the gift."""
+
+    star_count: int = field()
+    """The number of Telegram Stars that must be paid to send the sticker."""
+
+    upgrade_star_count: Option[int] = field(default=Nothing, converter=From[int | None])
+    """Optional. The number of Telegram Stars that must be paid to upgrade the gift
+    to a unique one."""
+
+    total_count: Option[int] = field(default=Nothing, converter=From[int | None])
+    """Optional. The total number of the gifts of this type that can be sent; for
+    limited gifts only."""
+
+    remaining_count: Option[int] = field(default=Nothing, converter=From[int | None])
+    """Optional. The number of remaining gifts of this type that can be sent; for
+    limited gifts only."""
+
+
+class Gifts(Model):
+    """Object `Gifts`, see the [documentation](https://core.telegram.org/bots/api#gifts).
+
+    This object represent a list of gifts.
+    """
+
+    gifts: list[Gift] = field()
+    """The list of gifts."""
 
 
 class InlineQuery(Model):
@@ -4953,9 +4992,6 @@ class InlineQueryResultArticle(InlineQueryResult):
     url: Option[str] = field(default=Nothing, converter=From[str | None])
     """Optional. URL of the result."""
 
-    hide_url: Option[bool] = field(default=Nothing, converter=From[bool | None])
-    """Optional. Pass True if you don't want the URL to be shown in the message."""
-
     description: Option[str] = field(default=Nothing, converter=From[str | None])
     """Optional. Short description of the result."""
 
@@ -5050,7 +5086,7 @@ class InlineQueryResultGif(InlineQueryResult):
     """
 
     gif_url: str = field()
-    """A valid URL for the GIF file. File size must not exceed 1MB."""
+    """A valid URL for the GIF file."""
 
     thumbnail_url: str = field()
     """URL of the static (JPEG or GIF) or animated (MPEG4) thumbnail for the result."""
@@ -5129,7 +5165,7 @@ class InlineQueryResultMpeg4Gif(InlineQueryResult):
     """
 
     mpeg4_url: str = field()
-    """A valid URL for the MPEG4 file. File size must not exceed 1MB."""
+    """A valid URL for the MPEG4 file."""
 
     thumbnail_url: str = field()
     """URL of the static (JPEG or GIF) or animated (MPEG4) thumbnail for the result."""
@@ -6410,6 +6446,20 @@ class SentWebAppMessage(Model):
     is an inline keyboard attached to the message."""
 
 
+class PreparedInlineMessage(Model):
+    """Object `PreparedInlineMessage`, see the [documentation](https://core.telegram.org/bots/api#preparedinlinemessage).
+
+    Describes an inline message to be sent by a user of a Mini App.
+    """
+
+    id: str = field()
+    """Unique identifier of the prepared message."""
+
+    expiration_date: datetime = field()
+    """Expiration date of the prepared message, in Unix time. Expired prepared
+    messages can no longer be used."""
+
+
 class LabeledPrice(Model):
     """Object `LabeledPrice`, see the [documentation](https://core.telegram.org/bots/api#labeledprice).
 
@@ -6538,6 +6588,20 @@ class SuccessfulPayment(Model):
 
     provider_payment_charge_id: str = field()
     """Provider payment identifier."""
+
+    subscription_expiration_date: Option[datetime] = field(
+        default=Nothing, converter=From[datetime | None]
+    )
+    """Optional. Expiration date of the subscription, in Unix time; for recurring
+    payments only."""
+
+    is_recurring: Option[bool] = field(default=Nothing, converter=From[bool | None])
+    """Optional. True, if the payment is a recurring payment for a subscription."""
+
+    is_first_recurring: Option[bool] = field(
+        default=Nothing, converter=From[bool | None]
+    )
+    """Optional. True, if the payment is the first payment for a subscription."""
 
     shipping_option_id: Option[str] = field(default=Nothing, converter=From[str | None])
     """Optional. Identifier of the shipping option chosen by the user."""
@@ -6690,6 +6754,33 @@ class RevenueWithdrawalStateFailed(RevenueWithdrawalState):
     """Type of the state, always `failed`."""
 
 
+class AffiliateInfo(Model):
+    """Object `AffiliateInfo`, see the [documentation](https://core.telegram.org/bots/api#affiliateinfo).
+
+    Contains information about the affiliate that received a commission via this transaction.
+    """
+
+    commission_per_mille: int = field()
+    """The number of Telegram Stars received by the affiliate for each 1000 Telegram
+    Stars received by the bot from referred users."""
+
+    amount: int = field()
+    """Integer amount of Telegram Stars received by the affiliate from the transaction,
+    rounded to 0; can be negative for refunds."""
+
+    affiliate_user: Option[User] = field(default=Nothing, converter=From["User | None"])
+    """Optional. The bot or the user that received an affiliate commission if it
+    was received by a bot or a user."""
+
+    affiliate_chat: Option[Chat] = field(default=Nothing, converter=From["Chat | None"])
+    """Optional. The chat that received an affiliate commission if it was received
+    by a chat."""
+
+    nanostar_amount: Option[int] = field(default=Nothing, converter=From[int | None])
+    """Optional. The number of 1/1000000000 shares of Telegram Stars received
+    by the affiliate; from -999999999 to 999999999; can be negative for refunds."""
+
+
 class TransactionPartnerUser(TransactionPartner):
     """Object `TransactionPartnerUser`, see the [documentation](https://core.telegram.org/bots/api#transactionpartneruser).
 
@@ -6702,8 +6793,19 @@ class TransactionPartnerUser(TransactionPartner):
     type: typing.Literal["user"] = field(default="user")
     """Type of the transaction partner, always `user`."""
 
+    affiliate: Option[AffiliateInfo] = field(
+        default=Nothing, converter=From["AffiliateInfo | None"]
+    )
+    """Optional. Information about the affiliate that received a commission
+    via this transaction."""
+
     invoice_payload: Option[str] = field(default=Nothing, converter=From[str | None])
     """Optional. Bot-specified invoice payload."""
+
+    subscription_period: Option[int] = field(
+        default=Nothing, converter=From[int | None]
+    )
+    """Optional. The duration of the paid subscription."""
 
     paid_media: Option[
         list[Variative[PaidMediaPreview, PaidMediaPhoto, PaidMediaVideo]]
@@ -6717,6 +6819,26 @@ class TransactionPartnerUser(TransactionPartner):
 
     paid_media_payload: Option[str] = field(default=Nothing, converter=From[str | None])
     """Optional. Bot-specified paid media payload."""
+
+    gift: Option[Gift] = field(default=Nothing, converter=From["Gift | None"])
+    """Optional. The gift sent to the user by the bot."""
+
+
+class TransactionPartnerAffiliateProgram(TransactionPartner):
+    """Object `TransactionPartnerAffiliateProgram`, see the [documentation](https://core.telegram.org/bots/api#transactionpartneraffiliateprogram).
+
+    Describes the affiliate program that issued the affiliate commission received via this transaction.
+    """
+
+    commission_per_mille: int = field()
+    """The number of Telegram Stars received by the bot for each 1000 Telegram Stars
+    received by the affiliate program sponsor from referred users."""
+
+    type: typing.Literal["affiliate_program"] = field(default="affiliate_program")
+    """Type of the transaction partner, always `affiliate_program`."""
+
+    sponsor_user: Option[User] = field(default=Nothing, converter=From["User | None"])
+    """Optional. Information about the bot that sponsored the affiliate program."""
 
 
 class TransactionPartnerFragment(TransactionPartner):
@@ -6789,14 +6911,19 @@ class StarTransaction(Model):
     for successful incoming payments from users."""
 
     amount: int = field()
-    """Number of Telegram Stars transferred by the transaction."""
+    """Integer amount of Telegram Stars transferred by the transaction."""
 
     date: datetime = field()
     """Date the transaction was created in Unix time."""
 
+    nanostar_amount: Option[int] = field(default=Nothing, converter=From[int | None])
+    """Optional. The number of 1/1000000000 shares of Telegram Stars transferred
+    by the transaction; from 0 to 999999999."""
+
     source: Option[
         Variative[
             TransactionPartnerUser,
+            TransactionPartnerAffiliateProgram,
             TransactionPartnerFragment,
             TransactionPartnerTelegramAds,
             TransactionPartnerTelegramApi,
@@ -6805,7 +6932,7 @@ class StarTransaction(Model):
     ] = field(
         default=Nothing,
         converter=From[
-            "TransactionPartnerUser | TransactionPartnerFragment | TransactionPartnerTelegramAds | TransactionPartnerTelegramApi | TransactionPartnerOther | None"
+            "TransactionPartnerUser | TransactionPartnerAffiliateProgram | TransactionPartnerFragment | TransactionPartnerTelegramAds | TransactionPartnerTelegramApi | TransactionPartnerOther | None"
         ],
     )
     """Optional. Source of an incoming transaction (e.g., a user purchasing goods
@@ -6815,6 +6942,7 @@ class StarTransaction(Model):
     receiver: Option[
         Variative[
             TransactionPartnerUser,
+            TransactionPartnerAffiliateProgram,
             TransactionPartnerFragment,
             TransactionPartnerTelegramAds,
             TransactionPartnerTelegramApi,
@@ -6823,7 +6951,7 @@ class StarTransaction(Model):
     ] = field(
         default=Nothing,
         converter=From[
-            "TransactionPartnerUser | TransactionPartnerFragment | TransactionPartnerTelegramAds | TransactionPartnerTelegramApi | TransactionPartnerOther | None"
+            "TransactionPartnerUser | TransactionPartnerAffiliateProgram | TransactionPartnerFragment | TransactionPartnerTelegramAds | TransactionPartnerTelegramApi | TransactionPartnerOther | None"
         ],
     )
     """Optional. Receiver of an outgoing transaction (e.g., a user for a purchase
@@ -7260,6 +7388,7 @@ class GameHighScore(Model):
 
 
 __all__ = (
+    "AffiliateInfo",
     "Animation",
     "Audio",
     "BackgroundFill",
@@ -7337,6 +7466,8 @@ __all__ = (
     "GameHighScore",
     "GeneralForumTopicHidden",
     "GeneralForumTopicUnhidden",
+    "Gift",
+    "Gifts",
     "Giveaway",
     "GiveawayCompleted",
     "GiveawayCreated",
@@ -7436,6 +7567,7 @@ __all__ = (
     "PollAnswer",
     "PollOption",
     "PreCheckoutQuery",
+    "PreparedInlineMessage",
     "ProximityAlertTriggered",
     "ReactionCount",
     "ReactionType",
@@ -7465,6 +7597,7 @@ __all__ = (
     "SwitchInlineQueryChosenChat",
     "TextQuote",
     "TransactionPartner",
+    "TransactionPartnerAffiliateProgram",
     "TransactionPartnerFragment",
     "TransactionPartnerOther",
     "TransactionPartnerTelegramAds",

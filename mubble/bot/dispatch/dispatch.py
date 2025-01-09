@@ -31,7 +31,6 @@ from mubble.types.objects import Update
 if typing.TYPE_CHECKING:
     from mubble.bot.cute_types.base import BaseCute
     from mubble.bot.cute_types.update import UpdateCute
-    from mubble.bot.dispatch.middleware.abc import ABCMiddleware
     from mubble.bot.rules.abc import ABCRule
 
 T = typing.TypeVar("T", default=typing.Any)
@@ -59,7 +58,7 @@ class Dispatch(
         init=False,
         default_factory=MubbleContext,
     )
-    global_middleware: "ABCMiddleware" = dataclasses.field(
+    global_middleware: "GlobalMiddleware" = dataclasses.field(
         default_factory=lambda: GlobalMiddleware(),
     )
 
@@ -84,7 +83,7 @@ class Dispatch(
         *rules: "ABCRule",
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [Func[P, R]], FuncHandler[UpdateCute, Func[P, R], ErrorHandler[UpdateCute]]
+        [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandler[UpdateCute]]
     ]: ...
 
     @typing.overload
@@ -94,7 +93,7 @@ class Dispatch(
         dataclass: type[T],
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [Func[P, R]], FuncHandler[UpdateCute, Func[P, R], ErrorHandler[T]]
+        [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandler[T]]
     ]: ...
 
     @typing.overload
@@ -104,7 +103,7 @@ class Dispatch(
         update_type: UpdateType,
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [Func[P, R]], FuncHandler[UpdateCute, Func[P, R], ErrorHandler[UpdateCute]]
+        [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandler[UpdateCute]]
     ]: ...
 
     @typing.overload
@@ -115,7 +114,7 @@ class Dispatch(
         update_type: UpdateType,
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [Func[P, R]], FuncHandler[UpdateCute, Func[P, R], ErrorHandler[T]]
+        [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandler[T]]
     ]: ...
 
     @typing.overload
@@ -125,7 +124,7 @@ class Dispatch(
         error_handler: ErrorHandlerT,
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [Func[P, R]], FuncHandler[UpdateCute, Func[P, R], ErrorHandlerT]
+        [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandlerT]
     ]: ...
 
     @typing.overload
@@ -136,7 +135,7 @@ class Dispatch(
         error_handler: ErrorHandlerT,
         is_blocking: bool = True,
     ) -> typing.Callable[
-        [Func[P, R]], FuncHandler[UpdateCute, Func[P, R], ErrorHandlerT]
+        [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandlerT]
     ]: ...
 
     @typing.overload
@@ -202,7 +201,7 @@ class Dispatch(
             await run_middleware(
                 self.global_middleware.pre,
                 api,
-                event,
+                event,  # type: ignore
                 raw_event=event,
                 ctx=context,
                 adapter=self.global_middleware.adapter,
@@ -229,19 +228,23 @@ class Dispatch(
             raw_event=event,
             ctx=context,
             adapter=self.global_middleware.adapter,
-            responses=[],
         )
 
         return False
 
     def load(self, external: typing.Self) -> None:
-        view_external = external.get_views()
+        views_external = external.get_views()
+
         for name, view in self.get_views().items():
             assert (
-                name in view_external
+                name in views_external
             ), f"View {name!r} is undefined in external dispatch."
-            view.load(view_external[name])
+            view.load(views_external[name])
             setattr(external, name, view)
+
+        self.global_middleware.filters.difference_update(
+            external.global_middleware.filters
+        )
 
     def get_view(self, of_type: type[T]) -> Option[T]:
         for view in self.get_views().values():

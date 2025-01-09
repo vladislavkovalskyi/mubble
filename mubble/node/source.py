@@ -83,4 +83,10 @@ class UserSource(ScalarNode, User):
         return source.from_user
 
 
-__all__ = ("ChatSource", "Source", "UserSource")
+class UserId(ScalarNode, int):
+    @classmethod
+    def compose(cls, user: UserSource) -> int:
+        return user.id
+
+
+__all__ = ("ChatSource", "Source", "UserSource", "UserId")

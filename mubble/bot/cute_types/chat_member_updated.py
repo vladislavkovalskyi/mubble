@@ -4,8 +4,9 @@ from datetime import datetime
 from fntypes.result import Result
 
 from mubble.api.api import API, APIError
-from mubble.bot.cute_types.base import BaseCute, compose_method_params, shortcut
+from mubble.bot.cute_types.base import BaseCute, compose_method_params
 from mubble.model import get_params
+from mubble.tools.magic import shortcut
 from mubble.types.objects import *
 
 

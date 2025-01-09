@@ -13,10 +13,9 @@ from mubble.types.objects import InlineKeyboardMarkup
 
 if typing.TYPE_CHECKING:
     from mubble.api.api import API
-    from mubble.bot.dispatch.view.base import BaseStateView
 
 
-class ChoiceCode(enum.StrEnum):
+class ChoiceAction(enum.StrEnum):
     READY = "ready"
     CANCEL = "cancel"
 
@@ -89,7 +88,7 @@ class _Checkbox(ABCScenario[CallbackQueryCute]):
 
         kb.add(
             InlineButton(
-                self.ready, callback_data=self.random_code + "/" + ChoiceCode.READY
+                self.ready, callback_data=self.random_code + "/" + ChoiceAction.READY
             )
         )
         if self.cancel_text is not None:
@@ -97,7 +96,7 @@ class _Checkbox(ABCScenario[CallbackQueryCute]):
             kb.add(
                 InlineButton(
                     self.cancel_text,
-                    callback_data=self.random_code + "/" + ChoiceCode.CANCEL,
+                    callback_data=self.random_code + "/" + ChoiceAction.CANCEL,
                 )
             )
 
@@ -122,9 +121,9 @@ class _Checkbox(ABCScenario[CallbackQueryCute]):
         code = cb.data.unwrap().replace(self.random_code + "/", "", 1)
 
         match code:
-            case ChoiceCode.READY:
+            case ChoiceAction.READY:
                 return False
-            case ChoiceCode.CANCEL:
+            case ChoiceAction.CANCEL:
                 self.choices = []
                 return False
 
@@ -145,7 +144,6 @@ class _Checkbox(ABCScenario[CallbackQueryCute]):
         self,
         hasher: Hasher[CallbackQueryCute, int],
         api: "API",
-        view: "BaseStateView[CallbackQueryCute]",
     ) -> tuple[dict[typing.Hashable, bool], int]:
         assert len(self.choices) > 0
         message = (
@@ -158,7 +156,10 @@ class _Checkbox(ABCScenario[CallbackQueryCute]):
         ).unwrap()
 
         while True:
-            q, _ = await self.waiter_machine.wait(hasher, data=message.message_id)
+            q, _ = await self.waiter_machine.wait(
+                hasher,
+                data=message.message_id,
+            )
             should_continue = await self.handle(q)
             await q.answer(self.CALLBACK_ANSWER)
             if not should_continue:
@@ -179,7 +180,6 @@ if typing.TYPE_CHECKING:
             self,
             hasher: Hasher[CallbackQueryCute, int],
             api: "API",
-            view: "BaseStateView[CallbackQueryCute]",
         ) -> tuple[dict[Key, bool], int]: ...
 
 else:

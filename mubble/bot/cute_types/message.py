@@ -6,10 +6,11 @@ import fntypes.option
 from fntypes.co import Result, Some, Variative
 
 from mubble.api.api import API, APIError
-from mubble.bot.cute_types.base import BaseCute, compose_method_params, shortcut
+from mubble.bot.cute_types.base import BaseCute, compose_method_params
 from mubble.bot.cute_types.utils import compose_reactions, input_media
 from mubble.model import From, field, get_params
 from mubble.msgspec_utils import Nothing, Option
+from mubble.tools.magic import shortcut
 from mubble.types import *
 
 if typing.TYPE_CHECKING:

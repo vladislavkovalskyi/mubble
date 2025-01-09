@@ -7,6 +7,7 @@ from contextlib import suppress
 from mubble.bot.cute_types import BaseCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.rules.abc import ABCRule
+from mubble.tools.magic import cancel_future
 
 if typing.TYPE_CHECKING:
     from .actions import WaiterActions
@@ -36,7 +37,6 @@ class ShortState[Event: BaseCute]:
         kw_only=True,
     )
 
-    isolate: bool = dataclasses.field(default=False, kw_only=True)
     expiration_date: datetime.datetime | None = dataclasses.field(
         init=False, kw_only=True
     )
@@ -59,9 +59,7 @@ class ShortState[Event: BaseCute]:
             self.event._waiters,  # type: ignore
         )
         for future in waiters:
-            future.cancel()
-            with suppress(asyncio.CancelledError):
-                await future
+            await cancel_future(future)
 
 
 __all__ = ("ShortState", "ShortStateContext")

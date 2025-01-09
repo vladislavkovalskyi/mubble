@@ -13,7 +13,7 @@ if typing.TYPE_CHECKING:
 
 
 class APIMethods:
-    """Telegram Bot API methods version 7.11, released `October 31, 2024`."""
+    """Telegram Bot API methods version 8.2, released `January 1, 2025`."""
 
     default_params = ProxiedDict(
         typing.TypedDict(
@@ -64,8 +64,8 @@ class APIMethods:
         except chat_member, message_reaction, and message_reaction_count \
         (default). If not specified, the previous setting will be used. Please \
         note that this parameter doesn't affect updates created before the call \
-        to the getUpdates, so unwanted updates may be received for a short period \
-        of time.
+        to getUpdates, so unwanted updates may be received for a short period of \
+        time.
         """
 
         method_response = await self.api.request_raw(
@@ -91,9 +91,10 @@ class APIMethods:
         Use this method to specify a URL and receive incoming updates via an outgoing
         webhook. Whenever there is an update for the bot, we will send an HTTPS POST
         request to the specified URL, containing a JSON-serialized Update. In
-        case of an unsuccessful request, we will give up after a reasonable amount
-        of attempts. Returns True on success. If you'd like to make sure that the
-        webhook was set by you, you can specify secret data in the parameter secret_token.
+        case of an unsuccessful request (a request with response HTTP status code
+        different from 2XY), we will repeat the request and give up after a reasonable
+        amount of attempts. Returns True on success. If you'd like to make sure that
+        the webhook was set by you, you can specify secret data in the parameter secret_token.
         If specified, the request will contain a header "X-Telegram-Bot-Api-Secret-Token"
         with the secret token as content.
 
@@ -1771,6 +1772,34 @@ class APIMethods:
             get_params(locals()),
         )
         return full_result(method_response, UserProfilePhotos)
+
+    async def set_user_emoji_status(
+        self,
+        *,
+        user_id: int,
+        emoji_status_custom_emoji_id: str | None = None,
+        emoji_status_expiration_date: int | None = None,
+        **other: typing.Any,
+    ) -> Result[bool, APIError]:
+        """Method `setUserEmojiStatus`, see the [documentation](https://core.telegram.org/bots/api#setuseremojistatus)
+
+        Changes the emoji status for a given user that previously allowed the bot
+        to manage their emoji status via the Mini App method requestEmojiStatusAccess.
+        Returns True on success.
+
+        :param user_id: Unique identifier of the target user.
+
+        :param emoji_status_custom_emoji_id: Custom emoji identifier of the emoji status to set. Pass an empty string \
+        to remove the status.
+
+        :param emoji_status_expiration_date: Expiration date of the emoji status, if any.
+        """
+
+        method_response = await self.api.request_raw(
+            "setUserEmojiStatus",
+            get_params(locals()),
+        )
+        return full_result(method_response, bool)
 
     async def get_file(
         self,
@@ -4249,7 +4278,7 @@ class APIMethods:
         :param thumbnail: A .WEBP or .PNG image with the thumbnail, must be up to 128 kilobytes in size \
         and have a width and height of exactly 100px, or a .TGS animation with a thumbnail \
         up to 32 kilobytes in size (see https://core.telegram.org/stickers#animation-requirements \
-        for animated sticker technical requirements), or a WEBM video with the \
+        for animated sticker technical requirements), or a .WEBM video with the \
         thumbnail up to 32 kilobytes in size; see https://core.telegram.org/stickers#video-requirements \
         for video sticker technical requirements. Pass a file_id as a String to \
         send a file that already exists on the Telegram servers, pass an HTTP URL \
@@ -4260,7 +4289,7 @@ class APIMethods:
         the thumbnail.
 
         :param format: Format of the thumbnail, must be one of `static` for a .WEBP or .PNG image, \
-        `animated` for a .TGS animation, or `video` for a WEBM video.
+        `animated` for a .TGS animation, or `video` for a .WEBM video.
         """
 
         method_response = await self.api.request_raw(
@@ -4309,6 +4338,150 @@ class APIMethods:
 
         method_response = await self.api.request_raw(
             "deleteStickerSet",
+            get_params(locals()),
+        )
+        return full_result(method_response, bool)
+
+    async def get_available_gifts(self, **other: typing.Any) -> Result[Gifts, APIError]:
+        """Method `getAvailableGifts`, see the [documentation](https://core.telegram.org/bots/api#getavailablegifts)
+
+        Returns the list of gifts that can be sent by the bot to users. Requires no
+        parameters. Returns a Gifts object.
+        """
+
+        method_response = await self.api.request_raw(
+            "getAvailableGifts",
+            get_params(locals()),
+        )
+        return full_result(method_response, Gifts)
+
+    async def send_gift(
+        self,
+        *,
+        user_id: int,
+        gift_id: str,
+        pay_for_upgrade: bool | None = None,
+        text: str | None = None,
+        text_parse_mode: str | None = None,
+        text_entities: list[MessageEntity] | None = None,
+        **other: typing.Any,
+    ) -> Result[bool, APIError]:
+        """Method `sendGift`, see the [documentation](https://core.telegram.org/bots/api#sendgift)
+
+        Sends a gift to the given user. The gift can't be converted to Telegram Stars
+        by the user. Returns True on success.
+
+        :param user_id: Unique identifier of the target user that will receive the gift.
+
+        :param gift_id: Identifier of the gift.
+
+        :param pay_for_upgrade: Pass True to pay for the gift upgrade from the bot's balance, thereby making \
+        the upgrade free for the receiver.
+
+        :param text: Text that will be shown along with the gift; 0-255 characters.
+
+        :param text_parse_mode: Mode for parsing entities in the text. See formatting options for more details. \
+        Entities other than `bold`, `italic`, `underline`, `strikethrough`, \
+        `spoiler`, and `custom_emoji` are ignored.
+
+        :param text_entities: A JSON-serialized list of special entities that appear in the gift text. \
+        It can be specified instead of text_parse_mode. Entities other than `bold`, \
+        `italic`, `underline`, `strikethrough`, `spoiler`, and `custom_emoji` \
+        are ignored.
+        """
+
+        method_response = await self.api.request_raw(
+            "sendGift",
+            get_params(locals()),
+        )
+        return full_result(method_response, bool)
+
+    async def verify_user(
+        self,
+        *,
+        user_id: int,
+        custom_description: str | None = None,
+        **other: typing.Any,
+    ) -> Result[bool, APIError]:
+        """Method `verifyUser`, see the [documentation](https://core.telegram.org/bots/api#verifyuser)
+
+        Verifies a user on behalf of the organization which is represented by the
+        bot. Returns True on success.
+
+        :param user_id: Unique identifier of the target user.
+
+        :param custom_description: Custom description for the verification; 0-70 characters. Must be empty \
+        if the organization isn't allowed to provide a custom verification description. \
+        """
+
+        method_response = await self.api.request_raw(
+            "verifyUser",
+            get_params(locals()),
+        )
+        return full_result(method_response, bool)
+
+    async def verify_chat(
+        self,
+        *,
+        chat_id: int | str,
+        custom_description: str | None = None,
+        **other: typing.Any,
+    ) -> Result[bool, APIError]:
+        """Method `verifyChat`, see the [documentation](https://core.telegram.org/bots/api#verifychat)
+
+        Verifies a chat on behalf of the organization which is represented by the
+        bot. Returns True on success.
+
+        :param chat_id: Unique identifier for the target chat or username of the target channel \
+        (in the format @channelusername).
+
+        :param custom_description: Custom description for the verification; 0-70 characters. Must be empty \
+        if the organization isn't allowed to provide a custom verification description. \
+        """
+
+        method_response = await self.api.request_raw(
+            "verifyChat",
+            get_params(locals()),
+        )
+        return full_result(method_response, bool)
+
+    async def remove_user_verification(
+        self,
+        *,
+        user_id: int,
+        **other: typing.Any,
+    ) -> Result[bool, APIError]:
+        """Method `removeUserVerification`, see the [documentation](https://core.telegram.org/bots/api#removeuserverification)
+
+        Removes verification from a user who is currently verified on behalf of
+        the organization represented by the bot. Returns True on success.
+
+        :param user_id: Unique identifier of the target user.
+        """
+
+        method_response = await self.api.request_raw(
+            "removeUserVerification",
+            get_params(locals()),
+        )
+        return full_result(method_response, bool)
+
+    async def remove_chat_verification(
+        self,
+        *,
+        chat_id: int | str,
+        **other: typing.Any,
+    ) -> Result[bool, APIError]:
+        """Method `removeChatVerification`, see the [documentation](https://core.telegram.org/bots/api#removechatverification)
+
+        Removes verification from a chat that is currently verified on behalf of
+        the organization represented by the bot. Returns True on success.
+
+        :param chat_id: Unique identifier for the target chat or username of the target channel \
+        (in the format @channelusername).
+        """
+
+        method_response = await self.api.request_raw(
+            "removeChatVerification",
             get_params(locals()),
         )
         return full_result(method_response, bool)
@@ -4377,6 +4550,41 @@ class APIMethods:
             get_params(locals()),
         )
         return full_result(method_response, SentWebAppMessage)
+
+    async def save_prepared_inline_message(
+        self,
+        *,
+        user_id: int,
+        result: InlineQueryResult,
+        allow_user_chats: bool | None = None,
+        allow_bot_chats: bool | None = None,
+        allow_group_chats: bool | None = None,
+        allow_channel_chats: bool | None = None,
+        **other: typing.Any,
+    ) -> Result[PreparedInlineMessage, APIError]:
+        """Method `savePreparedInlineMessage`, see the [documentation](https://core.telegram.org/bots/api#savepreparedinlinemessage)
+
+        Stores a message that can be sent by a user of a Mini App. Returns a PreparedInlineMessage
+        object.
+
+        :param user_id: Unique identifier of the target user that can use the prepared message. \
+
+        :param result: A JSON-serialized object describing the message to be sent.
+
+        :param allow_user_chats: Pass True if the message can be sent to private chats with users.
+
+        :param allow_bot_chats: Pass True if the message can be sent to private chats with bots.
+
+        :param allow_group_chats: Pass True if the message can be sent to group and supergroup chats.
+
+        :param allow_channel_chats: Pass True if the message can be sent to channel chats.
+        """
+
+        method_response = await self.api.request_raw(
+            "savePreparedInlineMessage",
+            get_params(locals()),
+        )
+        return full_result(method_response, PreparedInlineMessage)
 
     async def send_invoice(
         self,
@@ -4523,7 +4731,9 @@ class APIMethods:
         payload: str,
         currency: Currency,
         prices: list[LabeledPrice],
+        business_connection_id: str | None = None,
         provider_token: str | None = None,
+        subscription_period: int | None = None,
         max_tip_amount: int | None = None,
         suggested_tip_amounts: list[int] | None = None,
         provider_data: str | None = None,
@@ -4545,6 +4755,9 @@ class APIMethods:
         Use this method to create a link for an invoice. Returns the created invoice
         link as String on success.
 
+        :param business_connection_id: Unique identifier of the business connection on behalf of which the link \
+        will be created. For payments in Telegram Stars only.
+
         :param title: Product name, 1-32 characters.
 
         :param description: Product description, 1-255 characters.
@@ -4561,6 +4774,13 @@ class APIMethods:
         :param prices: Price breakdown, a JSON-serialized list of components (e.g. product price, \
         tax, discount, delivery cost, delivery tax, bonus, etc.). Must contain \
         exactly one item for payments in Telegram Stars.
+
+        :param subscription_period: The number of seconds the subscription will be active for before the next \
+        payment. The currency must be set to `XTR` (Telegram Stars) if the parameter \
+        is used. Currently, it must always be 2592000 (30 days) if specified. Any \
+        number of subscriptions can be active for a given bot at the same time, including \
+        multiple concurrent subscriptions from the same user. Subscription price \
+        must no exceed 2500 Telegram Stars.
 
         :param max_tip_amount: The maximum accepted amount for tips in the smallest units of the currency \
         (integer, not float/double). For example, for a maximum tip of US$ 1.45 \
@@ -4641,7 +4861,7 @@ class APIMethods:
 
         :param error_message: Required if ok is False. Error message in human readable form that explains \
         why it is impossible to complete the order (e.g. `Sorry, delivery to your \
-        desired address is unavailable'). Telegram will display this message \
+        desired address is unavailable`). Telegram will display this message \
         to the user.
         """
 
@@ -4727,6 +4947,35 @@ class APIMethods:
 
         method_response = await self.api.request_raw(
             "refundStarPayment",
+            get_params(locals()),
+        )
+        return full_result(method_response, bool)
+
+    async def edit_user_star_subscription(
+        self,
+        *,
+        user_id: int,
+        telegram_payment_charge_id: str,
+        is_canceled: bool,
+        **other: typing.Any,
+    ) -> Result[bool, APIError]:
+        """Method `editUserStarSubscription`, see the [documentation](https://core.telegram.org/bots/api#edituserstarsubscription)
+
+        Allows the bot to cancel or re-enable extension of a subscription paid in
+        Telegram Stars. Returns True on success.
+
+        :param user_id: Identifier of the user whose subscription will be edited.
+
+        :param telegram_payment_charge_id: Telegram payment identifier for the subscription.
+
+        :param is_canceled: Pass True to cancel extension of the user subscription; the subscription \
+        must be active up to the end of the current subscription period. Pass False \
+        to allow the user to re-enable a subscription that was previously canceled \
+        by the bot.
+        """
+
+        method_response = await self.api.request_raw(
+            "editUserStarSubscription",
             get_params(locals()),
         )
         return full_result(method_response, bool)

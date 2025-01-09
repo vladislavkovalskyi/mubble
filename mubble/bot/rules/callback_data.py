@@ -12,7 +12,7 @@ from mubble.bot.rules.payload import (
     PayloadMarkupRule,
     PayloadModelRule,
 )
-from mubble.tools.adapter import EventAdapter
+from mubble.tools.adapter.event import EventAdapter
 from mubble.types.enums import UpdateType
 
 CallbackQuery: typing.TypeAlias = CallbackQueryCute
@@ -26,8 +26,8 @@ CallbackMap: typing.TypeAlias = list[
     tuple[str, "typing.Any | type[typing.Any] | Validator | CallbackMap"]
 ]
 CallbackMapStrict: typing.TypeAlias = list[tuple[str, "Validator | CallbackMapStrict"]]
-CallbackData: typing.TypeAlias = PayloadEqRule
-CallbackDataJson: typing.TypeAlias = PayloadJsonEqRule
+CallbackDataEq: typing.TypeAlias = PayloadEqRule
+CallbackDataJsonEq: typing.TypeAlias = PayloadJsonEqRule
 CallbackDataMarkup: typing.TypeAlias = PayloadMarkupRule
 CallbackDataJsonModel: typing.TypeAlias = PayloadModelRule
 
@@ -133,8 +133,8 @@ class CallbackDataMap(CallbackQueryDataRule):
 
 
 __all__ = (
-    "CallbackData",
-    "CallbackDataJson",
+    "CallbackDataEq",
+    "CallbackDataJsonEq",
     "CallbackDataJsonModel",
     "CallbackDataMap",
     "CallbackDataMarkup",

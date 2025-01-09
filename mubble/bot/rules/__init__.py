@@ -1,7 +1,7 @@
 from mubble.bot.rules.abc import ABCRule, AndRule, NotRule, OrRule
 from mubble.bot.rules.callback_data import (
-    CallbackData,
-    CallbackDataJson,
+    CallbackDataEq,
+    CallbackDataJsonEq,
     CallbackDataJsonModel,
     CallbackDataMap,
     CallbackDataMarkup,
@@ -46,6 +46,7 @@ from mubble.bot.rules.is_from import (
     IsUser,
     IsUserId,
 )
+from mubble.bot.rules.logic import If
 from mubble.bot.rules.markup import Markup
 from mubble.bot.rules.mention import HasMention
 from mubble.bot.rules.message import MessageRule
@@ -77,8 +78,8 @@ __all__ = (
     "CallbackQueryDataRule",
     "CallbackQueryRule",
     "ChatJoinRequestRule",
-    "CallbackData",
-    "CallbackDataJson",
+    "CallbackDataEq",
+    "CallbackDataJsonEq",
     "CallbackDataJsonModel",
     "CallbackDataMarkup",
     "Command",
@@ -136,4 +137,5 @@ __all__ = (
     "StateMeta",
     "Text",
     "IdRule",
+    "If",
 )

@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import asyncio
+import dataclasses
 import enum
 import inspect
 import types
 import typing
+from collections import OrderedDict
 from functools import wraps
+
+from fntypes import Result
+
+from mubble.model import get_params
 
 if typing.TYPE_CHECKING:
     from mubble.bot.rules.abc import ABCRule
@@ -13,8 +20,22 @@ if typing.TYPE_CHECKING:
 type Impl = type[classmethod]
 type FuncType = types.FunctionType | typing.Callable[..., typing.Any]
 
+type Executor[T] = typing.Callable[
+    [T, str, dict[str, typing.Any]],
+    typing.Awaitable[Result[typing.Any, typing.Any]],
+]
+
 TRANSLATIONS_KEY: typing.Final[str] = "_translations"
 IMPL_MARK: typing.Final[str] = "_is_impl"
+
+
+@dataclasses.dataclass(slots=True, frozen=True)
+class Shortcut[T]:
+    method_name: str
+    executor: Executor[T] | None = dataclasses.field(default=None, kw_only=True)
+    custom_params: set[str] = dataclasses.field(
+        default_factory=lambda: set(), kw_only=True
+    )
 
 
 def cache_magic_value(mark_key: str, /):
@@ -194,8 +215,100 @@ class FuncParams(typing.TypedDict, total=True):
     var_kwargs: typing.NotRequired[str]
 
 
+def shortcut[
+    T
+](
+    method_name: str,
+    *,
+    executor: Executor[T] | None = None,
+    custom_params: set[str] | None = None,
+):
+    """Decorate a cute method as a shortcut."""
+
+    def wrapper[F: typing.Callable[..., typing.Any]](func: F) -> F:
+        @wraps(func)
+        async def inner(
+            self: T,
+            *args: typing.Any,
+            **kwargs: typing.Any,
+        ) -> typing.Any:
+            if executor is None:
+                return await func(self, *args, **kwargs)
+
+            params: dict[str, typing.Any] = OrderedDict()
+            func_params = get_func_parameters(func)
+
+            for index, (arg, default) in enumerate(func_params["args"]):
+                if len(args) > index:
+                    params[arg] = args[index]
+                elif default is not inspect.Parameter.empty:
+                    params[arg] = default
+
+            if var_args := func_params.get("var_args"):
+                params[var_args] = args[len(func_params["args"]) :]
+
+            for kwarg, default in func_params["kwargs"]:
+                params[kwarg] = (
+                    kwargs.pop(kwarg, default)
+                    if default is not inspect.Parameter.empty
+                    else kwargs.pop(kwarg)
+                )
+
+            if var_kwargs := func_params.get("var_kwargs"):
+                params[var_kwargs] = kwargs.copy()
+
+            return await executor(self, method_name, get_params(params))
+
+        inner.__shortcut__ = Shortcut(  # type: ignore
+            method_name=method_name,
+            executor=executor,
+            custom_params=custom_params or set(),
+        )
+        return inner  # type: ignore
+
+    return wrapper
+
+
+# Source code: https://github.com/facebookincubator/later/blob/main/later/task.py#L75
+async def cancel_future(fut: asyncio.Future[typing.Any], /) -> None:
+    if fut.done():
+        return
+
+    fut.cancel()
+    exc: asyncio.CancelledError | None = None
+    while not fut.done():
+        shielded = asyncio.shield(fut)
+        try:
+            await asyncio.wait([shielded])
+        except asyncio.CancelledError as ex:
+            exc = ex
+        finally:
+            # Insure we handle the exception/value that may exist on the shielded task
+            # This will prevent errors logged to the asyncio logger
+            if (
+                shielded.done()
+                and not shielded.cancelled()
+                and not shielded.exception()
+            ):
+                shielded.result()
+
+    if fut.cancelled():
+        if exc is None:
+            return
+        raise exc from None
+
+    ex = fut.exception()
+    if ex is not None:
+        raise ex from None
+
+    raise asyncio.InvalidStateError(
+        f"Task did not raise CancelledError on cancel: {fut!r} had result {fut.result()!r}",
+    )
+
+
 __all__ = (
     "TRANSLATIONS_KEY",
+    "cancel_future",
     "cache_magic_value",
     "cache_translation",
     "get_annotations",
@@ -208,4 +321,6 @@ __all__ = (
     "magic_bundle",
     "resolve_arg_names",
     "to_str",
+    "shortcut",
+    "Shortcut",
 )

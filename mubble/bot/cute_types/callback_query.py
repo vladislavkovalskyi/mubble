@@ -6,7 +6,7 @@ import msgspec
 from fntypes.co import Nothing, Result, Some, Variative, unwrapping
 
 from mubble.api import API, APIError
-from mubble.bot.cute_types.base import BaseCute, compose_method_params, shortcut
+from mubble.bot.cute_types.base import BaseCute, compose_method_params
 from mubble.bot.cute_types.message import (
     MediaType,
     MessageCute,
@@ -15,6 +15,7 @@ from mubble.bot.cute_types.message import (
 )
 from mubble.model import From, field, get_params
 from mubble.msgspec_utils import Option, decoder
+from mubble.tools.magic import shortcut
 from mubble.types.objects import *
 
 

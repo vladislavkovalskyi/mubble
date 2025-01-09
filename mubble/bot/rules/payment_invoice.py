@@ -3,7 +3,7 @@ import typing
 
 from mubble.bot.cute_types.pre_checkout_query import PreCheckoutQueryCute
 from mubble.bot.rules.abc import ABCRule, CheckResult
-from mubble.tools.adapter import EventAdapter
+from mubble.tools.adapter.event import EventAdapter
 from mubble.types.enums import Currency, UpdateType
 
 PreCheckoutQuery: typing.TypeAlias = PreCheckoutQueryCute

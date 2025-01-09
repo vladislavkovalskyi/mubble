@@ -71,6 +71,8 @@ async def process_inner[
         ctx = ctx_copy
 
     logger.debug("Run post middlewares...")
+    ctx.set("responses", responses)
+
     for m in middlewares:
         await run_middleware(
             m.post,
@@ -79,7 +81,6 @@ async def process_inner[
             raw_event=raw_event,
             ctx=ctx,
             adapter=m.adapter,
-            responses=responses,
         )
 
     for session in ctx.get(CONTEXT_STORE_NODES_KEY, {}).values():

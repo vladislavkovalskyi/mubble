@@ -34,7 +34,7 @@ from .scope import (
     per_call,
     per_event,
 )
-from .source import ChatSource, Source, UserSource
+from .source import ChatSource, Source, UserId, UserSource
 from .text import Text, TextInteger, TextLiteral
 from .tools import generate_node
 from .update import UpdateNode
@@ -90,4 +90,5 @@ __all__ = (
     "is_node",
     "per_call",
     "per_event",
+    "UserId",
 )
