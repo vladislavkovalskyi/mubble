@@ -4,17 +4,12 @@ from fntypes.result import Result
 
 from mubble.api.api import API, APIError
 from mubble.bot.cute_types.base import BaseCute
-from mubble.bot.cute_types.chat_member_updated import (
-    ChatMemberShortcuts,
-    chat_member_interaction,
-)
+from mubble.bot.cute_types.chat_member_updated import ChatMemberShortcuts, chat_member_interaction
 from mubble.tools.magic import shortcut
 from mubble.types.objects import *
 
 
-class ChatJoinRequestCute(
-    BaseCute[ChatJoinRequest], ChatJoinRequest, ChatMemberShortcuts, kw_only=True
-):
+class ChatJoinRequestCute(BaseCute[ChatJoinRequest], ChatJoinRequest, ChatMemberShortcuts, kw_only=True):
     api: API
 
     @property
@@ -42,7 +37,6 @@ class ChatJoinRequestCute(
         Use this method to approve a chat join request. The bot must be an administrator
         in the chat for this to work and must have the can_invite_users administrator
         right. Returns True on success."""
-
         ...
 
     @shortcut(
@@ -62,7 +56,6 @@ class ChatJoinRequestCute(
         Use this method to decline a chat join request. The bot must be an administrator
         in the chat for this to work and must have the can_invite_users administrator
         right. Returns True on success."""
-
         ...
 
 

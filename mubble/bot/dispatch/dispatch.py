@@ -6,12 +6,13 @@ import typing_extensions as typing
 from fntypes import Nothing, Option, Some
 from vbml.patcher import Patcher
 
-from mubble.api.api import API
+from mubble.api.api import API, HTTPClient
 from mubble.bot.dispatch.abc import ABCDispatch
 from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.handler.func import ErrorHandlerT, Func, FuncHandler
 from mubble.bot.dispatch.middleware.abc import run_middleware
 from mubble.bot.dispatch.middleware.global_middleware import GlobalMiddleware
+from mubble.bot.dispatch.view.abc import ABCView
 from mubble.bot.dispatch.view.box import (
     CallbackQueryView,
     ChatJoinRequestView,
@@ -43,6 +44,7 @@ DEFAULT_DATACLASS: typing.Final[type[Update]] = Update
 
 @dataclasses.dataclass(repr=False, kw_only=True)
 class Dispatch(
+    ABCDispatch,
     ViewBox[
         CallbackQueryView,
         ChatJoinRequestView,
@@ -52,7 +54,16 @@ class Dispatch(
         PreCheckoutQueryView,
         RawEventView,
     ],
-    ABCDispatch,
+    typing.Generic[
+        HTTPClient,
+        CallbackQueryView,
+        ChatJoinRequestView,
+        ChatMemberView,
+        InlineQueryView,
+        MessageView,
+        PreCheckoutQueryView,
+        RawEventView,
+    ],
 ):
     _global_context: MubbleContext = dataclasses.field(
         init=False,
@@ -74,14 +85,13 @@ class Dispatch(
     @property
     def patcher(self) -> Patcher:
         """Alias `patcher` to get `vbml.Patcher` from the global context."""
-
         return self.global_context.vbml_patcher
 
     @typing.overload
     def handle(
         self,
         *rules: "ABCRule",
-        is_blocking: bool = True,
+        final: bool = True,
     ) -> typing.Callable[
         [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandler[UpdateCute]]
     ]: ...
@@ -91,7 +101,7 @@ class Dispatch(
         self,
         *rules: "ABCRule",
         dataclass: type[T],
-        is_blocking: bool = True,
+        final: bool = True,
     ) -> typing.Callable[
         [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandler[T]]
     ]: ...
@@ -101,7 +111,7 @@ class Dispatch(
         self,
         *rules: "ABCRule",
         update_type: UpdateType,
-        is_blocking: bool = True,
+        final: bool = True,
     ) -> typing.Callable[
         [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandler[UpdateCute]]
     ]: ...
@@ -112,7 +122,7 @@ class Dispatch(
         *rules: "ABCRule",
         dataclass: type[T],
         update_type: UpdateType,
-        is_blocking: bool = True,
+        final: bool = True,
     ) -> typing.Callable[
         [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandler[T]]
     ]: ...
@@ -122,7 +132,7 @@ class Dispatch(
         self,
         *rules: "ABCRule",
         error_handler: ErrorHandlerT,
-        is_blocking: bool = True,
+        final: bool = True,
     ) -> typing.Callable[
         [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandlerT]
     ]: ...
@@ -133,7 +143,7 @@ class Dispatch(
         *rules: "ABCRule",
         update_type: UpdateType,
         error_handler: ErrorHandlerT,
-        is_blocking: bool = True,
+        final: bool = True,
     ) -> typing.Callable[
         [Func[P, R]], FuncHandler["UpdateCute", Func[P, R], ErrorHandlerT]
     ]: ...
@@ -144,7 +154,7 @@ class Dispatch(
         *rules: "ABCRule",
         dataclass: type[T],
         error_handler: ErrorHandlerT,
-        is_blocking: bool = True,
+        final: bool = True,
     ) -> typing.Callable[[Func[P, R]], FuncHandler[T, Func[P, R], ErrorHandlerT]]: ...
 
     @typing.overload
@@ -154,7 +164,7 @@ class Dispatch(
         dataclass: type[T],
         update_type: UpdateType,
         error_handler: ErrorHandlerT,
-        is_blocking: bool = True,
+        final: bool = True,
     ) -> typing.Callable[[Func[P, R]], FuncHandler[T, Func[P, R], ErrorHandlerT]]: ...
 
     @typing.overload
@@ -164,7 +174,7 @@ class Dispatch(
         update_type: UpdateType | None = None,
         dataclass: type[T] = DEFAULT_DATACLASS,
         error_handler: typing.Literal[None] = None,
-        is_blocking: bool = True,
+        final: bool = True,
     ) -> typing.Callable[[Func[P, R]], FuncHandler[T, Func[P, R], ErrorHandler[T]]]: ...
 
     def handle(
@@ -173,13 +183,13 @@ class Dispatch(
         update_type: UpdateType | None = None,
         dataclass: type[typing.Any] = DEFAULT_DATACLASS,
         error_handler: ErrorHandlerT | None = None,
-        is_blocking: bool = True,
+        final: bool = True,
     ) -> typing.Callable[..., typing.Any]:
         def wrapper(func):
             handler = FuncHandler(
                 func,
                 list(rules),
-                is_blocking=is_blocking,
+                final=final,
                 dataclass=dataclass,
                 error_handler=error_handler or ErrorHandler(),
                 update_type=update_type,
@@ -189,7 +199,7 @@ class Dispatch(
 
         return wrapper
 
-    async def feed(self, event: Update, api: API) -> bool:
+    async def feed(self, event: Update, api: API[HTTPClient]) -> bool:
         logger.debug(
             "Processing update (update_id={}, update_type={!r})",
             event.update_id,
@@ -251,6 +261,14 @@ class Dispatch(
             if isinstance(view, of_type):
                 return Some(view)
         return Nothing()
+
+    def get_views(self) -> dict[str, ABCView]:
+        """Get all views."""
+        return {
+            name: view
+            for name, view in self.__dict__.items()
+            if isinstance(view, ABCView)
+        }
 
     __call__ = handle
 

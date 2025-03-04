@@ -26,11 +26,7 @@ async def chat_member_interaction(
 class ChatMemberShortcuts:
     """Shortcut methods for `ChatMemberUpdatedCute`, `ChatJoinRequestCute` objects."""
 
-    @shortcut(
-        "ban_chat_member",
-        executor=chat_member_interaction,
-        custom_params={"chat_id", "user_id"},
-    )
+    @shortcut("ban_chat_member", executor=chat_member_interaction, custom_params={"chat_id", "user_id"})
     async def ban_chat_member(
         self,
         *,
@@ -47,14 +43,9 @@ class ChatMemberShortcuts:
         on their own using invite links, etc., unless unbanned first. The bot must
         be an administrator in the chat for this to work and must have the appropriate
         administrator rights. Returns True on success."""
-
         ...
 
-    @shortcut(
-        "unban_chat_member",
-        executor=chat_member_interaction,
-        custom_params={"chat_id", "user_id"},
-    )
+    @shortcut("unban_chat_member", executor=chat_member_interaction, custom_params={"chat_id", "user_id"})
     async def unban_chat_member(
         self,
         *,
@@ -72,7 +63,6 @@ class ChatMemberShortcuts:
         not a member of the chat, but will be able to join it. So if the user is a member
         of the chat they will also be removed from the chat. If you don't want this,
         use the parameter only_if_banned. Returns True on success."""
-
         ...
 
     @shortcut(
@@ -96,14 +86,9 @@ class ChatMemberShortcuts:
         in the supergroup for this to work and must have the appropriate administrator
         rights. Pass True for all permissions to lift restrictions from a user.
         Returns True on success."""
-
         ...
 
-    @shortcut(
-        "promote_chat_member",
-        executor=chat_member_interaction,
-        custom_params={"chat_id", "user_id"},
-    )
+    @shortcut("promote_chat_member", executor=chat_member_interaction, custom_params={"chat_id", "user_id"})
     async def promote_chat_member(
         self,
         *,
@@ -132,7 +117,6 @@ class ChatMemberShortcuts:
         bot must be an administrator in the chat for this to work and must have the
         appropriate administrator rights. Pass False for all boolean parameters
         to demote a user. Returns True on success."""
-
         ...
 
     @shortcut(
@@ -152,13 +136,10 @@ class ChatMemberShortcuts:
 
         Use this method to set a custom title for an administrator in a supergroup
         promoted by the bot. Returns True on success."""
-
         ...
 
 
-class ChatMemberUpdatedCute(
-    BaseCute[ChatMemberUpdated], ChatMemberUpdated, ChatMemberShortcuts, kw_only=True
-):
+class ChatMemberUpdatedCute(BaseCute[ChatMemberUpdated], ChatMemberUpdated, ChatMemberShortcuts, kw_only=True):
     api: API
 
     @property

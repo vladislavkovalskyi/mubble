@@ -7,7 +7,7 @@ from mubble.bot.cute_types.update import UpdateCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.middleware.abc import ABCMiddleware
 from mubble.bot.rules.abc import ABCRule, check_rule
-from mubble.node import ScalarNode, compose_nodes
+from mubble.node import IsNode, compose_nodes
 from mubble.tools.adapter.abc import ABCAdapter
 from mubble.tools.adapter.raw_update import RawUpdateAdapter
 from mubble.types import Update
@@ -18,9 +18,7 @@ class GlobalMiddleware(ABCMiddleware):
 
     def __init__(self):
         self.filters: set[ABCRule] = set()
-        self.source_filters: dict[
-            ABCAdapter | type[ScalarNode], dict[typing.Any, ABCRule]
-        ] = {}
+        self.source_filters: dict[ABCAdapter | IsNode, dict[typing.Any, ABCRule]] = {}
 
     async def pre(self, event: UpdateCute, ctx: Context) -> bool:
         for filter in self.filters:
@@ -39,9 +37,7 @@ class GlobalMiddleware(ABCMiddleware):
                     return True
 
             else:
-                result = await compose_nodes(
-                    {"value": source}, ctx, {Update: event, API: event.api}
-                )
+                result = await compose_nodes({"value": source}, ctx, {Update: event, API: event.api})
                 if result := result.unwrap():
                     result = result.values["value"]
                 else:
@@ -56,15 +52,11 @@ class GlobalMiddleware(ABCMiddleware):
     def apply_filters(
         self,
         *filters: ABCRule,
-        source_filter: (
-            tuple[ABCAdapter | type[ScalarNode], typing.Any, ABCRule] | None
-        ) = None,
+        source_filter: tuple[ABCAdapter | IsNode, typing.Any, ABCRule] | None = None,
     ):
         if source_filter is not None:
             self.source_filters.setdefault(source_filter[0], {})
-            self.source_filters[source_filter[0]].update(
-                {source_filter[1]: source_filter[2]}
-            )
+            self.source_filters[source_filter[0]].update({source_filter[1]: source_filter[2]})
 
         self.filters |= set(filters)
         yield

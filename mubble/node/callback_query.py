@@ -4,29 +4,20 @@ from fntypes.result import Error, Ok
 
 from mubble.bot.cute_types.callback_query import CallbackQueryCute
 from mubble.msgspec_utils import msgspec_convert
-from mubble.node.base import ComposeError, FactoryNode, Name, ScalarNode
-from mubble.node.update import UpdateNode
+from mubble.node.base import ComposeError, FactoryNode, Name, scalar_node
 
 
-class CallbackQueryNode(ScalarNode, CallbackQueryCute):
+@scalar_node
+class CallbackQueryData:
     @classmethod
-    def compose(cls, update: UpdateNode) -> CallbackQueryCute:
-        if not update.callback_query:
-            raise ComposeError("Update is not a callback_query.")
-        return update.callback_query.unwrap()
+    def compose(cls, callback_query: CallbackQueryCute) -> str:
+        return callback_query.data.expect(ComposeError("Cannot complete decode callback query data."))
 
 
-class CallbackQueryData(ScalarNode, str):
+@scalar_node
+class CallbackQueryDataJson:
     @classmethod
-    def compose(cls, callback_query: CallbackQueryNode) -> str:
-        return callback_query.data.expect(
-            ComposeError("Cannot complete decode callback query data.")
-        )
-
-
-class CallbackQueryDataJson(ScalarNode, dict[str, typing.Any]):
-    @classmethod
-    def compose(cls, callback_query: CallbackQueryNode) -> dict[str, typing.Any]:
+    def compose(cls, callback_query: CallbackQueryCute) -> dict:
         return callback_query.decode_data().expect(
             ComposeError("Cannot complete decode callback query data."),
         )
@@ -39,9 +30,7 @@ class _Field(FactoryNode):
         return cls(field_type=field_type)
 
     @classmethod
-    def compose(
-        cls, callback_query_data: CallbackQueryDataJson, data_name: Name
-    ) -> typing.Any:
+    def compose(cls, callback_query_data: CallbackQueryDataJson, data_name: Name) -> typing.Any:
         if data := callback_query_data.get(data_name):
             match msgspec_convert(data, cls.field_type):
                 case Ok(value):
@@ -61,6 +50,5 @@ else:
 __all__ = (
     "CallbackQueryData",
     "CallbackQueryDataJson",
-    "CallbackQueryNode",
     "Field",
 )

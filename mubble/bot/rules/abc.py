@@ -7,7 +7,7 @@ import typing_extensions as typing
 from mubble.bot.cute_types import MessageCute, UpdateCute
 from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.process import check_rule
-from mubble.node.base import Node, get_nodes, is_node
+from mubble.node.base import NodeType, get_nodes, is_node
 from mubble.tools.adapter import ABCAdapter
 from mubble.tools.adapter.node import Event
 from mubble.tools.adapter.raw_update import RawUpdateAdapter
@@ -53,7 +53,6 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
         @abstractmethod
         def check(self, *args: typing.Any, **kwargs: typing.Any) -> CheckResult:
             pass
-
     else:
         adapter = RawUpdateAdapter()
 
@@ -68,7 +67,6 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
         adapter: ABCAdapter[UpdateObject, AdaptTo] | None = None,
     ) -> None:
         """Merges requirements from inherited classes and rule-specific requirements."""
-
         if adapter is not None:
             cls.adapter = adapter
 
@@ -88,7 +86,6 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
         rule #> AndRule(HasText(), HasCaption()) -> True if all rules in an AndRule are True, otherwise False.
         ```
         """
-
         return AndRule(self, other)
 
     def __or__(self, other: "ABCRule") -> "OrRule":
@@ -99,7 +96,6 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
         rule #> OrRule(HasText(), HasCaption()) -> True if any rule in an OrRule are True, otherwise False.
         ```
         """
-
         return OrRule(self, other)
 
     def __invert__(self) -> "NotRule":
@@ -110,7 +106,6 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
         rule # NotRule(HasText()) -> True if rule returned False, otherwise False.
         ```
         """
-
         return NotRule(self)
 
     def __repr__(self) -> str:
@@ -120,7 +115,7 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
         )
 
     @cached_property
-    def required_nodes(self) -> dict[str, type[Node]]:
+    def required_nodes(self) -> dict[str, type[NodeType]]:
         return get_nodes(self.check)
 
     def as_optional(self) -> "ABCRule":
@@ -145,11 +140,7 @@ class ABCRule(ABC, typing.Generic[AdaptTo]):
             if (isinstance(adapted_value, Event) and i == 0) or (  # First arg is Event
                 isinstance(v, type) and isinstance(adapted_value, v)
             ):
-                kw[k] = (
-                    adapted_value
-                    if not isinstance(adapted_value, Event)
-                    else adapted_value.obj
-                )
+                kw[k] = adapted_value if not isinstance(adapted_value, Event) else adapted_value.obj
             elif is_node(v):
                 assert k in node_col_values, "Node is undefined, error while bounding."
                 kw[k] = node_col_values[k]

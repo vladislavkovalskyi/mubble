@@ -6,14 +6,12 @@ from mubble.bot.scenario.checkbox import Checkbox, ChoiceAction
 
 if typing.TYPE_CHECKING:
     from mubble.api.api import API
-    from mubble.bot.dispatch.view.base import BaseStateView
 
     class Choice[Key: typing.Hashable](Checkbox[Key]):
         async def wait(
             self,
             hasher: Hasher[CallbackQueryCute, int],
             api: API,
-            view: BaseStateView[CallbackQueryCute],
         ) -> tuple[Key, int]: ...
 
 else:
@@ -40,10 +38,10 @@ else:
 
             return True
 
-        async def wait(self, hasher, api, view):
+        async def wait(self, hasher, api):
             if len(tuple(choice for choice in self.choices if choice.is_picked)) != 1:
-                raise ValueError("Exactly one choice must be picked")
-            choices, m_id = await super().wait(hasher, api, view)
+                raise ValueError("Exactly one choice must be picked.")
+            choices, m_id = await super().wait(hasher, api)
             return tuple(choices.keys())[tuple(choices.values()).index(True)], m_id
 
 

@@ -13,6 +13,7 @@ from mubble.tools.lifespan import (
     to_coroutine_task,
 )
 from mubble.tools.loop_wrapper.abc import ABCLoopWrapper
+from mubble.tools.magic import cancel_future
 
 
 class LoopWrapper(ABCLoopWrapper):
@@ -21,15 +22,20 @@ class LoopWrapper(ABCLoopWrapper):
         *,
         tasks: list[CoroutineTask[typing.Any]] | None = None,
         lifespan: Lifespan | None = None,
-        event_loop: asyncio.AbstractEventLoop | None = None,
     ) -> None:
         self.tasks: list[CoroutineTask[typing.Any]] = tasks or []
         self.lifespan = lifespan or Lifespan()
-        self._loop = event_loop
+        self._loop: asyncio.AbstractEventLoop | None = None
+
+    @property
+    def is_running(self) -> bool:
+        if self._loop is None:
+            return False
+        return self._loop.is_running()
 
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
-        assert self._loop is not None
+        assert self._loop is not None, "Loop is not set."
         return self._loop
 
     def __repr__(self) -> str:
@@ -40,15 +46,22 @@ class LoopWrapper(ABCLoopWrapper):
             self.lifespan,
         )
 
-    def run_event_loop(self) -> None:
+    async def _run_tasks(self) -> None:
+        async with asyncio.TaskGroup() as tg:
+            while self.tasks:
+                tg.create_task(self.tasks.pop(0))
+
+    def run_event_loop(self) -> typing.NoReturn:  # type: ignore
         if not self.tasks:
-            logger.warning("You run loop with 0 tasks!")
+            logger.warning("Run loop without tasks!")
 
-        self._loop = asyncio.new_event_loop() if self._loop is None else self._loop
+        try:
+            self._loop = asyncio.get_running_loop()
+        except RuntimeError:
+            self._loop = asyncio.get_event_loop()
+
         self.lifespan.start()
-
-        while self.tasks:
-            self._loop.create_task(self.tasks.pop(0))
+        self._loop.create_task(self._run_tasks())
 
         tasks = asyncio.all_tasks(self._loop)
         try:
@@ -59,8 +72,8 @@ class LoopWrapper(ABCLoopWrapper):
                 for task_result in tasks_results:
                     try:
                         task_result.result()
-                    except BaseException as ex:
-                        logger.exception(ex)
+                    except BaseException:
+                        logger.exception("Traceback message below:")
                 tasks = asyncio.all_tasks(self._loop)
         except KeyboardInterrupt:
             print()  # blank print for ^C
@@ -71,7 +84,7 @@ class LoopWrapper(ABCLoopWrapper):
             if self._loop.is_running():
                 self._loop.close()
 
-    def add_task(self, task: Task) -> None:
+    def add_task(self, task: Task[..., typing.Any], /) -> None:
         task = to_coroutine_task(task)
 
         if self._loop is not None and self._loop.is_running():
@@ -79,17 +92,13 @@ class LoopWrapper(ABCLoopWrapper):
         else:
             self.tasks.append(task)
 
-    def complete_tasks(self, tasks: set[asyncio.Task[typing.Any]]) -> None:
+    def complete_tasks(self, tasks: set[asyncio.Task[typing.Any]], /) -> None:
         tasks = tasks | asyncio.all_tasks(self.loop)
-        task_to_cancel = asyncio.gather(*tasks, return_exceptions=True)
-        task_to_cancel.cancel()
-        with contextlib.suppress(asyncio.CancelledError):
-            self.loop.run_until_complete(task_to_cancel)
+        with contextlib.suppress(asyncio.CancelledError, asyncio.InvalidStateError):
+            self.loop.run_until_complete(cancel_future(asyncio.gather(*tasks, return_exceptions=True)))
 
     @typing.overload
-    def timer(
-        self, *, seconds: datetime.timedelta
-    ) -> typing.Callable[..., typing.Any]: ...
+    def timer(self, *, seconds: datetime.timedelta) -> typing.Callable[..., typing.Any]: ...
 
     @typing.overload
     def timer(
@@ -116,18 +125,14 @@ class LoopWrapper(ABCLoopWrapper):
         seconds += hours * 60 * 60
         seconds += days * 24 * 60 * 60
 
-        def decorator[
-            CoroFunc: CoroutineFunc[..., typing.Any]
-        ](func: CoroFunc) -> CoroFunc:
+        def decorator[Func: CoroutineFunc[..., typing.Any]](func: Func) -> Func:
             self.add_task(DelayedTask(func, seconds, repeat=False))
             return func
 
         return decorator
 
     @typing.overload
-    def interval(
-        self, *, seconds: datetime.timedelta
-    ) -> typing.Callable[..., typing.Any]: ...
+    def interval(self, *, seconds: datetime.timedelta) -> typing.Callable[..., typing.Any]: ...
 
     @typing.overload
     def interval(
@@ -154,9 +159,7 @@ class LoopWrapper(ABCLoopWrapper):
         seconds += hours * 60 * 60
         seconds += days * 24 * 60 * 60
 
-        def decorator[
-            CoroFunc: CoroutineFunc[..., typing.Any]
-        ](func: CoroFunc) -> CoroFunc:
+        def decorator[Func: CoroutineFunc[..., typing.Any]](func: Func) -> Func:
             self.add_task(DelayedTask(func, seconds, repeat=True))
             return func
 

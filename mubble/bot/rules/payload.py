@@ -30,9 +30,7 @@ class PayloadRule[Data](ABCRule):
     def required_nodes(self) -> dict[str, type[Node]]:
         return {"payload": PayloadData[self.data_type, self.serializer]}  # type: ignore
 
-    def check(
-        self, payload: PayloadData[Data], context: Context
-    ) -> typing.Literal[True]:
+    def check(self, payload: PayloadData[Data], context: Context) -> typing.Literal[True]:
         context.set(self.alias, payload)
         return True
 
@@ -49,11 +47,11 @@ class PayloadModelRule[Model: ModelType](PayloadRule[Model]):
 
 
 class PayloadEqRule(ABCRule):
-    def __init__(self, payload: str, /) -> None:
-        self.payload = payload
+    def __init__(self, payloads: str | list[str], /) -> None:
+        self.payloads = [payloads] if isinstance(payloads, str) else payloads
 
     def check(self, payload: Payload) -> bool:
-        return self.payload == payload
+        return any(p == payload for p in self.payloads)
 
 
 class PayloadMarkupRule(ABCRule):

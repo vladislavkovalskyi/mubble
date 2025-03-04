@@ -1,20 +1,32 @@
 import typing
 
-from mubble.node.base import ComposeError, FactoryNode, ScalarNode
-from mubble.node.message import MessageNode
+from mubble.bot.cute_types.message import MessageCute
+from mubble.node.base import ComposeError, FactoryNode, scalar_node
+from mubble.node.either import Either
 
 
-class Text(ScalarNode, str):
+@scalar_node
+class Caption:
     @classmethod
-    def compose(cls, message: MessageNode) -> str:
+    def compose(cls, message: MessageCute) -> str:
+        if not message.caption:
+            raise ComposeError("Message has no caption.")
+        return message.caption.unwrap()
+
+
+@scalar_node
+class Text:
+    @classmethod
+    def compose(cls, message: MessageCute) -> str:
         if not message.text:
             raise ComposeError("Message has no text.")
         return message.text.unwrap()
 
 
-class TextInteger(ScalarNode, int):
+@scalar_node
+class TextInteger:
     @classmethod
-    def compose(cls, text: Text) -> int:
+    def compose(cls, text: Either[Text, Caption]) -> int:
         if not text.isdigit():
             raise ComposeError("Text is not digit.")
         return int(text)
@@ -38,4 +50,4 @@ else:
             raise ComposeError("Text mismatched literal.")
 
 
-__all__ = ("Text", "TextInteger", "TextLiteral")
+__all__ = ("Caption", "Text", "TextInteger", "TextLiteral")

@@ -10,11 +10,11 @@ from mubble.tools.adapter.errors import AdapterError
 from mubble.types.objects import Update
 
 if typing.TYPE_CHECKING:
-    from mubble.node.base import Node
+    from mubble.node.base import IsNode
 
 
-class NodeAdapter[*Nodes](ABCAdapter[Update, Event[tuple[*Nodes]]]):
-    def __init__(self, *nodes: *Nodes) -> None:
+class NodeAdapter(ABCAdapter[Update, Event[tuple["IsNode", ...]]]):
+    def __init__(self, *nodes: "IsNode") -> None:
         self.nodes = nodes
 
     def __repr__(self) -> str:
@@ -28,12 +28,9 @@ class NodeAdapter[*Nodes](ABCAdapter[Update, Event[tuple[*Nodes]]]):
         api: API,
         update: Update,
         context: Context,
-    ) -> Result[Event[tuple[*Nodes]], AdapterError]:
+    ) -> Result[Event[tuple[NodeSession, ...]], AdapterError]:
         result = await compose_nodes(
-            nodes={
-                str(i): typing.cast(type["Node"], node)
-                for i, node in enumerate(self.nodes)
-            },
+            nodes={f"node_{i}": typing.cast("IsNode", node) for i, node in enumerate(self.nodes)},
             ctx=context,
             data={Update: update, API: api},
         )
@@ -41,7 +38,7 @@ class NodeAdapter[*Nodes](ABCAdapter[Update, Event[tuple[*Nodes]]]):
         match result:
             case Ok(collection):
                 sessions: list[NodeSession] = list(collection.sessions.values())
-                return Ok(Event(tuple(sessions)))  # type: ignore
+                return Ok(Event(tuple(sessions)))
             case Error(err):
                 return Error(AdapterError(f"Couldn't compose nodes, error: {err}."))
 

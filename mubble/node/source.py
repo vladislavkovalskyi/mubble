@@ -4,13 +4,9 @@ import typing
 from fntypes.option import Nothing, Option, Some
 
 from mubble.api.api import API
-from mubble.bot.cute_types import ChatJoinRequestCute
-from mubble.node.base import ComposeError, DataNode, ScalarNode
-from mubble.node.callback_query import CallbackQueryNode
-from mubble.node.event import EventNode
-from mubble.node.message import MessageNode
+from mubble.bot.cute_types import CallbackQueryCute, ChatJoinRequestCute, MessageCute, PreCheckoutQueryCute
+from mubble.node.base import ComposeError, DataNode, scalar_node
 from mubble.node.polymorphic import Polymorphic, impl
-from mubble.node.pre_checkout_query import PreCheckoutQueryNode
 from mubble.types.objects import Chat, Message, User
 
 
@@ -22,7 +18,7 @@ class Source(Polymorphic, DataNode):
     thread_id: Option[int] = dataclasses.field(default_factory=Nothing)
 
     @impl
-    def compose_message(cls, message: MessageNode) -> typing.Self:
+    def compose_message(cls, message: MessageCute) -> typing.Self:
         return cls(
             api=message.ctx_api,
             from_user=message.from_user,
@@ -31,7 +27,7 @@ class Source(Polymorphic, DataNode):
         )
 
     @impl
-    def compose_callback_query(cls, callback_query: CallbackQueryNode) -> typing.Self:
+    def compose_callback_query(cls, callback_query: CallbackQueryCute) -> typing.Self:
         return cls(
             api=callback_query.ctx_api,
             from_user=callback_query.from_user,
@@ -40,9 +36,7 @@ class Source(Polymorphic, DataNode):
         )
 
     @impl
-    def compose_chat_join_request(
-        cls, chat_join_request: EventNode[ChatJoinRequestCute]
-    ) -> typing.Self:
+    def compose_chat_join_request(cls, chat_join_request: ChatJoinRequestCute) -> typing.Self:
         return cls(
             api=chat_join_request.ctx_api,
             from_user=chat_join_request.from_user,
@@ -51,9 +45,7 @@ class Source(Polymorphic, DataNode):
         )
 
     @impl
-    def compose_pre_checkout_query(
-        cls, pre_checkout_query: PreCheckoutQueryNode
-    ) -> typing.Self:
+    def compose_pre_checkout_query(cls, pre_checkout_query: PreCheckoutQueryCute) -> typing.Self:
         return cls(
             api=pre_checkout_query.ctx_api,
             from_user=pre_checkout_query.from_user,
@@ -71,22 +63,25 @@ class Source(Polymorphic, DataNode):
         return result.unwrap()
 
 
-class ChatSource(ScalarNode, Chat):
+@scalar_node
+class ChatSource:
     @classmethod
     def compose(cls, source: Source) -> Chat:
         return source.chat.expect(ComposeError("Source has no chat."))
 
 
-class UserSource(ScalarNode, User):
+@scalar_node
+class UserSource:
     @classmethod
     def compose(cls, source: Source) -> User:
         return source.from_user
 
 
-class UserId(ScalarNode, int):
+@scalar_node
+class UserId:
     @classmethod
     def compose(cls, user: UserSource) -> int:
         return user.id
 
 
-__all__ = ("ChatSource", "Source", "UserSource", "UserId")
+__all__ = ("ChatSource", "Source", "UserId", "UserSource")

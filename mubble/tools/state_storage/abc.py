@@ -21,15 +21,10 @@ class ABCStateStorage[Payload](abc.ABC):
     async def delete(self, user_id: int) -> None: ...
 
     @abc.abstractmethod
-    async def set(
-        self, user_id: int, key: str | enum.Enum, payload: Payload
-    ) -> None: ...
+    async def set(self, user_id: int, key: str | enum.Enum, payload: Payload) -> None: ...
 
-    def State(
-        self, key: str | StateMeta | enum.Enum = StateMeta.ANY, /
-    ) -> State[Payload]:  # noqa: N802
+    def State(self, key: str | StateMeta | enum.Enum = StateMeta.ANY, /) -> State[Payload]:  # noqa: N802
         """Can be used as a shortcut to get a state rule dependant on current storage."""
-
         return State(storage=self, key=key)
 
 

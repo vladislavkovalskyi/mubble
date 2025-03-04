@@ -8,8 +8,8 @@ from fntypes.co import Result, Some, Variative
 from mubble.api.api import API, APIError
 from mubble.bot.cute_types.base import BaseCute, compose_method_params
 from mubble.bot.cute_types.utils import compose_reactions, input_media
-from mubble.model import From, field, get_params
-from mubble.msgspec_utils import Nothing, Option
+from mubble.model import UNSET, From, field, get_params
+from mubble.msgspec_utils import Option
 from mubble.tools.magic import shortcut
 from mubble.types import *
 
@@ -88,8 +88,7 @@ async def execute_method_edit(
             "message_thread_id": lambda x: (
                 x.is_topic_message.unwrap_or(False)
                 if isinstance(x, MessageCute)
-                else bool(x.message)
-                and getattr(x.message.unwrap().v, "is_topic_message", False)
+                else bool(x.message) and getattr(x.message.unwrap().v, "is_topic_message", False)
             ),
         },
     )
@@ -112,25 +111,25 @@ async def execute_method_edit(
 
 def get_entity_value(
     entity_value: typing.Literal["user", "url", "custom_emoji_id", "language"],
-    entities: fntypes.option.Option[list[MessageEntity]] = Nothing,
-    caption_entities: fntypes.option.Option[list[MessageEntity]] = Nothing,
+    entities: fntypes.option.Option[list[MessageEntity]],
+    caption_entities: fntypes.option.Option[list[MessageEntity]],
 ) -> fntypes.option.Option[typing.Any]:
     ents = entities.unwrap_or(caption_entities.unwrap_or_none())
     if not ents:
-        return Nothing
+        return fntypes.option.Nothing()
 
     for entity in ents:
-        if (obj := getattr(entity, entity_value, Nothing)) is not Nothing:
+        if (obj := getattr(entity, entity_value, fntypes.option.Nothing())) is not fntypes.option.Nothing():
             return obj if isinstance(obj, Some) else Some(obj)
 
-    return Nothing
+    return fntypes.option.Nothing()
 
 
 class MessageCute(BaseCute[Message], Message, kw_only=True):
     api: API
 
     reply_to_message: Option[MessageCute] = field(
-        default=Nothing,
+        default=UNSET,
         converter=From["MessageCute | None"],
     )
     """Optional. For replies in the same chat and message thread, the original
@@ -138,7 +137,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     reply_to_message fields even if it itself is a reply."""
 
     pinned_message: Option[Variative[MessageCute, InaccessibleMessage]] = field(
-        default=Nothing,
+        default=UNSET,
         converter=From["MessageCute | InaccessibleMessage | None"],
     )
     """Optional. Specified message was pinned. Note that the Message object in
@@ -148,25 +147,21 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     @property
     def mentioned_user(self) -> fntypes.option.Option[User]:
         """Mentioned user without username."""
-
         return get_entity_value("user", self.entities, self.caption_entities)
 
     @property
     def url(self) -> fntypes.option.Option[str]:
         """Clickable text URL."""
-
         return get_entity_value("url", self.entities, self.caption_entities)
 
     @property
     def programming_language(self) -> fntypes.option.Option[str]:
         """The programming language of the entity text."""
-
         return get_entity_value("language", self.entities, self.caption_entities)
 
     @property
     def custom_emoji_id(self) -> fntypes.option.Option[str]:
         """Unique identifier of the custom emoji."""
-
         return get_entity_value("custom_emoji_id", self.entities, self.caption_entities)
 
     @shortcut(
@@ -188,13 +183,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -223,9 +212,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -248,13 +235,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -283,14 +264,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
-    @shortcut(
-        "delete_message", custom_params={"message_thread_id", "chat_id", "message_id"}
-    )
+    @shortcut("delete_message", custom_params={"message_thread_id", "chat_id", "message_id"})
     async def delete(
         self,
         *,
@@ -312,14 +289,11 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         of a group, it can delete any message there. - If the bot has can_delete_messages
         permission in a supergroup or a channel, it can delete any message there.
         Returns True on success."""
-
         params = compose_method_params(
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         return await self.ctx_api.delete_message(**params)
 
@@ -366,7 +340,6 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param link_preview_options: Link preview generation options for the message.
 
         :param reply_markup: A JSON-serialized object for an inline keyboard."""
-
         ...
 
     @shortcut(
@@ -386,15 +359,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
+        video_start_timestamp: int | None = None,
         **other: typing.Any,
     ) -> Result[MessageId, APIError]:
         """Shortcut `API.copy_message()`, see the [documentation](https://core.telegram.org/bots/api#copymessage)
@@ -405,7 +373,6 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         field correct_option_id is known to the bot. The method is analogous to
         the method forwardMessage, but the copied message doesn't have a link to
         the original message. Returns the MessageId of the sent message on success."""
-
         params = compose_method_params(
             params=get_params(locals()),
             update=self,
@@ -415,9 +382,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
                 ("from_chat_id", "chat_id"),
                 "message_thread_id",
             },
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         if isinstance(reply_parameters, dict):
             reply_parameters.setdefault("message_id", params.get("message_id"))
@@ -431,13 +396,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
     )
     async def react(
         self,
-        reaction: (
-            str
-            | ReactionEmoji
-            | ReactionType
-            | list[str | ReactionEmoji | ReactionType]
-            | None
-        ) = None,
+        reaction: (str | ReactionEmoji | ReactionType | list[str | ReactionEmoji | ReactionType] | None) = None,
         *,
         chat_id: int | str | None = None,
         is_big: bool | None = None,
@@ -448,17 +407,14 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         """Shortcut `API.set_message_reaction()`, see the [documentation](https://core.telegram.org/bots/api#setmessagereaction)
 
         Use this method to change the chosen reactions on a message. Service messages
-        can't be reacted to. Automatically forwarded messages from a channel to
-        its discussion group have the same available reactions as messages in the
-        channel. Bots can't use paid reactions. Returns True on success."""
-
+        of some types can't be reacted to. Automatically forwarded messages from
+        a channel to its discussion group have the same available reactions as messages
+        in the channel. Bots can't use paid reactions. Returns True on success."""
         params = compose_method_params(
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         if reaction:
             params["reaction"] = compose_reactions(
@@ -466,10 +422,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
             )
         return await self.ctx_api.set_message_reaction(**params)
 
-    @shortcut(
-        "forward_message",
-        custom_params={"message_thread_id", "from_chat_id", "message_id"},
-    )
+    @shortcut("forward_message", custom_params={"message_thread_id", "from_chat_id", "message_id"})
     async def forward(
         self,
         chat_id: int | str,
@@ -479,6 +432,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_id: int | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
+        video_start_timestamp: int | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
         """Shortcut `API.forward_message()`, see the [documentation](https://core.telegram.org/bots/api#forwardmessage)
@@ -492,10 +446,11 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param from_chat_id: Unique identifier for the chat where the original message was sent (or channelusername in the format @channelusername).
 
+        :param video_start_timestamp: New start timestamp for the forwarded video in the message.
+
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound.
         :param protect_content: Protects the contents of the forwarded message from forwarding and saving.
         :param message_id: Message identifier in the chat specified in from_chat_id."""
-
         params = compose_method_params(
             params=get_params(locals()),
             update=self,
@@ -504,17 +459,13 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
                 "message_id",
                 "message_thread_id",
             },
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         return (await self.ctx_api.forward_message(**params)).map(
             lambda message: MessageCute.from_update(message, bound_api=self.api),
         )
 
-    @shortcut(
-        "pin_chat_message", custom_params={"message_thread_id", "chat_id", "message_id"}
-    )
+    @shortcut("pin_chat_message", custom_params={"message_thread_id", "chat_id", "message_id"})
     async def pin(
         self,
         *,
@@ -538,23 +489,16 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param message_id: Identifier of a message to pin.
 
-        :param disable_notification: Pass True if it is not necessary to send a notification to all chat membersabout the new pinned message. Notifications are always disabled in channelsand private chats.
-        """
-
+        :param disable_notification: Pass True if it is not necessary to send a notification to all chat membersabout the new pinned message. Notifications are always disabled in channelsand private chats."""
         params = compose_method_params(
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         return await self.ctx_api.pin_chat_message(**params)
 
-    @shortcut(
-        "unpin_chat_message",
-        custom_params={"message_thread_id", "chat_id", "message_id"},
-    )
+    @shortcut("unpin_chat_message", custom_params={"message_thread_id", "chat_id", "message_id"})
     async def unpin(
         self,
         *,
@@ -575,16 +519,12 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param chat_id: Unique identifier for the target chat or username of the target channel(in the format @channelusername).
 
-        :param message_id: Identifier of the message to unpin. Required if business_connection_idis specified. If not specified, the most recent pinned message (by sendingdate) will be unpinned.
-        """
-
+        :param message_id: Identifier of the message to unpin. Required if business_connection_idis specified. If not specified, the most recent pinned message (by sendingdate) will be unpinned."""
         params = compose_method_params(
             params=get_params(locals()),
             update=self,
             default_params={"chat_id", "message_id", "message_thread_id"},
-            validators={
-                "message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)
-            },
+            validators={"message_thread_id": lambda x: x.is_topic_message.unwrap_or(False)},
         )
         return await self.ctx_api.pin_chat_message(**params)
 
@@ -609,13 +549,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         parse_mode: str | None = None,
         performer: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         thumbnail: InputFile | str | None = None,
         title: str | None = None,
@@ -657,9 +591,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -684,13 +616,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
         thumbnail: InputFile | str | None = None,
@@ -734,9 +660,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -759,13 +683,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
         thumbnail: InputFile | str | None = None,
@@ -801,9 +719,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -826,13 +742,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
         **other: typing.Any,
@@ -866,9 +776,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -888,13 +796,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -921,9 +823,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -940,6 +840,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         caption: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
         chat_id: int | str | None = None,
+        cover: InputFile | str | None = None,
         disable_notification: bool | None = None,
         duration: int | None = None,
         emoji: str | None = None,
@@ -948,15 +849,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
+        start_timestamp: int | None = None,
         supports_streaming: bool | None = None,
         thumbnail: InputFile | str | None = None,
         width: int | None = None,
@@ -982,6 +878,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param height: Video height.
 
         :param thumbnail: Thumbnail of the file sent; can be ignored if thumbnail generation for thefile is supported server-side. The thumbnail should be in JPEG format andless than 200 kB in size. A thumbnail's width and height should not exceed320. Ignored if the file is not uploaded using multipart/form-data. Thumbnailscan't be reused and can be only uploaded as a new file, so you can pass `attach://<file_attach_name>`if the thumbnail was uploaded using multipart/form-data under <file_attach_name>.More information on Sending Files: https://core.telegram.org/bots/api#sending-files.
+        :param cover: Cover for the video in the message. Pass a file_id to send a file that existson the Telegram servers (recommended), pass an HTTP URL for Telegram toget a file from the Internet, or pass `attach://<file_attach_name>` toupload a new one using multipart/form-data under <file_attach_name>name. More information on Sending Files: https://core.telegram.org/bots/api#sending-files.
+        :param start_timestamp: Start timestamp for the video in the message.
+
         :param caption: Video caption (may also be used when resending videos by file_id), 0-1024characters after entities parsing.
 
         :param parse_mode: Mode for parsing entities in the video caption. See formatting optionsfor more details.
@@ -1003,9 +902,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1026,13 +923,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         thumbnail: InputFile | str | None = None,
         **other: typing.Any,
@@ -1064,9 +955,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1089,13 +978,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -1131,9 +1014,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1164,13 +1045,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         protect_content: bool | None = None,
         question_entities: list[MessageEntity] | None = None,
         question_parse_mode: str | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
         type: typing.Literal["quiz", "regular"] | None = None,
@@ -1222,9 +1097,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1250,13 +1123,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -1295,9 +1162,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1316,13 +1181,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -1346,9 +1205,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1391,9 +1248,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: A JSON-serialized object for an inline keyboard. If empty, one 'Play game_title'button will be shown. If not empty, the first button must launch the game.
-        """
-
+        :param reply_markup: A JSON-serialized object for an inline keyboard. If empty, one 'Play game_title'button will be shown. If not empty, the first button must launch the game."""
         ...
 
     @shortcut(
@@ -1439,7 +1294,6 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         """Shortcut `API.send_invoice()`, see the [documentation](https://core.telegram.org/bots/api#sendinvoice)
 
         Use this method to send invoices. On success, the sent Message is returned."""
-
         ...
 
     @shortcut(
@@ -1468,9 +1322,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param chat_id: Unique identifier for the target chat or username of the target channel(in the format @channelusername).
 
         :param message_thread_id: Unique identifier for the target message thread; for supergroups only.
-        :param action: Type of action to broadcast. Choose one, depending on what the user is aboutto receive: typing for text messages, upload_photo for photos, record_videoor upload_video for videos, record_voice or upload_voice for voice notes,upload_document for general files, choose_sticker for stickers, find_locationfor location data, record_video_note or upload_video_note for videonotes.
-        """
-
+        :param action: Type of action to broadcast. Choose one, depending on what the user is aboutto receive: typing for text messages, upload_photo for photos, record_videoor upload_video for videos, record_voice or upload_voice for voice notes,upload_document for general files, choose_sticker for stickers, find_locationfor location data, record_video_note or upload_video_note for videonotes."""
         ...
 
     @shortcut(
@@ -1512,7 +1364,6 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param message_effect_id: Unique identifier of the message effect to be added to the message; for privatechats only.
 
         :param reply_parameters: Description of the message to reply to."""
-
         media = [media] if not isinstance(media, list) else media
         params = get_params(locals())
         return await execute_method_answer(self, "send_media_group", params)
@@ -1538,13 +1389,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
         proximity_alert_radius: int | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -1576,9 +1421,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1599,13 +1442,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         vcard: str | None = None,
         **other: typing.Any,
@@ -1636,9 +1473,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1662,13 +1497,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         parse_mode: str | None = None,
         performer: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         thumbnail: InputFile | str | None = None,
         title: str | None = None,
@@ -1710,9 +1539,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1737,13 +1564,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
         thumbnail: InputFile | str | None = None,
@@ -1787,9 +1608,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1812,13 +1631,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
         thumbnail: InputFile | str | None = None,
@@ -1854,9 +1667,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1879,13 +1690,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
         **other: typing.Any,
@@ -1919,9 +1724,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1941,13 +1744,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -1974,9 +1771,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -1993,6 +1788,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         caption: str | None = None,
         caption_entities: list[MessageEntity] | None = None,
         chat_id: int | str | None = None,
+        cover: InputFile | str | None = None,
         disable_notification: bool | None = None,
         duration: int | None = None,
         emoji: str | None = None,
@@ -2001,15 +1797,10 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
+        start_timestamp: int | None = None,
         supports_streaming: bool | None = None,
         thumbnail: InputFile | str | None = None,
         width: int | None = None,
@@ -2035,6 +1826,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param height: Video height.
 
         :param thumbnail: Thumbnail of the file sent; can be ignored if thumbnail generation for thefile is supported server-side. The thumbnail should be in JPEG format andless than 200 kB in size. A thumbnail's width and height should not exceed320. Ignored if the file is not uploaded using multipart/form-data. Thumbnailscan't be reused and can be only uploaded as a new file, so you can pass `attach://<file_attach_name>`if the thumbnail was uploaded using multipart/form-data under <file_attach_name>.More information on Sending Files: https://core.telegram.org/bots/api#sending-files.
+        :param cover: Cover for the video in the message. Pass a file_id to send a file that existson the Telegram servers (recommended), pass an HTTP URL for Telegram toget a file from the Internet, or pass `attach://<file_attach_name>` toupload a new one using multipart/form-data under <file_attach_name>name. More information on Sending Files: https://core.telegram.org/bots/api#sending-files.
+        :param start_timestamp: Start timestamp for the video in the message.
+
         :param caption: Video caption (may also be used when resending videos by file_id), 0-1024characters after entities parsing.
 
         :param parse_mode: Mode for parsing entities in the video caption. See formatting optionsfor more details.
@@ -2056,9 +1850,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -2079,13 +1871,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         thumbnail: InputFile | str | None = None,
         **other: typing.Any,
@@ -2117,9 +1903,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -2142,13 +1926,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         parse_mode: str | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -2184,9 +1962,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -2217,13 +1993,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         protect_content: bool | None = None,
         question_entities: list[MessageEntity] | None = None,
         question_parse_mode: str | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
         type: typing.Literal["quiz", "regular"] | None = None,
@@ -2275,9 +2045,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -2303,13 +2071,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -2348,9 +2110,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -2369,13 +2129,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -2399,9 +2153,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -2444,9 +2196,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: A JSON-serialized object for an inline keyboard. If empty, one 'Play game_title'button will be shown. If not empty, the first button must launch the game.
-        """
-
+        :param reply_markup: A JSON-serialized object for an inline keyboard. If empty, one 'Play game_title'button will be shown. If not empty, the first button must launch the game."""
         ...
 
     @shortcut(
@@ -2492,7 +2242,6 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         """Shortcut `API.send_invoice()`, see the [documentation](https://core.telegram.org/bots/api#sendinvoice)
 
         Use this method to send invoices. On success, the sent Message is returned."""
-
         ...
 
     @shortcut(
@@ -2537,7 +2286,6 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param message_effect_id: Unique identifier of the message effect to be added to the message; for privatechats only.
 
         :param reply_parameters: Description of the message to reply to."""
-
         params = get_params(locals())
         params.setdefault("reply_parameters", ReplyParameters(self.message_id))
         return await self.answer_media_group(**params)
@@ -2563,13 +2311,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
         proximity_alert_radius: int | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         **other: typing.Any,
     ) -> Result[MessageCute, APIError]:
@@ -2601,9 +2343,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -2624,13 +2364,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         message_effect_id: str | None = None,
         message_thread_id: int | None = None,
         protect_content: bool | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         reply_parameters: ReplyParameters | None = None,
         vcard: str | None = None,
         **other: typing.Any,
@@ -2661,9 +2395,7 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
 
         :param reply_parameters: Description of the message to reply to.
 
-        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user.
-        """
-
+        :param reply_markup: Additional interface options. A JSON-serialized object for an inlinekeyboard, custom reply keyboard, instructions to remove a reply keyboardor to force a reply from the user."""
         ...
 
     @shortcut(
@@ -2712,7 +2444,6 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param proximity_alert_radius: The maximum distance for proximity alerts about approaching another chatmember, in meters. Must be between 1 and 100000 if specified.
 
         :param reply_markup: A JSON-serialized object for a new inline keyboard."""
-
         ...
 
     @shortcut(
@@ -2757,7 +2488,6 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param show_caption_above_media: Pass True, if the caption must be shown above the message media. Supportedonly for animation, photo and video messages.
 
         :param reply_markup: A JSON-serialized object for an inline keyboard."""
-
         ...
 
     @shortcut(
@@ -2810,12 +2540,9 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param media: A JSON-serialized object for a new media content of the message.
 
         :param reply_markup: A JSON-serialized object for a new inline keyboard."""
-
         params = get_params(locals())
         if not isinstance(media, InputMedia):
-            assert (
-                type
-            ), "Parameter 'type' is required, because 'media' is a file id or an 'InputFile' object."
+            assert type, "Parameter 'type' is required, because 'media' is a file id or an 'InputFile' object."
             params["media"] = input_media(
                 params.pop("type"),
                 media,
@@ -2857,7 +2584,6 @@ class MessageCute(BaseCute[Message], Message, kw_only=True):
         :param inline_message_id: Required if chat_id and message_id are not specified. Identifier of theinline message.
 
         :param reply_markup: A JSON-serialized object for an inline keyboard."""
-
         ...
 
 

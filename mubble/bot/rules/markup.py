@@ -3,7 +3,8 @@ import typing
 import vbml
 
 from mubble.bot.dispatch.context import Context
-from mubble.node.text import Text
+from mubble.node.either import Either
+from mubble.node.text import Caption, Text
 from mubble.tools.global_context.mubble_ctx import MubbleContext
 
 from .abc import ABCRule
@@ -38,7 +39,7 @@ class Markup(ABCRule):
             for pattern in patterns
         ]
 
-    def check(self, text: Text, ctx: Context) -> bool:
+    def check(self, text: Either[Text, Caption], ctx: Context) -> bool:
         return check_string(self.patterns, text, ctx)
 
 

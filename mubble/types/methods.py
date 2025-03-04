@@ -10,23 +10,19 @@ from mubble.types.objects import *  # noqa: F403
 
 if typing.TYPE_CHECKING:
     from mubble.api.api import API
+    from mubble.client.abc import ABCClient
 
 
-class APIMethods:
-    """Telegram Bot API methods version 8.2, released `January 1, 2025`."""
+class APIMethods[HTTPClient: ABCClient]:
+    """Telegram Bot API methods version 8.3, released `February 12, 2025`."""
 
     default_params = ProxiedDict(
         typing.TypedDict(
-            "DefaultParams",
-            {
-                "parse_mode": str,
-                "question_parse_mode": str,
-                "explanation_parse_mode": str,
-            },
+            "DefaultParams", {"parse_mode": str, "question_parse_mode": str, "explanation_parse_mode": str}
         )
     )
 
-    def __init__(self, api: "API") -> None:
+    def __init__(self, api: "API[HTTPClient]") -> None:
         self.api = api
 
     async def get_updates(
@@ -154,9 +150,7 @@ class APIMethods:
         )
         return full_result(method_response, bool)
 
-    async def get_webhook_info(
-        self, **other: typing.Any
-    ) -> Result[WebhookInfo, APIError]:
+    async def get_webhook_info(self, **other: typing.Any) -> Result[WebhookInfo, APIError]:
         """Method `getWebhookInfo`, see the [documentation](https://core.telegram.org/bots/api#getwebhookinfo)
 
         Use this method to get current webhook status. Requires no parameters.
@@ -232,13 +226,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendMessage`, see the [documentation](https://core.telegram.org/bots/api#sendmessage)
@@ -295,6 +283,7 @@ class APIMethods:
         from_chat_id: int | str,
         message_id: int,
         message_thread_id: int | None = None,
+        video_start_timestamp: int | None = None,
         disable_notification: bool | None = None,
         protect_content: bool | None = None,
         **other: typing.Any,
@@ -313,6 +302,8 @@ class APIMethods:
 
         :param from_chat_id: Unique identifier for the chat where the original message was sent (or channel \
         username in the format @channelusername).
+
+        :param video_start_timestamp: New start timestamp for the forwarded video in the message.
 
         :param disable_notification: Sends the message silently. Users will receive a notification with no sound. \
 
@@ -378,6 +369,7 @@ class APIMethods:
         from_chat_id: int | str,
         message_id: int,
         message_thread_id: int | None = None,
+        video_start_timestamp: int | None = None,
         caption: str | None = None,
         parse_mode: str | None = default_params["parse_mode"],
         caption_entities: list[MessageEntity] | None = None,
@@ -386,13 +378,7 @@ class APIMethods:
         protect_content: bool | None = None,
         allow_paid_broadcast: bool | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[MessageId, APIError]:
         """Method `copyMessage`, see the [documentation](https://core.telegram.org/bots/api#copymessage)
@@ -414,6 +400,8 @@ class APIMethods:
         username in the format @channelusername).
 
         :param message_id: Message identifier in the chat specified in from_chat_id.
+
+        :param video_start_timestamp: New start timestamp for the copied video in the message.
 
         :param caption: New caption for media, 0-1024 characters after entities parsing. If not \
         specified, the original caption is kept.
@@ -514,13 +502,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendPhoto`, see the [documentation](https://core.telegram.org/bots/api#sendphoto)
@@ -599,13 +581,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendAudio`, see the [documentation](https://core.telegram.org/bots/api#sendaudio)
@@ -693,13 +669,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendDocument`, see the [documentation](https://core.telegram.org/bots/api#senddocument)
@@ -777,6 +747,8 @@ class APIMethods:
         width: int | None = None,
         height: int | None = None,
         thumbnail: InputFile | str | None = None,
+        cover: InputFile | str | None = None,
+        start_timestamp: int | None = None,
         caption: str | None = None,
         parse_mode: str | None = default_params["parse_mode"],
         caption_entities: list[MessageEntity] | None = None,
@@ -788,13 +760,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendVideo`, see the [documentation](https://core.telegram.org/bots/api#sendvideo)
@@ -831,6 +797,14 @@ class APIMethods:
         can't be reused and can be only uploaded as a new file, so you can pass `attach://<file_attach_name>` \
         if the thumbnail was uploaded using multipart/form-data under <file_attach_name>. \
         More information on Sending Files: https://core.telegram.org/bots/api#sending-files. \
+
+        :param cover: Cover for the video in the message. Pass a file_id to send a file that exists \
+        on the Telegram servers (recommended), pass an HTTP URL for Telegram to \
+        get a file from the Internet, or pass `attach://<file_attach_name>` to \
+        upload a new one using multipart/form-data under <file_attach_name> \
+        name. More information on Sending Files: https://core.telegram.org/bots/api#sending-files. \
+
+        :param start_timestamp: Start timestamp for the video in the message.
 
         :param caption: Video caption (may also be used when resending videos by file_id), 0-1024 \
         characters after entities parsing.
@@ -892,13 +866,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendAnimation`, see the [documentation](https://core.telegram.org/bots/api#sendanimation)
@@ -988,13 +956,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendVoice`, see the [documentation](https://core.telegram.org/bots/api#sendvoice)
@@ -1069,13 +1031,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendVideoNote`, see the [documentation](https://core.telegram.org/bots/api#sendvideonote)
@@ -1150,13 +1106,7 @@ class APIMethods:
         protect_content: bool | None = None,
         allow_paid_broadcast: bool | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendPaidMedia`, see the [documentation](https://core.telegram.org/bots/api#sendpaidmedia)
@@ -1214,9 +1164,7 @@ class APIMethods:
         self,
         *,
         chat_id: int | str,
-        media: list[
-            InputMediaAudio | InputMediaDocument | InputMediaPhoto | InputMediaVideo
-        ],
+        media: list[InputMediaAudio | InputMediaDocument | InputMediaPhoto | InputMediaVideo],
         business_connection_id: str | None = None,
         message_thread_id: int | None = None,
         disable_notification: bool | None = None,
@@ -1281,13 +1229,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendLocation`, see the [documentation](https://core.telegram.org/bots/api#sendlocation)
@@ -1362,13 +1304,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendVenue`, see the [documentation](https://core.telegram.org/bots/api#sendvenue)
@@ -1441,13 +1377,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendContact`, see the [documentation](https://core.telegram.org/bots/api#sendcontact)
@@ -1520,13 +1450,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendPoll`, see the [documentation](https://core.telegram.org/bots/api#sendpoll)
@@ -1618,13 +1542,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendDice`, see the [documentation](https://core.telegram.org/bots/api#senddice)
@@ -1720,9 +1638,9 @@ class APIMethods:
         """Method `setMessageReaction`, see the [documentation](https://core.telegram.org/bots/api#setmessagereaction)
 
         Use this method to change the chosen reactions on a message. Service messages
-        can't be reacted to. Automatically forwarded messages from a channel to
-        its discussion group have the same available reactions as messages in the
-        channel. Bots can't use paid reactions. Returns True on success.
+        of some types can't be reacted to. Automatically forwarded messages from
+        a channel to its discussion group have the same available reactions as messages
+        in the channel. Bots can't use paid reactions. Returns True on success.
 
         :param chat_id: Unique identifier for the target chat or username of the target channel \
         (in the format @channelusername).
@@ -2765,9 +2683,7 @@ class APIMethods:
         )
         return full_result(method_response, bool)
 
-    async def get_forum_topic_icon_stickers(
-        self, **other: typing.Any
-    ) -> Result[list[Sticker], APIError]:
+    async def get_forum_topic_icon_stickers(self, **other: typing.Any) -> Result[list[Sticker], APIError]:
         """Method `getForumTopicIconStickers`, see the [documentation](https://core.telegram.org/bots/api#getforumtopiciconstickers)
 
         Use this method to get custom emoji stickers, which can be used as a forum
@@ -3423,9 +3339,7 @@ class APIMethods:
         *,
         chat_id: int | None = None,
         **other: typing.Any,
-    ) -> Result[
-        Variative[MenuButtonCommands, MenuButtonWebApp, MenuButtonDefault], APIError
-    ]:
+    ) -> Result[Variative[MenuButtonCommands, MenuButtonWebApp, MenuButtonDefault], APIError]:
         """Method `getChatMenuButton`, see the [documentation](https://core.telegram.org/bots/api#getchatmenubutton)
 
         Use this method to get the current value of the bot's menu button in a private
@@ -3439,10 +3353,7 @@ class APIMethods:
             "getChatMenuButton",
             get_params(locals()),
         )
-        return full_result(
-            method_response,
-            Variative[MenuButtonCommands, MenuButtonWebApp, MenuButtonDefault],
-        )
+        return full_result(method_response, Variative[MenuButtonCommands, MenuButtonWebApp, MenuButtonDefault])
 
     async def set_my_default_administrator_rights(
         self,
@@ -3889,13 +3800,7 @@ class APIMethods:
         allow_paid_broadcast: bool | None = None,
         message_effect_id: str | None = None,
         reply_parameters: ReplyParameters | None = None,
-        reply_markup: (
-            InlineKeyboardMarkup
-            | ReplyKeyboardMarkup
-            | ReplyKeyboardRemove
-            | ForceReply
-            | None
-        ) = None,
+        reply_markup: InlineKeyboardMarkup | ReplyKeyboardMarkup | ReplyKeyboardRemove | ForceReply | None = None,
         **other: typing.Any,
     ) -> Result[Message, APIError]:
         """Method `sendSticker`, see the [documentation](https://core.telegram.org/bots/api#sendsticker)
@@ -4345,8 +4250,8 @@ class APIMethods:
     async def get_available_gifts(self, **other: typing.Any) -> Result[Gifts, APIError]:
         """Method `getAvailableGifts`, see the [documentation](https://core.telegram.org/bots/api#getavailablegifts)
 
-        Returns the list of gifts that can be sent by the bot to users. Requires no
-        parameters. Returns a Gifts object.
+        Returns the list of gifts that can be sent by the bot to users and channel chats.
+        Requires no parameters. Returns a Gifts object.
         """
 
         method_response = await self.api.request_raw(
@@ -4358,8 +4263,9 @@ class APIMethods:
     async def send_gift(
         self,
         *,
-        user_id: int,
         gift_id: str,
+        user_id: int | None = None,
+        chat_id: int | str | None = None,
         pay_for_upgrade: bool | None = None,
         text: str | None = None,
         text_parse_mode: str | None = None,
@@ -4368,17 +4274,22 @@ class APIMethods:
     ) -> Result[bool, APIError]:
         """Method `sendGift`, see the [documentation](https://core.telegram.org/bots/api#sendgift)
 
-        Sends a gift to the given user. The gift can't be converted to Telegram Stars
-        by the user. Returns True on success.
+        Sends a gift to the given user or channel chat. The gift can't be converted
+        to Telegram Stars by the receiver. Returns True on success.
 
-        :param user_id: Unique identifier of the target user that will receive the gift.
+        :param user_id: Required if chat_id is not specified. Unique identifier of the target user \
+        who will receive the gift.
+
+        :param chat_id: Required if user_id is not specified. Unique identifier for the chat or \
+        username of the channel (in the format @channelusername) that will receive \
+        the gift.
 
         :param gift_id: Identifier of the gift.
 
         :param pay_for_upgrade: Pass True to pay for the gift upgrade from the bot's balance, thereby making \
         the upgrade free for the receiver.
 
-        :param text: Text that will be shown along with the gift; 0-255 characters.
+        :param text: Text that will be shown along with the gift; 0-128 characters.
 
         :param text_parse_mode: Mode for parsing entities in the text. See formatting options for more details. \
         Entities other than `bold`, `italic`, `underline`, `strikethrough`, \

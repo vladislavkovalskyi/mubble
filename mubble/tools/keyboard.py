@@ -46,9 +46,7 @@ class ABCMarkup[KeyboardButton: BaseButton](ABC):
     def get_empty_markup(cls) -> AnyMarkup:
         return cls().get_markup()
 
-    def add(
-        self, row_or_button: RowButtons[KeyboardButton] | KeyboardButton, /
-    ) -> typing.Self:
+    def add(self, row_or_button: RowButtons[KeyboardButton] | KeyboardButton, /) -> typing.Self:
         if not self.keyboard:
             self.row()
 

@@ -17,13 +17,9 @@ from mubble.types.objects import Update
 ToEvent = typing.TypeVar("ToEvent", bound=Model, default=typing.Any)
 
 
-async def run_middleware[
-    Event: Model, R: bool | None
-](
-    method: typing.Callable[
-        typing.Concatenate[Event, Context, ...], typing.Awaitable[R]
-    ],
-    api: API,
+async def run_middleware[Event: Model, R: bool | None](
+    method: typing.Callable[typing.Concatenate[Event, Context, ...], typing.Awaitable[R]],
+    api: API[typing.Any],
     event: Event,
     ctx: Context,
     raw_event: Update | None = None,
@@ -40,11 +36,7 @@ async def run_middleware[
             case _:
                 return False  # type: ignore
 
-    logger.debug(
-        "Running {}-middleware {!r}...",
-        method.__name__,
-        method.__qualname__.split(".")[0],
-    )
+    logger.debug("Running {}-middleware {!r}...", method.__name__, method.__qualname__.split(".")[0])
     return await method(event, ctx, *args, **kwargs)  # type: ignore
 
 
@@ -68,9 +60,7 @@ class ABCMiddleware[Event: Model | BaseCute](ABC):
     async def post(self, event: Event, ctx: Context) -> None: ...
 
     @typing.overload
-    def to_lifespan(
-        self, event: Event, ctx: Context | None = None, *, api: API
-    ) -> Lifespan: ...
+    def to_lifespan(self, event: Event, ctx: Context | None = None, *, api: API) -> Lifespan: ...
 
     @typing.overload
     def to_lifespan(self, event: Event, ctx: Context | None = None) -> Lifespan: ...
@@ -84,19 +74,13 @@ class ABCMiddleware[Event: Model | BaseCute](ABC):
     ) -> Lifespan:
         if api is None:
             if not isinstance(event, BaseCute):
-                raise LookupError(
-                    "Cannot get api, please pass as kwarg or provide BaseCute api-bound event"
-                )
+                raise LookupError("Cannot get api, please pass as kwarg or provide BaseCute api-bound event")
             api = event.api
 
         ctx = ctx or Context()
         ctx |= add_context
         return Lifespan(
-            startup_tasks=[
-                run_middleware(
-                    self.pre, api, event, raw_event=None, ctx=ctx, adapter=None
-                )
-            ],
+            startup_tasks=[run_middleware(self.pre, api, event, raw_event=None, ctx=ctx, adapter=None)],
             shutdown_tasks=[
                 run_middleware(
                     self.post,

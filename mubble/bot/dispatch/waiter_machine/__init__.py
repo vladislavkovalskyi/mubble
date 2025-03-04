@@ -8,10 +8,7 @@ from mubble.bot.dispatch.waiter_machine.hasher import (
     Hasher,
     StateViewHasher,
 )
-from mubble.bot.dispatch.waiter_machine.machine import (
-    WaiterMachine,
-    clear_wm_storage_worker,
-)
+from mubble.bot.dispatch.waiter_machine.machine import WaiterMachine, clear_wm_storage_worker
 from mubble.bot.dispatch.waiter_machine.middleware import WaiterMiddleware
 from mubble.bot.dispatch.waiter_machine.short_state import ShortState
 

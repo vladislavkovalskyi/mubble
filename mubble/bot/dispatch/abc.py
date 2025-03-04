@@ -20,7 +20,7 @@ class PathExistsError(BaseException):
 
 class ABCDispatch(ABC):
     @abstractmethod
-    async def feed(self, event: Update, api: API) -> bool:
+    async def feed(self, event: Update, api: API[typing.Any]) -> bool:
         pass
 
     @abstractmethod
@@ -42,8 +42,8 @@ class ABCDispatch(ABC):
     def load_from_dir(self, directory: str | pathlib.Path) -> bool:
         """Loads dispatchers from a directory containing Python modules where global variables
         are declared with instances of dispatch.
-        Returns True if dispatchers were found, otherwise False."""
-
+        Returns True if dispatchers were found, otherwise False.
+        """
         directory = pathlib.Path(directory)
 
         if not directory.exists():
@@ -54,14 +54,10 @@ class ABCDispatch(ABC):
             for f in files:
                 if f.endswith(".py") and f != "__init__.py":
                     module_path = os.path.join(root, f)
-                    module_name = os.path.splitext(
-                        os.path.relpath(module_path, directory)
-                    )[0]
+                    module_name = os.path.splitext(os.path.relpath(module_path, directory))[0]
                     module_name = module_name.replace(os.sep, ".")
 
-                    spec = importlib_util.spec_from_file_location(
-                        module_name, module_path
-                    )
+                    spec = importlib_util.spec_from_file_location(module_name, module_path)
                     if spec is None or spec.loader is None:
                         continue
 

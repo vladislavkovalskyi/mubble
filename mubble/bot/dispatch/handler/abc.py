@@ -8,7 +8,7 @@ from mubble.types.objects import Update
 
 
 class ABCHandler[Event](ABC):
-    is_blocking: bool
+    final: bool
     adapter: ABCAdapter[Update, Event] | None = None
 
     @abstractmethod

@@ -2,9 +2,9 @@ import dataclasses
 import importlib
 import typing
 
+from mubble.bot.cute_types.update import UpdateCute
 from mubble.bot.dispatch.context import Context
 from mubble.node.base import ComposeError, Node
-from mubble.node.update import UpdateNode
 
 if typing.TYPE_CHECKING:
     from mubble.bot.dispatch.process import check_rule
@@ -39,7 +39,7 @@ class RuleChain(dict[str, typing.Any], Node):
         )
 
     @classmethod
-    async def compose(cls, update: UpdateNode) -> typing.Any:
+    async def compose(cls, update: UpdateCute) -> typing.Any:
         # Hack to avoid circular import
         globalns = globals()
         if "check_rule" not in globalns:
@@ -67,10 +67,6 @@ class RuleChain(dict[str, typing.Any], Node):
     @classmethod
     def as_node(cls) -> type[typing.Self]:
         return cls
-
-    @classmethod
-    def get_subnodes(cls) -> dict[typing.Literal["update"], type[UpdateNode]]:
-        return {"update": UpdateNode}
 
     @classmethod
     def is_generator(cls) -> typing.Literal[False]:

@@ -37,9 +37,7 @@ class WaiterMiddleware[Event: BaseCute](ABCMiddleware[Event]):
             logger.info(f"Unable to get hash from event with hasher {self.hasher!r}")
             return True
 
-        short_state: "ShortState[Event] | None" = self.machine.storage[self.hasher].get(
-            key.unwrap()
-        )
+        short_state: "ShortState[Event] | None" = self.machine.storage[self.hasher].get(key.unwrap())
         if not short_state:
             return True
 
@@ -57,10 +55,7 @@ class WaiterMiddleware[Event: BaseCute](ABCMiddleware[Event]):
             logger.debug("Filter rule {!r} failed", short_state.filter)
             return True
 
-        if (
-            short_state.expiration_date is not None
-            and datetime.datetime.now() >= short_state.expiration_date
-        ):
+        if short_state.expiration_date is not None and datetime.datetime.now() >= short_state.expiration_date:
             await self.machine.drop(
                 self.hasher,
                 self.hasher.get_data_from_event(event).unwrap(),
@@ -71,9 +66,9 @@ class WaiterMiddleware[Event: BaseCute](ABCMiddleware[Event]):
         handler = FuncHandler(
             self.pass_runtime,
             [short_state.release] if short_state.release else [],
-            dataclass=BaseCute,
             preset_context=preset_context,
         )
+        handler.get_name_event_param = lambda event: "event"  # FIXME: HOTFIX
         result = await handler.check(event.ctx_api, ctx.raw_update, ctx)
 
         if result is True:
@@ -87,12 +82,12 @@ class WaiterMiddleware[Event: BaseCute](ABCMiddleware[Event]):
 
     async def pass_runtime(
         self,
-        event: BaseCute[Event],
+        event: Event,
         short_state: "ShortState[Event]",
         ctx: Context,
     ) -> None:
-        ctx.set("initiator", self.hasher)
-        short_state.context = ShortStateContext(typing.cast(Event, event), ctx)
+        ctx.initiator = self.hasher
+        short_state.context = ShortStateContext(event, ctx)
         short_state.event.set()
 
 

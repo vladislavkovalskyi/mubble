@@ -15,7 +15,7 @@ class MediaGroupReplyHandler(BaseReplyHandler):
         *rules: ABCRule,
         caption: str | list[str] | None = None,
         parse_mode: str | list[str] | None = None,
-        is_blocking: bool = True,
+        final: bool = True,
         as_reply: bool = False,
         preset_context: Context | None = None,
         **default_params: typing.Any,
@@ -25,16 +25,14 @@ class MediaGroupReplyHandler(BaseReplyHandler):
         self.caption = caption
         super().__init__(
             *rules,
-            is_blocking=is_blocking,
+            final=final,
             as_reply=as_reply,
             preset_context=preset_context,
             **default_params,
         )
 
     async def run(self, _: API, event: MessageCute, __: Context) -> typing.Any:
-        method = (
-            event.answer_media_group if not self.as_reply else event.reply_media_group
-        )
+        method = event.answer_media_group if not self.as_reply else event.reply_media_group
         await method(
             media=self.media,
             parse_mode=self.parse_mode,

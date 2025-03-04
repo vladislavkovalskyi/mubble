@@ -13,9 +13,7 @@ class ABCErrorHandler[Event](ABC):
         self,
         *args: typing.Any,
         **kwargs: typing.Any,
-    ) -> typing.Callable[
-        [typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]
-    ]:
+    ) -> typing.Callable[[typing.Callable[..., typing.Any]], typing.Callable[..., typing.Any]]:
         """Decorator for registering callback as a catcher for the error handler."""
 
     @abstractmethod

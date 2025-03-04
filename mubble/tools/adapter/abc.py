@@ -9,9 +9,7 @@ from fntypes.result import Result
 from mubble.modules import logger
 from mubble.tools.adapter.errors import AdapterError
 
-type AdaptResult[To] = Result[To, AdapterError] | typing.Awaitable[
-    Result[To, AdapterError]
-]
+type AdaptResult[To] = Result[To, AdapterError] | typing.Awaitable[Result[To, AdapterError]]
 
 
 if typing.TYPE_CHECKING:
@@ -33,17 +31,18 @@ class Event[To]:
     obj: To
 
 
-async def run_adapter[
-    T, U: "Model"
-](adapter: "ABCAdapter[U, T]", api: "API", update: U, context: "Context",) -> Option[T]:
+async def run_adapter[T, U: "Model"](
+    adapter: "ABCAdapter[U, T]",
+    api: "API",
+    update: U,
+    context: "Context",
+) -> Option[T]:
     adapt_result = adapter.adapt(api, update, context)
     match await adapt_result if inspect.isawaitable(adapt_result) else adapt_result:
         case Ok(value):
             return Some(value)
         case Error(err):
-            logger.debug(
-                "Adapter {!r} failed with error message: {!r}", adapter, str(err)
-            )
+            logger.debug("Adapter {!r} failed with error message: {!r}", adapter, str(err))
             return Nothing()
 
 

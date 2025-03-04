@@ -11,9 +11,9 @@ if typing.TYPE_CHECKING:
 
     from fntypes.option import Option
 
-    def get_class_annotations(obj: typing.Any) -> dict[str, typing.Any]: ...
+    def get_class_annotations(obj: typing.Any, /) -> dict[str, typing.Any]: ...
 
-    def get_type_hints(obj: typing.Any) -> dict[str, typing.Any]: ...
+    def get_type_hints(obj: typing.Any, /) -> dict[str, typing.Any]: ...
 
 else:
     from datetime import datetime as dt
@@ -24,16 +24,14 @@ else:
 
     class OptionMeta(type):
         def __instancecheck__(cls, __instance: typing.Any) -> bool:
-            return isinstance(__instance, fntypes.option.Some | fntypes.option.Nothing)
+            return isinstance(__instance, (fntypes.option.Some | fntypes.option.Nothing, msgspec.UnsetType))
 
     class Option[Value](metaclass=OptionMeta):
         pass
 
 
-type DecHook[T] = typing.Callable[[type[T], typing.Any], typing.Any]
-type EncHook[T] = typing.Callable[[T], typing.Any]
-
-Nothing: typing.Final[fntypes.option.Nothing] = fntypes.option.Nothing()
+type DecHook[T] = typing.Callable[typing.Concatenate[type[T], typing.Any, ...], typing.Any]
+type EncHook[T] = typing.Callable[typing.Concatenate[T, ...], typing.Any]
 
 
 def get_origin[T](t: type[T]) -> type[T]:
@@ -54,11 +52,21 @@ def is_common_type(type_: typing.Any) -> typing.TypeGuard[type[typing.Any]]:
     )
 
 
+def struct_as_dict(struct: msgspec.Struct, /) -> dict[str, typing.Any]:
+    return {
+        k: v
+        for k, v in msgspec.structs.asdict(struct).items()
+        if not isinstance(v, msgspec.UnsetType | type(None) | fntypes.option.Nothing)
+    }
+
+
 def type_check(obj: typing.Any, t: typing.Any) -> bool:
     return (
         isinstance(obj, t)
         if isinstance(t, type) and issubclass(t, msgspec.Struct)
-        else type(obj) in t if isinstance(t, tuple) else type(obj) is t
+        else type(obj) in t
+        if isinstance(t, tuple)
+        else type(obj) is t
     )
 
 
@@ -88,10 +96,14 @@ def msgspec_to_builtins(
 
 
 def option_dec_hook(
-    tp: type[Option[typing.Any]], obj: typing.Any
-) -> fntypes.option.Option[typing.Any]:
-    if obj is None or isinstance(obj, fntypes.Nothing):
-        return Nothing
+    tp: type[Option[typing.Any]],
+    obj: typing.Any,
+) -> fntypes.option.Option[typing.Any] | msgspec.UnsetType:
+    if obj is msgspec.UNSET:
+        return obj
+
+    if obj is None or isinstance(obj, fntypes.option.Nothing):
+        return fntypes.option.Nothing()
 
     (value_type,) = typing.get_args(tp) or (typing.Any,)
     orig_value_type = typing.get_origin(value_type) or value_type
@@ -103,9 +115,7 @@ def option_dec_hook(
             orig_value_type = typing.get_args(value_type)
 
         if not type_check(orig_obj, orig_value_type):
-            raise TypeError(
-                f"Expected `{repr_type(orig_value_type)}`, got `{repr_type(type(orig_obj))}`."
-            )
+            raise TypeError(f"Expected `{repr_type(orig_value_type)}`, got `{repr_type(type(orig_obj))}`.")
 
         return fntypes.option.Some(obj)
 
@@ -124,12 +134,8 @@ def variative_dec_hook(tp: type[Variative], obj: typing.Any) -> Variative:
         union_types = tuple(t for t in union_types if t not in models_struct_fields)
         reverse = False
 
-        if len(set(models_struct_fields.values())) != len(
-            models_struct_fields.values()
-        ):
-            models_struct_fields = {
-                m: len(m.__struct_fields__) for m in models_struct_fields
-            }
+        if len(set(models_struct_fields.values())) != len(models_struct_fields.values()):
+            models_struct_fields = {m: len(m.__struct_fields__) for m in models_struct_fields}
             reverse = True
 
         union_types = (
@@ -142,11 +148,7 @@ def variative_dec_hook(tp: type[Variative], obj: typing.Any) -> Variative:
         )
 
     for t in union_types:
-        if (
-            not isinstance(obj, dict | list)
-            and is_common_type(t)
-            and type_check(obj, t)
-        ):
+        if not isinstance(obj, dict | list) and is_common_type(t) and type_check(obj, t):
             return tp(obj)
         match msgspec_convert(obj, t):
             case Ok(value):
@@ -202,26 +204,27 @@ class Decoder:
         )
 
     @typing.overload
-    def __call__[
-        T
-    ](self, type: type[T]) -> typing.ContextManager[msgspec.json.Decoder[T]]: ...
+    def __call__[T](
+        self,
+        type: type[T],
+        context: dict[str, typing.Any] | None = None,
+    ) -> typing.ContextManager[msgspec.json.Decoder[T]]: ...
 
     @typing.overload
     def __call__(
-        self, type: typing.Any
+        self,
+        type: typing.Any,
+        context: dict[str, typing.Any] | None = None,
     ) -> typing.ContextManager[msgspec.json.Decoder[typing.Any]]: ...
 
     @typing.overload
-    def __call__[
-        T
-    ](
+    def __call__[T](
         self,
         type: type[T],
         *,
         strict: bool = True,
-    ) -> typing.ContextManager[
-        msgspec.json.Decoder[T]
-    ]: ...
+        context: dict[str, typing.Any] | None = None,
+    ) -> typing.ContextManager[msgspec.json.Decoder[T]]: ...
 
     @typing.overload
     def __call__(
@@ -229,36 +232,41 @@ class Decoder:
         type: typing.Any,
         *,
         strict: bool = True,
+        context: dict[str, typing.Any] | None = None,
     ) -> typing.ContextManager[msgspec.json.Decoder[typing.Any]]: ...
 
     @contextmanager
-    def __call__(self, type=object, *, strict=True):
+    def __call__(self, type=object, *, strict=True, context=None):
         """Context manager returns an `msgspec.json.Decoder` object with the `dec_hook`."""
-
         dec_obj = msgspec.json.Decoder(
             type=typing.Any if type is object else type,
             strict=strict,
-            dec_hook=self.dec_hook,
+            dec_hook=self.dec_hook(context),
         )
         yield dec_obj
 
-    def add_dec_hook[T](self, t: type[T]):
+    def add_dec_hook[T](self, t: type[T], /):
         def decorator(func: DecHook[T]) -> DecHook[T]:
             return self.dec_hooks.setdefault(get_origin(t), func)
 
         return decorator
 
-    def dec_hook(self, tp: type[typing.Any], obj: object) -> object:
-        origin_type = t if isinstance((t := get_origin(tp)), type) else type(t)
-        if origin_type not in self.dec_hooks:
-            raise TypeError(
-                f"Unknown type `{repr_type(origin_type)}`. You can implement decode hook for this type."
-            )
-        return self.dec_hooks[origin_type](tp, obj)
+    def dec_hook(self, context: dict[str, typing.Any] | None = None):
+        from mubble.tools.magic import magic_bundle
 
-    def convert[
-        T
-    ](
+        def inner(tp: type[typing.Any], obj: object) -> typing.Any:
+            origin_type = t if isinstance((t := get_origin(tp)), type) else type(t)
+            if origin_type not in self.dec_hooks:
+                raise TypeError(
+                    f"Unknown type `{repr_type(origin_type)}`. You can implement decode hook for this type."
+                )
+            dec_hook_func = self.dec_hooks[origin_type]
+            kwargs = magic_bundle(dec_hook_func, context or {}, start_idx=2)
+            return dec_hook_func(tp, obj, **kwargs)
+
+        return inner
+
+    def convert[T](
         self,
         obj: object,
         *,
@@ -267,30 +275,53 @@ class Decoder:
         from_attributes: bool = False,
         builtin_types: typing.Iterable[type[typing.Any]] | None = None,
         str_keys: bool = False,
+        context: dict[str, typing.Any] | None = None,
     ) -> T:
         return msgspec.convert(
             obj,
             type,
             strict=strict,
             from_attributes=from_attributes,
-            dec_hook=self.dec_hook,
+            dec_hook=self.dec_hook(context),
             builtin_types=builtin_types,
             str_keys=str_keys,
         )
 
     @typing.overload
-    def decode(self, buf: str | bytes) -> typing.Any: ...
+    def decode(
+        self,
+        buf: str | bytes,
+        *,
+        context: dict[str, typing.Any] | None = None,
+    ) -> typing.Any: ...
 
     @typing.overload
-    def decode[T](self, buf: str | bytes, *, type: type[T]) -> T: ...
+    def decode[T](
+        self,
+        buf: str | bytes,
+        *,
+        type: type[T],
+        context: dict[str, typing.Any] | None = None,
+    ) -> T: ...
 
     @typing.overload
-    def decode(self, buf: str | bytes, *, type: typing.Any) -> typing.Any: ...
+    def decode(
+        self,
+        buf: str | bytes,
+        *,
+        type: typing.Any,
+        context: dict[str, typing.Any] | None = None,
+    ) -> typing.Any: ...
 
     @typing.overload
-    def decode[
-        T
-    ](self, buf: str | bytes, *, type: type[T], strict: bool = True,) -> T: ...
+    def decode[T](
+        self,
+        buf: str | bytes,
+        *,
+        type: type[T],
+        strict: bool = True,
+        context: dict[str, typing.Any] | None = None,
+    ) -> T: ...
 
     @typing.overload
     def decode(
@@ -299,14 +330,15 @@ class Decoder:
         *,
         type: typing.Any,
         strict: bool = True,
+        context: dict[str, typing.Any] | None = None,
     ) -> typing.Any: ...
 
-    def decode(self, buf, *, type=object, strict=True):
+    def decode(self, buf, *, type=object, strict=True, context=None):
         return msgspec.json.decode(
             buf,
             type=typing.Any if type is object else type,
             strict=strict,
-            dec_hook=self.dec_hook,
+            dec_hook=self.dec_hook(context),
         )
 
 
@@ -345,38 +377,68 @@ class Encoder:
         decimal_format: typing.Literal["string", "number"] = "string",
         uuid_format: typing.Literal["canonical", "hex"] = "canonical",
         order: typing.Literal[None, "deterministic", "sorted"] = None,
+        context: dict[str, typing.Any] | None = None,
     ) -> typing.Generator[msgspec.json.Encoder, typing.Any, None]:
         """Context manager returns an `msgspec.json.Encoder` object with the `enc_hook`."""
-
-        enc_obj = msgspec.json.Encoder(enc_hook=self.enc_hook)
+        enc_obj = msgspec.json.Encoder(enc_hook=self.enc_hook(context))
         yield enc_obj
 
-    def add_enc_hook[T](self, t: type[T]):
+    def add_enc_hook[T](self, t: type[T], /):
         def decorator(func: EncHook[T]) -> EncHook[T]:
             encode_hook = self.enc_hooks.setdefault(get_origin(t), func)
             return func if encode_hook is not func else encode_hook
 
         return decorator
 
-    def enc_hook(self, obj: object) -> object:
-        origin_type = get_origin(obj.__class__)
-        if origin_type not in self.enc_hooks:
-            raise NotImplementedError(
-                f"Not implemented encode hook for object of type `{repr_type(origin_type)}`.",
-            )
-        return self.enc_hooks[origin_type](obj)
+    def enc_hook(self, context: dict[str, typing.Any] | None = None):
+        from mubble.tools.magic import magic_bundle
+
+        def inner(obj: typing.Any) -> typing.Any:
+            origin_type = get_origin(obj.__class__)
+            if origin_type not in self.enc_hooks:
+                raise NotImplementedError(
+                    f"Not implemented encode hook for object of type `{repr_type(origin_type)}`.",
+                )
+            enc_hook_func = self.enc_hooks[origin_type]
+            kwargs = magic_bundle(enc_hook_func, context or {}, start_idx=1)
+            return enc_hook_func(obj, **kwargs)
+
+        return inner
 
     @typing.overload
-    def encode(self, obj: typing.Any) -> str: ...
+    def encode(
+        self,
+        obj: typing.Any,
+        *,
+        context: dict[str, typing.Any] | None = None,
+    ) -> str: ...
 
     @typing.overload
-    def encode(self, obj: typing.Any, *, as_str: typing.Literal[True]) -> str: ...
+    def encode(
+        self,
+        obj: typing.Any,
+        *,
+        as_str: typing.Literal[True],
+        context: dict[str, typing.Any] | None = None,
+    ) -> str: ...
 
     @typing.overload
-    def encode(self, obj: typing.Any, *, as_str: typing.Literal[False]) -> bytes: ...
+    def encode(
+        self,
+        obj: typing.Any,
+        *,
+        as_str: typing.Literal[False],
+        context: dict[str, typing.Any] | None = None,
+    ) -> bytes: ...
 
-    def encode(self, obj: typing.Any, *, as_str: bool = True) -> str | bytes:
-        buf = msgspec.json.encode(obj, enc_hook=self.enc_hook)
+    def encode(
+        self,
+        obj: typing.Any,
+        *,
+        as_str: bool = True,
+        context: dict[str, typing.Any] | None = None,
+    ) -> str | bytes:
+        buf = msgspec.json.encode(obj, enc_hook=self.enc_hook(context))
         return buf.decode() if as_str else buf
 
     def to_builtins(
@@ -386,12 +448,13 @@ class Encoder:
         str_keys: bool = False,
         builtin_types: typing.Iterable[type[typing.Any]] | None = None,
         order: typing.Literal["deterministic", "sorted"] | None = None,
+        context: dict[str, typing.Any] | None = None,
     ) -> typing.Any:
         return msgspec.to_builtins(
             obj,
             str_keys=str_keys,
             builtin_types=builtin_types,
-            enc_hook=self.enc_hook,
+            enc_hook=self.enc_hook(context),
             order=order,
         )
 
@@ -403,7 +466,6 @@ encoder: typing.Final[Encoder] = Encoder()
 __all__ = (
     "Decoder",
     "Encoder",
-    "Nothing",
     "Option",
     "datetime",
     "decoder",
@@ -412,4 +474,5 @@ __all__ = (
     "get_type_hints",
     "msgspec_convert",
     "msgspec_to_builtins",
+    "struct_as_dict",
 )

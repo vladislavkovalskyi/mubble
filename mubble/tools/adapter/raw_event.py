@@ -18,9 +18,7 @@ class RawEventAdapter(ABCAdapter[Update, Model]):
             self.event_model.__name__,
         )
 
-    def adapt(
-        self, api: API, update: Update, context: Context
-    ) -> Result[Model, AdapterError]:
+    def adapt(self, api: API, update: Update, context: Context) -> Result[Model, AdapterError]:
         if isinstance(update.incoming_update, self.event_model):
             return Ok(update.incoming_update)
         return Error(AdapterError(f"Update is not an {self.event_model.__name__!r}."))

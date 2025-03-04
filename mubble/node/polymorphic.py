@@ -4,24 +4,29 @@ import typing
 from fntypes.result import Error, Ok
 
 from mubble.api.api import API
+from mubble.bot.cute_types.update import UpdateCute
 from mubble.bot.dispatch.context import Context
 from mubble.modules import logger
 from mubble.node.base import ComposeError, Node, get_nodes
 from mubble.node.composer import CONTEXT_STORE_NODES_KEY, NodeSession, compose_nodes
 from mubble.node.scope import NodeScope
-from mubble.node.update import UpdateNode
-from mubble.tools.magic import get_impls, impl, magic_bundle
+from mubble.tools.magic import get_polymorphic_implementations, impl, magic_bundle
+from mubble.types.objects import Update
 
 
 class Polymorphic(Node):
     @classmethod
-    async def compose(cls, update: UpdateNode, context: Context) -> typing.Any:
+    async def compose(cls, raw_update: Update, update: UpdateCute, context: Context) -> typing.Any:
         logger.debug(f"Composing polymorphic node {cls.__name__!r}...")
         scope = getattr(cls, "scope", None)
         node_ctx = context.get_or_set(CONTEXT_STORE_NODES_KEY, {})
-        data = {API: update.ctx_api, Context: context}
+        data = {
+            API: update.ctx_api,
+            Context: context,
+            Update: raw_update,
+        }
 
-        for i, impl_ in enumerate(get_impls(cls)):
+        for i, impl_ in enumerate(get_polymorphic_implementations(cls)):
             logger.debug("Checking impl {!r}...", impl_.__name__)
             node_collection = None
 
@@ -45,10 +50,7 @@ class Polymorphic(Node):
                 await node_collection.close_all()
                 return res.value
 
-            result = impl_(
-                cls,
-                **node_collection.values | magic_bundle(impl_, data, typebundle=True),
-            )
+            result = impl_(cls, **node_collection.values | magic_bundle(impl_, data, typebundle=True))
             if inspect.isawaitable(result):
                 result = await result
 

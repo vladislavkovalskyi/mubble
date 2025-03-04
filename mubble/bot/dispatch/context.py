@@ -42,9 +42,7 @@ class Context(dict[str, AnyValue]):
 
     @recursive_repr()
     def __repr__(self) -> str:
-        return "{}({})".format(
-            self.__class__.__name__, ", ".join(f"{k}={v!r}" for k, v in self.items())
-        )
+        return "{}({})".format(self.__class__.__name__, ", ".join(f"{k}={v!r}" for k, v in self.items()))
 
     def __setitem__(self, __key: Key, __value: AnyValue) -> None:
         dict.__setitem__(self, self.key_to_str(__key), __value)

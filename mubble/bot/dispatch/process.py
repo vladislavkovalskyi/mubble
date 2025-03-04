@@ -19,9 +19,7 @@ if typing.TYPE_CHECKING:
     from mubble.bot.rules.abc import ABCRule
 
 
-async def process_inner[
-    Event: Model
-](
+async def process_inner[Event: Model](
     api: API,
     event: Event,
     raw_event: Update,
@@ -35,9 +33,7 @@ async def process_inner[
 
     logger.debug("Run pre middlewares...")
     for m in middlewares:
-        result = await run_middleware(
-            m.pre, api, event, raw_event=raw_event, ctx=ctx, adapter=m.adapter
-        )
+        result = await run_middleware(m.pre, api, event, raw_event=raw_event, ctx=ctx, adapter=m.adapter)
         logger.debug("Middleware {!r} returned: {!r}", m, result)
         if result is False:
             return False
@@ -65,7 +61,7 @@ async def process_inner[
 
             if return_manager is not None:
                 await return_manager.run(response, event, ctx)
-            if handler.is_blocking:
+            if handler.final:
                 break
 
         ctx = ctx_copy
@@ -101,8 +97,8 @@ async def check_rule(
     ctx: Context,
 ) -> bool:
     """Checks requirements, adapts update.
-    Returns check result."""
-
+    Returns check result.
+    """
     update_cute = None if not isinstance(update, UpdateCute) else update
 
     # Running adapter
@@ -115,9 +111,7 @@ async def check_rule(
     # Preparing update
     if isinstance(adapted_value, UpdateCute):
         update_cute = adapted_value
-    elif isinstance(
-        adapted_val := ctx.get(rule.adapter.ADAPTED_VALUE_KEY or ""), UpdateCute
-    ):
+    elif isinstance(adapted_val := ctx.get(rule.adapter.ADAPTED_VALUE_KEY or ""), UpdateCute):
         update_cute = adapted_val
     else:
         update_cute = UpdateCute.from_update(update, bound_api=api)
@@ -138,17 +132,14 @@ async def check_rule(
     nodes = rule.required_nodes
     node_col = None
     if nodes:
-        result = await compose_nodes(
-            nodes, ctx, data={Update: update, API: api, UpdateCute: update_cute}
-        )
+        result = await compose_nodes(nodes, ctx, data={Update: update, API: api})
         if not result:
+            logger.debug(f"Cannot compose nodes for rule, error: {str(result.error)}")
             return False
         node_col = result.value
 
     # Running check
-    result = await rule.bounding_check(
-        ctx, adapted_value=adapted_value, node_col=node_col
-    )
+    result = await rule.bounding_check(ctx, adapted_value=adapted_value, node_col=node_col)
 
     # Closing node sessions if there are any
     if node_col is not None:

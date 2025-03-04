@@ -3,41 +3,38 @@ import typing
 
 from fntypes.result import Error, Ok
 
-from mubble.node.base import ComposeError, DataNode, FactoryNode, GlobalNode, ScalarNode
-from mubble.node.callback_query import CallbackQueryNode
-from mubble.node.message import MessageNode
+from mubble.bot.cute_types.callback_query import CallbackQueryCute
+from mubble.bot.cute_types.message import MessageCute
+from mubble.bot.cute_types.pre_checkout_query import PreCheckoutQueryCute
+from mubble.node.base import ComposeError, DataNode, FactoryNode, GlobalNode, scalar_node
 from mubble.node.polymorphic import Polymorphic, impl
-from mubble.node.pre_checkout_query import PreCheckoutQueryNode
 from mubble.tools.callback_data_serilization import ABCDataSerializer, JSONSerializer
 
 
-class Payload(Polymorphic, ScalarNode, str):
+@scalar_node[str]
+class Payload(Polymorphic):
     @impl
-    def compose_pre_checkout_query(cls, event: PreCheckoutQueryNode) -> str:
+    def compose_pre_checkout_query(cls, event: PreCheckoutQueryCute) -> str:
         return event.invoice_payload
 
     @impl
-    def compose_callback_query(cls, event: CallbackQueryNode) -> str:
+    def compose_callback_query(cls, event: CallbackQueryCute) -> str:
         return event.data.expect("CallbackQuery has no data.")
 
     @impl
-    def compose_message(cls, event: MessageNode) -> str:
+    def compose_message(cls, event: MessageCute) -> str:
         return event.successful_payment.map(
             lambda payment: payment.invoice_payload,
         ).expect("Message has no successful payment.")
 
 
 @dataclasses.dataclass(frozen=True, slots=True)
-class PayloadSerializer(DataNode, GlobalNode):
+class PayloadSerializer[T: type[ABCDataSerializer[typing.Any]]](DataNode, GlobalNode[T]):
     serializer: type[ABCDataSerializer[typing.Any]]
 
     @classmethod
-    def set(cls, serializer: type[ABCDataSerializer[typing.Any]], /) -> None:
-        super().set(cls(serializer=serializer))
-
-    @classmethod
     def compose(cls) -> typing.Self:
-        return cls(serializer=JSONSerializer)
+        return cls(serializer=cls.get(default=JSONSerializer))
 
 
 class _PayloadData(FactoryNode):
@@ -46,21 +43,14 @@ class _PayloadData(FactoryNode):
 
     def __class_getitem__(
         cls,
-        data_type: (
-            type[typing.Any]
-            | tuple[type[typing.Any], type[ABCDataSerializer[typing.Any]]]
-        ),
+        data_type: type[typing.Any] | tuple[type[typing.Any], type[ABCDataSerializer[typing.Any]]],
         /,
     ):
-        data_type, serializer = (
-            (data_type, None) if not isinstance(data_type, tuple) else data_type
-        )
+        data_type, serializer = (data_type, None) if not isinstance(data_type, tuple) else data_type
         return cls(data_type=data_type, serializer=serializer)
 
     @classmethod
-    def compose(
-        cls, payload: Payload, payload_serializer: PayloadSerializer
-    ) -> typing.Any:
+    def compose(cls, payload: Payload, payload_serializer: PayloadSerializer) -> typing.Any:
         serializer = cls.serializer or payload_serializer.serializer
         match serializer(cls.data_type).deserialize(payload):
             case Ok(value):

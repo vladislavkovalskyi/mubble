@@ -15,7 +15,8 @@ class MubbleContext(GlobalContext):
     ctx1 = MubbleContext()
     ctx2 = GlobalContext("mubble")  # same, but without the type-hints
     assert ctx1 == ctx2  # ok
-    ```"""
+    ```
+    """
 
     __ctx_name__ = "mubble"
 

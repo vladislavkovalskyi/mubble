@@ -7,7 +7,7 @@ from mubble.api.api import API
 from mubble.bot.dispatch.context import Context
 from mubble.bot.dispatch.process import check_rule
 from mubble.modules import logger
-from mubble.node.base import Node, get_nodes
+from mubble.node.base import NodeType, get_nodes
 from mubble.node.composer import NodeCollection, compose_nodes
 from mubble.tools.adapter.abc import ABCAdapter
 from mubble.tools.adapter.dataclass import DataclassAdapter
@@ -24,33 +24,23 @@ if typing.TYPE_CHECKING:
 
 Function = typing.TypeVar("Function", bound="Func[..., typing.Any]")
 Event = typing.TypeVar("Event")
-ErrorHandlerT = typing.TypeVar(
-    "ErrorHandlerT", bound=ABCErrorHandler, default=ErrorHandler
-)
+ErrorHandlerT = typing.TypeVar("ErrorHandlerT", bound=ABCErrorHandler, default=ErrorHandler)
 
-type Func[**Rest, Result] = typing.Callable[
-    Rest, typing.Coroutine[typing.Any, typing.Any, Result]
-]
+type Func[**Rest, Result] = typing.Callable[Rest, typing.Coroutine[typing.Any, typing.Any, Result]]
 
 
 @dataclasses.dataclass(repr=False, slots=True)
 class FuncHandler(ABCHandler[Event], typing.Generic[Event, Function, ErrorHandlerT]):
     function: Function
     rules: list["ABCRule"]
-    adapter: ABCAdapter[Update, Event] | None = dataclasses.field(
-        default=None, kw_only=True
-    )
-    is_blocking: bool = dataclasses.field(default=True, kw_only=True)
-    dataclass: type[typing.Any] | None = dataclasses.field(
-        default=dict[str, typing.Any], kw_only=True
-    )
+    adapter: ABCAdapter[Update, Event] | None = dataclasses.field(default=None, kw_only=True)
+    final: bool = dataclasses.field(default=True, kw_only=True)
+    dataclass: type[typing.Any] | None = dataclasses.field(default=dict[str, typing.Any], kw_only=True)
     error_handler: ErrorHandlerT = dataclasses.field(
         default_factory=lambda: typing.cast(ErrorHandlerT, ErrorHandler()),
         kw_only=True,
     )
-    preset_context: Context = dataclasses.field(
-        default_factory=lambda: Context(), kw_only=True
-    )
+    preset_context: Context = dataclasses.field(default_factory=lambda: Context(), kw_only=True)
     update_type: UpdateType | None = dataclasses.field(default=None, kw_only=True)
 
     def __post_init__(self) -> None:
@@ -64,22 +54,20 @@ class FuncHandler(ABCHandler[Event], typing.Generic[Event, Function, ErrorHandle
         return self.function
 
     def __repr__(self) -> str:
-        return (
-            "<{}: {}={!r} with rules={!r}, dataclass={!r}, error_handler={!r}>".format(
-                self.__class__.__name__,
-                "blocking function" if self.is_blocking else "function",
-                self.function.__qualname__,
-                self.rules,
-                self.dataclass,
-                self.error_handler,
-            )
+        return "<{}: {}={!r} with rules={!r}, dataclass={!r}, error_handler={!r}>".format(
+            self.__class__.__name__,
+            "final function" if self.final else "function",
+            self.function.__qualname__,
+            self.rules,
+            self.dataclass,
+            self.error_handler,
         )
 
     @cached_property
-    def required_nodes(self) -> dict[str, type[Node]]:
+    def required_nodes(self) -> dict[str, type[NodeType]]:
         return get_nodes(self.function)
 
-    def get_func_event_param(self, event: Event) -> str | None:
+    def get_name_event_param(self, event: Event) -> str | None:
         event_class = self.dataclass or event.__class__
         for k, v in get_annotations(self.function).items():
             if isinstance(v := typing.get_origin(v) or v, type) and v is event_class:
@@ -105,11 +93,9 @@ class FuncHandler(ABCHandler[Event], typing.Generic[Event, Function, ErrorHandle
         nodes = self.required_nodes
         node_col = None
         if nodes:
-            result = await compose_nodes(nodes, ctx, data={Update: event, API: api})
+            result = await compose_nodes(nodes, ctx, data={Update: update, API: api})
             if not result:
-                logger.debug(
-                    f"Cannot compose nodes for handler. Error: {result.error!r}"
-                )
+                logger.debug(f"Cannot compose nodes for handler, error: {str(result.error)}")
                 return False
 
             node_col = result.value
@@ -130,7 +116,7 @@ class FuncHandler(ABCHandler[Event], typing.Generic[Event, Function, ErrorHandle
         logger.debug(f"Running handler {self!r}...")
 
         try:
-            if event_param := self.get_func_event_param(event):
+            if event_param := self.get_name_event_param(event):
                 ctx = Context(**{event_param: event, **ctx})
             return await self(**magic_bundle(self.function, ctx, start_idx=0))
         except BaseException as exception:

@@ -16,17 +16,13 @@ from mubble.types.objects import Model, Update
 class EventAdapter[ToEvent: BaseCute](ABCAdapter[Update, ToEvent]):
     ADAPTED_VALUE_KEY: str = "_adapted_cute_event"
 
-    def __init__(
-        self, event: UpdateType | type[Model], cute_model: type[ToEvent]
-    ) -> None:
+    def __init__(self, event: UpdateType | type[Model], cute_model: type[ToEvent]) -> None:
         self.event = event
         self.cute_model = cute_model
 
     def __repr__(self) -> str:
         raw_update_type = (
-            f"Update -> {self.event.__name__}"
-            if isinstance(self.event, type)
-            else f"Update.{self.event.value}"  # type: ignore
+            f"Update -> {self.event.__name__}" if isinstance(self.event, type) else f"Update.{self.event.value}"  # type: ignore
         )
         return "<{}: adapt {} -> {}>".format(
             self.__class__.__name__,
@@ -38,16 +34,12 @@ class EventAdapter[ToEvent: BaseCute](ABCAdapter[Update, ToEvent]):
         if isinstance(self.event, UpdateType) and self.event == update.update_type:
             return update.incoming_update
 
-        if not isinstance(self.event, UpdateType) and (
-            event := update.get_event(self.event)
-        ):
+        if not isinstance(self.event, UpdateType) and (event := update.get_event(self.event)):
             return event.unwrap()
 
         return None
 
-    def adapt(
-        self, api: API, update: Update, context: Context
-    ) -> Result[ToEvent, AdapterError]:
+    def adapt(self, api: API, update: Update, context: Context) -> Result[ToEvent, AdapterError]:
         match RawUpdateAdapter().adapt(api, update, context):
             case Ok(update_cute) if event := self.get_event(update_cute):
                 if self.ADAPTED_VALUE_KEY in context:

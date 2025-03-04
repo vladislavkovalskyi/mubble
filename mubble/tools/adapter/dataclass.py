@@ -26,9 +26,7 @@ class DataclassAdapter[Dataclass](ABCAdapter[Update, Dataclass]):
     def __repr__(self) -> str:
         return f"<Update -> {self.dataclass.__name__}>"
 
-    def adapt(
-        self, api: API, update: Update, context: Context
-    ) -> Result[Dataclass, AdapterError]:
+    def adapt(self, api: API, update: Update, context: Context) -> Result[Dataclass, AdapterError]:
         if self.ADAPTED_VALUE_KEY in context:
             return Ok(context[self.ADAPTED_VALUE_KEY])
 
@@ -47,13 +45,9 @@ class DataclassAdapter[Dataclass](ABCAdapter[Update, Dataclass]):
                             else self.dataclass(**val.to_dict())
                         )
                     case Nothing():
-                        return Error(
-                            AdapterError(f"Update has no event {update_type!r}.")
-                        )
+                        return Error(AdapterError(f"Update has no event {update_type!r}."))
         except Exception as e:
-            return Error(
-                AdapterError(f"Cannot adapt Update to {self.dataclass!r}, error: {e!r}")
-            )
+            return Error(AdapterError(f"Cannot adapt Update to {self.dataclass!r}, error: {e!r}"))
 
         context[self.ADAPTED_VALUE_KEY] = dataclass
         return Ok(dataclass)  # type: ignore

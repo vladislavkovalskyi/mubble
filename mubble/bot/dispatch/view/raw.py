@@ -15,79 +15,80 @@ from mubble.types.objects import Update
 
 
 class RawEventView(ABCEventRawView[UpdateCute], BaseView[UpdateCute]):
-    def __init__(self) -> None:
-        self.auto_rules = []
-        self.handlers = []
-        self.middlewares = []
-        self.return_manager = None
-
     @typing.overload
-    def __call__[
-        **P, R
-    ](
+    def __call__[**P, R](
         self,
-        update_type: UpdateType,
         *rules: ABCRule,
-        is_blocking: bool = True,
+        update_type: UpdateType,
+        final: bool = True,
     ) -> typing.Callable[
         [Func[P, R]],
-        FuncHandler[
-            BaseCute[typing.Any], Func[P, R], ErrorHandler[BaseCute[typing.Any]]
-        ],
+        FuncHandler[BaseCute[typing.Any], Func[P, R], ErrorHandler[BaseCute[typing.Any]]],
     ]: ...
 
     @typing.overload
-    def __call__[
-        **P, Dataclass, R
-    ](
+    def __call__[**P, Dataclass, R](
         self,
-        update_type: UpdateType,
         *rules: ABCRule,
         dataclass: type[Dataclass],
-    ) -> typing.Callable[
-        [Func[P, R]], FuncHandler[Dataclass, Func[P, R], ErrorHandler[Dataclass]]
-    ]: ...
+        final: bool = True,
+    ) -> typing.Callable[[Func[P, R]], FuncHandler[Dataclass, Func[P, R], ErrorHandler[Dataclass]]]: ...
 
     @typing.overload
-    def __call__[
-        **P, ErrorHandlerT: ABCErrorHandler, R
-    ](
+    def __call__[**P, Dataclass, R](
         self,
+        *rules: ABCRule,
         update_type: UpdateType,
+        dataclass: type[Dataclass],
+        final: bool = True,
+    ) -> typing.Callable[[Func[P, R]], FuncHandler[Dataclass, Func[P, R], ErrorHandler[Dataclass]]]: ...
+
+    @typing.overload
+    def __call__[**P, ErrorHandlerT: ABCErrorHandler, R](
+        self,
         *rules: ABCRule,
         error_handler: ErrorHandlerT,
+        final: bool = True,
     ) -> typing.Callable[
         [Func[P, R]],
         FuncHandler[BaseCute[typing.Any], Func[P, R], ErrorHandlerT],
     ]: ...
 
     @typing.overload
-    def __call__[
-        **P, Dataclass, ErrorHandlerT: ABCErrorHandler, R
-    ](
+    def __call__[**P, ErrorHandlerT: ABCErrorHandler, R](
         self,
-        update_type: UpdateType,
         *rules: ABCRule,
+        error_handler: ErrorHandlerT,
+        update_type: UpdateType,
+        final: bool = True,
+    ) -> typing.Callable[
+        [Func[P, R]],
+        FuncHandler[BaseCute[typing.Any], Func[P, R], ErrorHandlerT],
+    ]: ...
+
+    @typing.overload
+    def __call__[**P, Dataclass, ErrorHandlerT: ABCErrorHandler, R](
+        self,
+        *rules: ABCRule,
+        update_type: UpdateType,
         dataclass: type[Dataclass],
         error_handler: ErrorHandlerT,
-        is_blocking: bool = True,
-    ) -> typing.Callable[
-        [Func[P, R]], FuncHandler[Dataclass, Func[P, R], ErrorHandlerT]
-    ]: ...
+        final: bool = True,
+    ) -> typing.Callable[[Func[P, R]], FuncHandler[Dataclass, Func[P, R], ErrorHandlerT]]: ...
 
     def __call__(
         self,
-        update_type: UpdateType,
         *rules: ABCRule,
+        update_type: UpdateType | None = None,
         dataclass: type[typing.Any] | None = None,
         error_handler: ABCErrorHandler | None = None,
-        is_blocking: bool = True,
+        final: bool = True,
     ) -> typing.Callable[..., typing.Any]:
-        def wrapper(func):
+        def wrapper(func: typing.Callable[..., typing.Any]):
             func_handler = FuncHandler(
                 func,
                 rules=[*self.auto_rules, *rules],
-                is_blocking=is_blocking,
+                final=final,
                 dataclass=dataclass,
                 error_handler=error_handler or ErrorHandler(),
                 update_type=update_type,

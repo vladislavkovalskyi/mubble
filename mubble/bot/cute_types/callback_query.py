@@ -7,13 +7,8 @@ from fntypes.co import Nothing, Result, Some, Variative, unwrapping
 
 from mubble.api import API, APIError
 from mubble.bot.cute_types.base import BaseCute, compose_method_params
-from mubble.bot.cute_types.message import (
-    MediaType,
-    MessageCute,
-    ReplyMarkup,
-    execute_method_edit,
-)
-from mubble.model import From, field, get_params
+from mubble.bot.cute_types.message import MediaType, MessageCute, ReplyMarkup, execute_method_edit
+from mubble.model import UNSET, From, field, get_params
 from mubble.msgspec_utils import Option, decoder
 from mubble.tools.magic import shortcut
 from mubble.types.objects import *
@@ -23,7 +18,7 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
     api: API
 
     message: Option[Variative[MessageCute, InaccessibleMessage]] = field(
-        default=Nothing(),
+        default=UNSET,
         converter=From[MessageCute | InaccessibleMessage | None],
     )
     """Optional. Message sent by the bot with the callback button that originated
@@ -36,20 +31,18 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
     @property
     def chat_id(self) -> Option[int]:
         """Optional. Message from chat ID. This will be present if the message is sent
-        by the bot with the callback button that originated the query."""
-
+        by the bot with the callback button that originated the query.
+        """
         return self.message.map(lambda m: m.v.chat.id)
 
     @property
     def is_topic_message(self) -> Option[bool]:
         """Optional. True, if the message is a topic message with a name,
         color and icon. This will be present if the message is sent
-        by the bot with the callback button that originated the query."""
-
+        by the bot with the callback button that originated the query.
+        """
         return self.message.map(
-            lambda m: m.only()
-            .map(lambda m: m.is_topic_message.unwrap_or(False))
-            .unwrap_or(False),
+            lambda m: m.only().map(lambda m: m.is_topic_message.unwrap_or(False)).unwrap_or(False),
         )
 
     @property
@@ -57,21 +50,15 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
     def message_thread_id(self) -> Option[int]:
         """Optional. Unique identifier of the target message thread (for forum supergroups only).
         This will be present if the message is sent
-        by the bot with the callback button that originated the query."""
-
-        return (
-            self.message.unwrap()
-            .only()
-            .map(lambda m: m.message_thread_id.unwrap())
-            .cast(Some, Nothing)
-        )
+        by the bot with the callback button that originated the query.
+        """
+        return self.message.unwrap().only().map(lambda m: m.message_thread_id.unwrap()).cast(Some, Nothing)
 
     @property
     def message_id(self) -> Option[int]:
         """Optional. Unique message identifier inside this chat. This will be present
         if the message is sent by the bot with the callback button that originated the query.
         """
-
         return self.message.map(lambda m: m.v.message_id)
 
     @property
@@ -79,7 +66,6 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         """Optional. Chat the callback query originated from. This will be present
         if the message is sent by the bot with the callback button that originated the query.
         """
-
         return self.message.map(lambda m: m.v.chat)
 
     @typing.overload
@@ -88,7 +74,7 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
     @typing.overload
     def decode_data[T](self, *, to: type[T]) -> Option[T]: ...
 
-    def decode_data[T](self, *, to: type[T] = dict) -> Option[T]:
+    def decode_data[T](self, *, to: type[T] = dict[str, typing.Any]) -> Option[T]:
         if not self.data:
             return Nothing()
 
@@ -100,15 +86,13 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
             data = (
                 Some(decoder.decode(self.data.unwrap(), type=to))
                 if not issubclass(to, str | bytes)
-                else (
-                    self.data
-                    if issubclass(to, str)
-                    else Some(base64.urlsafe_b64decode(self.data.unwrap()))
-                )
+                else self.data
+                if issubclass(to, str)
+                else Some(base64.urlsafe_b64decode(self.data.unwrap()))
             )
 
         self.__dict__["cached_callback_data"] = data
-        return data
+        return data  # type: ignore
 
     @shortcut("answer_callback_query", custom_params={"callback_query_id"})
     async def answer(
@@ -126,10 +110,7 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         Use this method to send answers to callback queries sent from inline keyboards.
         The answer will be displayed to the user as a notification at the top of the
         chat screen or as an alert. On success, True is returned."""
-
-        params = compose_method_params(
-            get_params(locals()), self, default_params={("callback_query_id", "id")}
-        )
+        params = compose_method_params(get_params(locals()), self, default_params={("callback_query_id", "id")})
         return await self.ctx_api.answer_callback_query(**params)
 
     @shortcut(
@@ -158,6 +139,7 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         reply_markup: ReplyMarkup | None = None,
         reply_parameters: ReplyParameters | None = None,
         show_caption_above_media: bool | None = None,
+        video_start_timestamp: int | None = None,
         **other: typing.Any,
     ) -> Result[MessageId, APIError]:
         """Shortcut `API.copy_message()`, see the [documentation](https://core.telegram.org/bots/api#copymessage)
@@ -168,12 +150,9 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         field correct_option_id is known to the bot. The method is analogous to
         the method forwardMessage, but the copied message doesn't have a link to
         the original message. Returns the MessageId of the sent message on success."""
-
         return await MessageCute.copy(self, **get_params(locals()))  # type: ignore
 
-    @shortcut(
-        "delete_message", custom_params={"message_thread_id", "chat_id", "message_id"}
-    )
+    @shortcut("delete_message", custom_params={"message_thread_id", "chat_id", "message_id"})
     async def delete(
         self,
         *,
@@ -195,7 +174,6 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         of a group, it can delete any message there. - If the bot has can_delete_messages
         permission in a supergroup or a channel, it can delete any message there.
         Returns True on success."""
-
         return await MessageCute.delete(self, **get_params(locals()))  # type: ignore
 
     @shortcut(
@@ -241,7 +219,6 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         :param link_preview_options: Link preview generation options for the message.
 
         :param reply_markup: A JSON-serialized object for an inline keyboard."""
-
         ...
 
     @shortcut(
@@ -290,7 +267,6 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         :param proximity_alert_radius: The maximum distance for proximity alerts about approaching another chatmember, in meters. Must be between 1 and 100000 if specified.
 
         :param reply_markup: A JSON-serialized object for a new inline keyboard."""
-
         ...
 
     @shortcut(
@@ -335,7 +311,6 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         :param show_caption_above_media: Pass True, if the caption must be shown above the message media. Supportedonly for animation, photo and video messages.
 
         :param reply_markup: A JSON-serialized object for an inline keyboard."""
-
         ...
 
     @shortcut(
@@ -386,7 +361,6 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         :param media: A JSON-serialized object for a new media content of the message.
 
         :param reply_markup: A JSON-serialized object for a new inline keyboard."""
-
         return await MessageCute.edit_media(self, **get_params(locals()))  # type: ignore
 
     @shortcut(
@@ -420,7 +394,6 @@ class CallbackQueryCute(BaseCute[CallbackQuery], CallbackQuery, kw_only=True):
         :param inline_message_id: Required if chat_id and message_id are not specified. Identifier of theinline message.
 
         :param reply_markup: A JSON-serialized object for an inline keyboard."""
-
         ...
 
 

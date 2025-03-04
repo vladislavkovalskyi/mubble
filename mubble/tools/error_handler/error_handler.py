@@ -11,7 +11,8 @@ from mubble.tools.error_handler.error import CatcherError
 from mubble.tools.magic import magic_bundle
 
 type FuncCatcher[Exc: BaseException] = typing.Callable[
-    typing.Concatenate[Exc, ...], typing.Awaitable[typing.Any]
+    typing.Concatenate[Exc, ...],
+    typing.Awaitable[typing.Any],
 ]
 
 
@@ -66,12 +67,7 @@ class Catcher[Event]:
                     self.func.__name__,
                 )
             )
-            return Ok(
-                await self.func(
-                    exception,
-                    **magic_bundle(self.func, {"event": event, "api": api} | ctx),
-                )
-            )
+            return Ok(await self.func(exception, **magic_bundle(self.func, {"event": event, "api": api} | ctx)))
 
         logger.debug("Failed to match exception {!r}.", exception.__class__.__name__)
         return Error(exception)
@@ -85,10 +81,7 @@ class ErrorHandler[Event](ABCErrorHandler[Event]):
         return (
             "<{}: exceptions=[{}], catcher={!r}>".format(
                 self.__class__.__name__,
-                ", ".join(
-                    e.__name__ if isinstance(e, type) else repr(e)
-                    for e in self.catcher.exceptions
-                ),
+                ", ".join(e.__name__ if isinstance(e, type) else repr(e) for e in self.catcher.exceptions),
                 self.catcher,
             )
             if self.catcher is not None
@@ -122,9 +115,7 @@ class ErrorHandler[Event](ABCErrorHandler[Event]):
 
         return decorator
 
-    def _process_catcher_error(
-        self, error: CatcherError
-    ) -> Result[None, BaseException]:
+    def _process_catcher_error(self, error: CatcherError) -> Result[None, BaseException]:
         assert self.catcher is not None
 
         if self.catcher.raise_exception:
@@ -151,7 +142,7 @@ class ErrorHandler[Event](ABCErrorHandler[Event]):
             return Error(
                 CatcherError(
                     exc,
-                    "Exception {!r} was occurred during the running catcher {!r}.".format(
+                    "{!r} was occurred during the running catcher {!r}.".format(
                         exc,
                         self.catcher.func.__name__,
                     ),
@@ -180,10 +171,8 @@ class ErrorHandler[Event](ABCErrorHandler[Event]):
             case Error(exc):
                 if isinstance(exc, CatcherError):
                     return self._process_catcher_error(exc).unwrap()
-
                 if self.catcher.ignore_errors:
                     return None
-
                 raise exc from None
 
 

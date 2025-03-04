@@ -30,9 +30,7 @@ class StartCommand(
 
     def check(self, ctx: Context) -> bool:
         param: str | None = ctx.pop("param", None)
-        validated_param = (
-            self.validator(param) if self.validator and param is not None else param
-        )
+        validated_param = self.validator(param) if self.validator and param is not None else param
 
         if self.param_required and validated_param is None:
             return False

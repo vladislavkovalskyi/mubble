@@ -9,89 +9,86 @@ from mubble.bot.dispatch.context import Context
 from mubble.modules import logger
 from mubble.node.base import (
     ComposeError,
+    IsNode,
     Name,
-    Node,
+    NodeImpersonation,
     NodeScope,
-    get_node_calc_lst,
+    NodeType,
+    unwrap_node,
 )
-from mubble.tools.magic import magic_bundle
+from mubble.tools.magic import join_dicts, magic_bundle
+
+type AsyncGenerator = typing.AsyncGenerator[typing.Any, None]
 
 CONTEXT_STORE_NODES_KEY = "_node_ctx"
 GLOBAL_VALUE_KEY = "_value"
 
 
+def get_scope(node: type[NodeType], /) -> NodeScope | None:
+    return getattr(node, "scope", None)
+
+
 async def compose_node(
-    _node: type[Node],
+    node: type[NodeType],
     linked: dict[type[typing.Any], typing.Any],
+    data: dict[type[typing.Any], typing.Any] | None = None,
 ) -> "NodeSession":
-    node = _node.as_node()
-    kwargs = magic_bundle(node.compose, linked, typebundle=True)
+    subnodes = node.get_subnodes()
+    kwargs = magic_bundle(node.compose, join_dicts(subnodes, linked))
+
+    # Linking data via typebundle
+    if data:
+        kwargs.update(magic_bundle(node.compose, data, typebundle=True))
 
     if node.is_generator():
-        generator = typing.cast(
-            typing.AsyncGenerator[typing.Any, None], node.compose(**kwargs)
-        )
+        generator = typing.cast(AsyncGenerator, node.compose(**kwargs))
         value = await generator.asend(None)
     else:
         generator = None
-        value = typing.cast(
-            typing.Awaitable[typing.Any] | typing.Any, node.compose(**kwargs)
-        )
+        value = node.compose(**kwargs)
         if inspect.isawaitable(value):
             value = await value
 
-    return NodeSession(_node, value, {}, generator)
+    return NodeSession(node, value, subnodes={}, generator=generator)
 
 
 async def compose_nodes(
-    nodes: dict[str, type[Node]],
+    nodes: typing.Mapping[str, IsNode | NodeImpersonation],
     ctx: Context,
     data: dict[type[typing.Any], typing.Any] | None = None,
 ) -> Result["NodeCollection", ComposeError]:
-    logger.debug("Composing nodes: {!r}...", nodes)
+    logger.debug("Composing nodes: ({})...", " ".join(f"{k}={v!r}" for k, v in nodes.items()))
 
-    local_nodes: dict[type[Node], NodeSession]
     data = {Context: ctx} | (data or {})
-    parent_nodes: dict[type[Node], NodeSession] = {}
-    event_nodes: dict[type[Node], NodeSession] = ctx.get_or_set(
-        CONTEXT_STORE_NODES_KEY, {}
-    )
-    # TODO: optimize flattened list calculation via caching key = tuple of node types
-    calculation_nodes: dict[tuple[str, type[Node]], tuple[type[Node], ...]] = {
-        (node_name, node_t): tuple(get_node_calc_lst(node_t))
-        for node_name, node_t in nodes.items()
-    }
+    parent_nodes = dict[IsNode, NodeSession]()
+    event_nodes: dict[IsNode, NodeSession] = ctx.get_or_set(CONTEXT_STORE_NODES_KEY, {})
+    unwrapped_nodes = {(key, n := node.as_node()): unwrap_node(n) for key, node in nodes.items()}
 
-    for (parent_node_name, parent_node_t), linked_nodes in calculation_nodes.items():
-        local_nodes = {}
+    for (parent_node_name, parent_node_t), linked_nodes in unwrapped_nodes.items():
+        local_nodes = dict[type[NodeType], NodeSession]()
         subnodes = {}
         data[Name] = parent_node_name
 
         for node_t in linked_nodes:
-            scope = getattr(node_t, "scope", None)
+            scope = get_scope(node_t)
 
             if scope is NodeScope.PER_EVENT and node_t in event_nodes:
                 local_nodes[node_t] = event_nodes[node_t]
                 continue
             elif scope is NodeScope.GLOBAL and hasattr(node_t, GLOBAL_VALUE_KEY):
-                local_nodes[node_t] = NodeSession(
-                    node_t, getattr(node_t, GLOBAL_VALUE_KEY), {}
-                )
+                local_nodes[node_t] = NodeSession(node_t, getattr(node_t, GLOBAL_VALUE_KEY), {})
                 continue
 
             subnodes |= {
-                k: session.value
-                for k, session in (local_nodes | event_nodes).items()
-                if k not in subnodes
+                k: session.value for k, session in (local_nodes | event_nodes).items() if k not in subnodes
             }
-
             try:
-                local_nodes[node_t] = await compose_node(node_t, subnodes | data)
+                local_nodes[node_t] = await compose_node(node_t, linked=subnodes, data=data)
             except (ComposeError, UnwrapError) as exc:
                 for t, local_node in local_nodes.items():
-                    if t.scope is NodeScope.PER_CALL:
+                    if get_scope(t) is NodeScope.PER_CALL:
                         await local_node.close()
-                return Error(ComposeError(f"Cannot compose {node_t}. Error: {exc}"))
+                return Error(ComposeError(f"Cannot compose {node_t!r}, error: {str(exc)}"))
 
             if scope is NodeScope.PER_EVENT:
                 event_nodes[node_t] = local_nodes[node_t]
@@ -100,21 +97,18 @@ async def compose_nodes(
 
         parent_nodes[parent_node_t] = local_nodes[parent_node_t]
 
-    node_sessions = {k: parent_nodes[t] for k, t in nodes.items()}
-    return Ok(NodeCollection(node_sessions))
+    return Ok(NodeCollection({k: parent_nodes[t] for k, t in unwrapped_nodes}))
 
 
 @dataclasses.dataclass(slots=True, repr=False)
 class NodeSession:
-    node_type: type[Node] | None
+    node_type: type[NodeType] | None
     value: typing.Any
     subnodes: dict[str, typing.Self]
     generator: typing.AsyncGenerator[typing.Any, typing.Any | None] | None = None
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__name__}: {self.value!r}" + (
-            " (ACTIVE)>" if self.generator else ">"
-        )
+        return f"<{self.__class__.__name__}: {self.value!r}" + (" (ACTIVE)>" if self.generator else ">")
 
     async def close(
         self,
