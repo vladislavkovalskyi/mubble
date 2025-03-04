@@ -1,4 +1,4 @@
-# Mubble 1.5.1 (stable)
+# Mubble 1.6.0 (stable)
 
 [![Downloads](https://img.shields.io/pypi/dm/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)
 [![Downloads](https://img.shields.io/pypi/pyversions/mubble.svg?style=flat-square)](https://pypi.python.org/pypi/mubble)

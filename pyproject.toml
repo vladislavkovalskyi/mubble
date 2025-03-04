@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mubble"
-version = "1.5.2"
+version = "1.6.0"
 description = "Modern Async Telegram framework for bot building"
 authors = [{ name = "vladislavkovalskyi", email = "vladislavkovalskyi@icloud.com" }]
 requires-python = ">=3.12,<4.0"
