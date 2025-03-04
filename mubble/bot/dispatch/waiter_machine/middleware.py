@@ -37,7 +37,9 @@ class WaiterMiddleware[Event: BaseCute](ABCMiddleware[Event]):
             logger.info(f"Unable to get hash from event with hasher {self.hasher!r}")
             return True
 
-        short_state: "ShortState[Event] | None" = self.machine.storage[self.hasher].get(key.unwrap())
+        short_state: "ShortState[Event] | None" = self.machine.storage[self.hasher].get(
+            key.unwrap()
+        )
         if not short_state:
             return True
 
@@ -55,7 +57,10 @@ class WaiterMiddleware[Event: BaseCute](ABCMiddleware[Event]):
             logger.debug("Filter rule {!r} failed", short_state.filter)
             return True
 
-        if short_state.expiration_date is not None and datetime.datetime.now() >= short_state.expiration_date:
+        if (
+            short_state.expiration_date is not None
+            and datetime.datetime.now() >= short_state.expiration_date
+        ):
             await self.machine.drop(
                 self.hasher,
                 self.hasher.get_data_from_event(event).unwrap(),
@@ -84,8 +89,10 @@ class WaiterMiddleware[Event: BaseCute](ABCMiddleware[Event]):
         self,
         event: Event,
         short_state: "ShortState[Event]",
-        ctx: Context,
+        ctx: Context | None = None,
     ) -> None:
+        if ctx is None:
+            ctx = Context()
         ctx.initiator = self.hasher
         short_state.context = ShortStateContext(event, ctx)
         short_state.event.set()
