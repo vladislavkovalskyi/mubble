@@ -1,4 +1,4 @@
-# Mubble Documentation
+# Mubble Documentation (AUTO-GENERATED)
 
 Welcome to the Mubble documentation! Mubble is a modern, type-safe framework for building Telegram bots in Python.
 
@@ -44,9 +44,8 @@ Check out the `examples` directory for complete examples of Mubble bots.
 
 If you need help with Mubble, you can:
 
-1. Join our [Discord server](https://discord.gg/your-discord-server)
-2. Open an issue on [GitHub](https://github.com/your-username/mubble/issues)
-3. Ask a question in the [GitHub Discussions](https://github.com/your-username/mubble/discussions)
+1. Open an issue on [GitHub](https://github.com/vladislavkovalskyi/mubble/issues)
+2. Ask a question in the [GitHub Discussions](https://github.com/vladislavkovalskyi/mubble/discussions)
 
 ## License
 

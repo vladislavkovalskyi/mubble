@@ -7,7 +7,7 @@
   <img src="https://github.com/vladislavkovalskyi/mubble/blob/master/images/mubble_logo.png?raw=true" alt="Github" width="100%">
 </a>
 
-<a href="https://github.com/vladislavkovalskyi/mubble/blob/master/examples">
+<a href="https://github.com/vladislavkovalskyi/mubble/blob/master/docs">
   <img src="https://github.com/vladislavkovalskyi/mubble/blob/master/images/click_here.png?raw=true" alt="Examples" width="100%">
 </a>
 
